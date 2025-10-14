@@ -220,6 +220,8 @@ builder.Services.AddSwaggerGen(c =>
     c.UseAllOfToExtendReferenceSchemas();
 });
 
+builder.Services.AddHostedService<EmailQueueProcessorService>();
+
 var app = builder.Build();
 
 app.UseStaticFiles(new StaticFileOptions
