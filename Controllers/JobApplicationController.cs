@@ -2,25 +2,24 @@
 using Microsoft.AspNetCore.Mvc;
 using JobOnlineAPI.DAL;
 using System.Data;
+using JobOnlineAPI.Filters;
+using JobOnlineAPI.Services;
 
 namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class JobApplicationController : ControllerBase
+    public class JobApplicationController(
+        DapperContext context,
+        ILogger<JobApplicationController> logger,
+        IEmailNotificationService emailNotificationService) : ControllerBase
     {
-        private readonly DapperContext _context;
-        private readonly ILogger<JobApplicationController> _logger;
-
-        public JobApplicationController(
-            DapperContext context,
-            ILogger<JobApplicationController> logger)
-        {
-            _context = context;
-            _logger = logger;
-        }
+        private readonly DapperContext _context = context;
+        private readonly ILogger<JobApplicationController> _logger = logger;
+        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
 
         [HttpPut("update-to-success")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -38,7 +37,7 @@ namespace JobOnlineAPI.Controllers
                 var parameters = new DynamicParameters();
                 parameters.Add("@ApplicationID", applicationId);
 
-                var result = await connection.QuerySingleOrDefaultAsync<string>(
+                var result = await connection.QuerySingleOrDefaultAsync<dynamic>(
                     "UpdateJobApplicationToSuccess",
                     parameters,
                     commandType: CommandType.StoredProcedure
@@ -49,7 +48,10 @@ namespace JobOnlineAPI.Controllers
                     return BadRequest("อัปเดตไม่สำเร็จ กรุณาตรวจสอบข้อมูลอีกครั้ง");
                 }
 
-                return Ok(new { message = result });
+                string message = result.Message ?? "อัปเดตสำเร็จ";
+                _logger.LogInformation("Application updated to success for ApplicationID {ApplicationId}. Email queued for sending.", applicationId);
+
+                return Ok(new { message });
             }
             catch (Exception ex)
             {
@@ -59,6 +61,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("applications-with-link-status")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobApplicationsWithLinkStatus()
