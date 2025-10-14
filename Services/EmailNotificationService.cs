@@ -95,7 +95,7 @@ namespace JobOnlineAPI.Services
                 var resultsNewlist = resultsNew.Where(staff => staff.DATATYPE == "Openfor").ToList();
                 string fullName = string.Empty;
                 // ถ้าไม่มี DATATYPE == "Openfor" ให้ใช้ results เดิม
-                if (resultsNewlist.Any())
+                if (resultsNewlist.Count != 0)
                 {
                     var openForStaff = resultsNewlist.First(); 
                     fullName = $"{openForStaff.NAMFIRSTT} {openForStaff.NAMLASTT}".Trim();
@@ -111,7 +111,7 @@ namespace JobOnlineAPI.Services
                     {
                         fullName = "ไม่พบข้อมูลผู้สมัคร";
                     }
-                    resultsNewlist = resultsNew.ToList(); 
+                    resultsNewlist = [.. resultsNew]; 
                 }
                 foreach (var staff in resultsNewlist)
                 {
@@ -271,7 +271,7 @@ namespace JobOnlineAPI.Services
 
             var candidateNames = requestData.Candidates?
                 .Select((candidate, index) => $"{index + 1}. คุณ {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
-                .ToList() ?? new List<string>();
+                .ToList() ?? [];
 
             string candidateNamesString = string.Join("<br>", candidateNames);
 

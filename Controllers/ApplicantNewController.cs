@@ -27,6 +27,11 @@ namespace JobOnlineAPI.Controllers
         private const string ApplicantIdKey = "ApplicantID";
         private const string UserIdKey = "UserId";
 
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
         private sealed record JobApprovalData(
             int JobId,
             string ApprovalStatus,
@@ -60,7 +65,7 @@ namespace JobOnlineAPI.Controllers
                 if (string.IsNullOrEmpty(jsonData))
                     return BadRequest("JSON data is required.");
 
-                var request = JsonSerializer.Deserialize<ExpandoObject>(jsonData);
+                var request = JsonSerializer.Deserialize<ExpandoObject>(jsonData, JsonOptions);
                 if (request is not IDictionary<string, object?> req || !req.TryGetValue(JobIdKey, out var jobIdObj) || jobIdObj == null)
                     return BadRequest("Invalid or missing JobID.");
 
@@ -110,8 +115,8 @@ namespace JobOnlineAPI.Controllers
                 if (string.IsNullOrEmpty(jsonData))
                     return BadRequest("JSON data is required.");
 
-                // แปลง JSON → ExpandoObject
-                var request = JsonSerializer.Deserialize<ExpandoObject>(jsonData);
+                // แก้ไข: ใช้ JsonOptions
+                var request = JsonSerializer.Deserialize<ExpandoObject>(jsonData, JsonOptions);
                 if (request is not IDictionary<string, object?> req || !req.TryGetValue("JobID", out var jobIdObj) || jobIdObj == null)
                     return BadRequest("Invalid or missing JobID.");
 
@@ -176,11 +181,10 @@ namespace JobOnlineAPI.Controllers
                     : "[]");
             }
 
-            // Main JSON input
-            param.Add("JsonInput", JsonSerializer.Serialize(req));
-
-            // Files list
-            param.Add("FilesList", JsonSerializer.Serialize(fileMetadatas));
+            // แก้ไข: ใช้ JsonOptions สำหรับ Serialize
+            param.Add("JsonInput", JsonSerializer.Serialize(req, JsonOptions));
+            // แก้ไข: ใช้ JsonOptions สำหรับ Serialize
+            param.Add("FilesList", JsonSerializer.Serialize(fileMetadatas, JsonOptions));
 
             // JobId
             param.Add("JobID", jobId);
@@ -508,15 +512,17 @@ namespace JobOnlineAPI.Controllers
                 kv => kv.Value
             );
 
-            if (!lowerCaseData.ContainsKey("applicantid") || !lowerCaseData.ContainsKey("status"))
+            // แก้ไข: ใช้ TryGetValue สำหรับ "applicantid" (lookup ครั้งเดียว + เช็ค null)
+            if (!lowerCaseData.TryGetValue("applicantid", out var applicantIdValue) || applicantIdValue == null)
             {
-                _logger.LogWarning("Missing required fields in request: applicantID or status");
+                _logger.LogWarning("Missing required fields in request: applicantID or status");  // หรือปรับ log เฉพาะ field ถ้าต้องการ
                 return new BadRequestObjectResult("Missing required fields: applicantID or status");
             }
 
-            if (lowerCaseData["applicantid"] == null || lowerCaseData["status"] == null)
+            // แก้ไข: ใช้ TryGetValue สำหรับ "status" (lookup ครั้งเดียว + เช็ค null)
+            if (!lowerCaseData.TryGetValue("status", out var statusValue) || statusValue == null)
             {
-                _logger.LogWarning("Invalid or null values for applicantID or status");
+                _logger.LogWarning("Invalid or null values for applicantID or status");  // หรือปรับ log เฉพาะ field
                 return new BadRequestObjectResult("Invalid or null values for applicantID or status");
             }
 
@@ -623,7 +629,7 @@ namespace JobOnlineAPI.Controllers
         //         return [];
         //     }
         // }
-        private List<CandidateDto> ExtractCandidates(IDictionary<string, object?> data)
+        private List<CandidateDto> ExtractCandidates(Dictionary<string, object?> data)  // แก้ไข: เปลี่ยนจาก IDictionary เป็น Dictionary สำหรับ performance
         {
             if (!data.TryGetValue("candidates", out object? candidatesObj) || candidatesObj == null)
                 return [];
@@ -632,9 +638,10 @@ namespace JobOnlineAPI.Controllers
             {
                 if (candidatesObj is JsonElement candidatesElement && candidatesElement.ValueKind == JsonValueKind.Array)
                 {
+                    // แก้ไข: ใช้ JsonOptions แทน new instance
                     return JsonSerializer.Deserialize<List<CandidateDto>>(
                         candidatesElement.GetRawText(),
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        JsonOptions
                     ) ?? [];
                 }
 
@@ -642,9 +649,10 @@ namespace JobOnlineAPI.Controllers
                 string? candidatesJson = candidatesObj.ToString();
                 if (!string.IsNullOrEmpty(candidatesJson))
                 {
+                    // แก้ไข: ใช้ JsonOptions แทน new instance
                     return JsonSerializer.Deserialize<List<CandidateDto>>(
                         candidatesJson,
-                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
+                        JsonOptions
                     ) ?? [];
                 }
             }
@@ -655,7 +663,6 @@ namespace JobOnlineAPI.Controllers
 
             return [];
         }
-
 
         private async Task UpdateStatusInDatabase(int applicantId, string status)
         {
