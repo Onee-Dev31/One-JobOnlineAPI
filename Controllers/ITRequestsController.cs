@@ -35,7 +35,7 @@ namespace JobOnlineAPI.Controllers
             {
                 // ดึงข้อมูล JSON และ clean string
                 string? jsonData = formCollection["jsonData"].FirstOrDefault()?.Trim();
-                if (string.IsNullOrWhiteSpace(jsonData))
+                if (string.IsNullOrWhiteSpace(jsonData) || jsonData == "[]")
                 {
                     _logger.LogWarning("Invalid or missing JSON data.");
                     return BadRequest(new { Error = "Invalid or missing JSON data." });
@@ -273,18 +273,18 @@ namespace JobOnlineAPI.Controllers
                 }
 
 
-                var firstResult = result.FirstOrDefault();
-                if (firstResult != null)
-                {
-                    string? reqNo = firstResult.ReqNo;
-                    string? approver1 = firstResult.APPROVER1;
-                    string? approver2 = firstResult.APPROVER2;
-                    string? approver3 = firstResult.APPROVER3;
-                    string? approver4 = firstResult.APPROVER4;
-                    string? approver5 = firstResult.APPROVER5;
-                    bool isUpdate = requestDataList.Any(data => data.ContainsKey("ID"));
-                    await SendITRequestEmail(requestDataList, newId.Value, isUpdate, reqNo, approver1, approver2, approver3, approver4, approver5);
-                }
+                //var firstResult = result.FirstOrDefault();
+                //if (firstResult != null)
+                //{
+                //    string? reqNo = firstResult.ReqNo;
+                //    string? approver1 = firstResult.APPROVER1;
+                //    string? approver2 = firstResult.APPROVER2;
+                //    string? approver3 = firstResult.APPROVER3;
+                //    string? approver4 = firstResult.APPROVER4;
+                //    string? approver5 = firstResult.APPROVER5;
+                //    bool isUpdate = requestDataList.Any(data => data.ContainsKey("ID"));
+                //    await SendITRequestEmail(requestDataList, newId.Value, isUpdate, reqNo, approver1, approver2, approver3, approver4, approver5);
+                //}
 
                 return Ok(new
                 {
@@ -496,40 +496,40 @@ namespace JobOnlineAPI.Controllers
                     .Where(a => !string.IsNullOrWhiteSpace(a) && IsValidEmail(a))
                     .ToList();
 
-                if (approvers.Count != 0)
-                {
-                    string approverBody = $"""
-                    <div style='font-family: Arial, sans-serif; padding: 20px;'>
-                        <p>An IT request #{reqNo} requires your approval.</p>
-                        <h3>Services Requested:</h3>
-                        {servicesList}
-                        <p>View details at <a href='https://your-app.com/it-requests/{id}'>Request #{reqNo}</a>.</p>
-                    </div>
-                    """;
+                //if (approvers.Count != 0)
+                //{
+                //    string approverBody = $"""
+                //    <div style='font-family: Arial, sans-serif; padding: 20px;'>
+                //        <p>An IT request #{reqNo} requires your approval.</p>
+                //        <h3>Services Requested:</h3>
+                //        {servicesList}
+                //        <p>View details at <a href='https://your-app.com/it-requests/{id}'>Request #{reqNo}</a>.</p>
+                //    </div>
+                //    """;
 
-                    foreach (var approver in approvers)
-                    {
-                        if (approver != null)
-                        {
-                            await _emailService.SendEmailAsync(approver, subject, approverBody, true, "IT-Request", null);
-                        }
-                    }
-                }
+                //    foreach (var approver in approvers)
+                //    {
+                //        if (approver != null)
+                //        {
+                //            await _emailService.SendEmailAsync(approver, subject, approverBody, true, "IT-Request", null);
+                //        }
+                //    }
+                //}
 
-                // Email for Requester
-                if (IsValidEmail(requesterEmail))
-                {
-                    string requesterBody = $"""
-                    <div style='font-family: Arial, sans-serif; padding: 20px;'>
-                        <p>Your IT request #{reqNo} has been {action}.</p>
-                        <h3>Services Requested:</h3>
-                        {servicesList}
-                        <p>View details at <a href='https://your-app.com/it-requests/{id}'>Request #{reqNo}</a>.</p>
-                    </div>
-                    """;
+                //// Email for Requester
+                //if (IsValidEmail(requesterEmail))
+                //{
+                //    string requesterBody = $"""
+                //    <div style='font-family: Arial, sans-serif; padding: 20px;'>
+                //        <p>Your IT request #{reqNo} has been {action}.</p>
+                //        <h3>Services Requested:</h3>
+                //        {servicesList}
+                //        <p>View details at <a href='https://your-app.com/it-requests/{id}'>Request #{reqNo}</a>.</p>
+                //    </div>
+                //    """;
 
-                    await _emailService.SendEmailAsync(requesterEmail, subject, requesterBody, true, "IT-Request", null);
-                }
+                //    await _emailService.SendEmailAsync(requesterEmail, subject, requesterBody, true, "IT-Request", null);
+                //}
             }
             catch (Exception ex)
             {
@@ -562,16 +562,17 @@ namespace JobOnlineAPI.Controllers
         }
         [HttpGet("dataUserAdmin")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
-        public async Task<IActionResult> GetDataUserAdmin([FromQuery] int? ApplicantID)
+        public async Task<IActionResult> GetDataUserAdmin([FromQuery] int? JobID)
         {
             try
             {
                 using var connection = new SqlConnection(_dbConnection.ConnectionString);
                 var parameters = new DynamicParameters();
-                parameters.Add("@ApplicantID", ApplicantID);
-
+                parameters.Add("@JobID", JobID);
+                // parameters.Add("@ApplicantID", ApplicantID);
+                // sp_listNameSignatures
                 var result = await connection.QueryAsync(new CommandDefinition(
-                    "sp_listNameSignatures",
+                    "sp_listNameSignaturesV2",
                     parameters,
                     commandType: CommandType.StoredProcedure));
 
@@ -604,6 +605,27 @@ namespace JobOnlineAPI.Controllers
             }
             return successCount;
         }
+
+        [HttpGet("dataUserAdminIT")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> GetDataUserAdminIT()
+        {
+            try
+            {
+                using var connection = new SqlConnection(_dbConnection.ConnectionString);
+                var parameters = new DynamicParameters();
+                var result = await connection.QueryAsync(new CommandDefinition(
+                    "sp_listNameSignaturesIT",
+                    commandType: CommandType.StoredProcedure));
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetDataUserAdmin");
+                return StatusCode(500, new { Error = "Internal server error", Details = ex.Message });
+            }
+        }
         private async Task<int> SendEmailsITAsync(int ApplicantID, string? TypeCondition, string? Name, string? CostCenter)
         {
             using var connection = new SqlConnection(_dbConnection.ConnectionString);
@@ -627,14 +649,16 @@ namespace JobOnlineAPI.Controllers
                 hrBody = $@"
                     <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                         <p style='margin: 0; font-weight: bold;'>ขอความกรุณาอนุมัติคำขอใช้งาน IT - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}</p>
-                        <p style='margin: 0;'>เรียน คุณ {firstRecord?.EMPITNameThai},</p>
-                        <p>ขอแจ้งให้ทราบว่า มีคำขอใช้งานระบบ IT สำหรับ คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} เข้ามา <br>กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม</p>
+                        <p style='margin: 0;'>เรียน คุณ{firstRecord?.NAMFIRSTT} {firstRecord?.NAMLASTT}</p>
+                        <p>ขอแจ้งให้ทราบว่า มีคำขอใช้งานระบบ IT สำหรับ คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} เข้ามา <br>
+                            กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
+                        </p>
                         <p style='margin: 0;'>กรุณาคลิก Link:
                             <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=FromMailIT'
                                 style='color: #007bff; text-decoration: underline;'>
                                 https://oneejobs27.oneeclick.co
                             </a>
-                            เพื่อดูรายละเอียดและดำเนินการในขั้นตอนต่อไป
+                            เพื่อพิจารณาอนุมัติคำขอ
                         </p>     
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                         <p style='margin: 0;'>{Name}</p>
@@ -650,30 +674,80 @@ namespace JobOnlineAPI.Controllers
                     <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                         <p style='margin: 0; font-weight: bold;'>แจ้งคำขอใช้งาน IT ได้รับอนุมัติ - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}</p>
                         <p style='margin: 0;'>เรียนทีม IT,</p>
-                        <p>คำขอใช้งานระบบสำหรับ คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} ได้รับการอนุมัติเรียบร้อยแล้ว <br>ขอความกรุณาดำเนินการจัดเตรียมตามขั้นตอนที่เกี่ยวข้องต่อไปค่ะ</p>
+                        <p>คำขอใช้งานระบบสำหรับ คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} ได้รับการอนุมัติเรียบร้อยแล้ว 
+                            <br>ขอความกรุณาดำเนินการจัดเตรียมตามขั้นตอนที่เกี่ยวข้องต่อไปค่ะ
+                        </p>
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                         <p style='margin: 0;'>{firstRecord?.ApproveNameThai}</p>
                         <br>
                         <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                     </div>";
-                SubjectMail = $@"แจ้งคำขอใช้งาน IT ได้รับอนุมัติ - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}";
+                SubjectMail = $@"คำขอใช้งาน IT - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}";
             }
             if (TypeCondition == "ITCompleted")
             {
                 hrBody = $@"
                     <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                         <p style='margin: 0; font-weight: bold;'>แจ้งผลการดำเนินการ IT - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}</p>
-                        <p style='margin: 0;'>เรียนคุณ {firstRecord?.RequesterNameThai} และคุณ {firstRecord?.ApproveNameThai},</p>
-                        <p>ทีม IT ได้ดำเนินการตามคำขอสำหรับคุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} เรียบร้อยแล้วค่ะ <br>หากมีข้อสอบถามเพิ่มเติม หรือต้องการความช่วยเหลืออื่นใด สามารถแจ้งกลับได้เลยนะคะ</p>
+                        <p style='margin: 0;'>เรียนคุณ ผู้เกี่ยวข้องทุกท่าน</p>
+                        <p>ทีม IT ได้ดำเนินการตามคำขอสำหรับคุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} เรียบร้อยแล้วค่ะ <br>
+                            หากมีข้อสอบถามเพิ่มเติม หรือต้องการความช่วยเหลืออื่นใด สามารถแจ้งปัญหา itsupport@onee.one</p>
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
-                        <p style='margin: 0;'>ทีม IT Support</p>
+                        <p style='margin: 0;'>IT Department</p>
                         <br>
                         <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                     </div>";
                 SubjectMail = $@"แจ้งผลการดำเนินการ IT - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}";
             }
+            if (TypeCondition == "ITDIRECTOR")
+            {
+                hrBody = $@"
+                    <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
+                        <p style='margin: 0;'>เรียน คุณ{firstRecord?.NAMFIRSTT} {firstRecord?.NAMLASTT}</p>
+                        <p>ขอแจ้งให้ทราบว่า มีคำขอใช้งานระบบ IT สำหรับ คุณ{firstRecord?.FirstNameThai} {firstRecord?.LastNameThai} เข้ามา <br>
+                            กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
+                        </p>
+                        <p style='margin: 0;'>กรุณาคลิก Link:
+                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITDIRECTOR'
+                                style='color: #007bff; text-decoration: underline;'>
+                                https://oneejobs27.oneeclick.co
+                            </a>
+                            เพื่อพิจารณาอนุมัติคำขอ
+                        </p>  
+                        <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
+                        <br>
+                        <p style='margin: 0;'>ผู้ขอ:{Name}</p>
+                        <p style='margin: 0;'>หน่วยงาน: {CostCenter}</p>
+                        <p style='margin: 0;'>เบอร์โทร: </p>
+                        <p style='margin: 0;'>Email: </p>
+                        <br>
+                        <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
+                    </div>";
+                SubjectMail = $@"ขอความกรุณาอนุมัติคำขอใช้งาน  IT - คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}";
+            }
+            if (TypeCondition == "ITACKNOWLEDGE")
+            {
+                hrBody = $@"
+                    <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
+                        <p style='margin: 0;'>เรียนคุณ ผู้เกี่ยวข้องทุกท่าน</p>
+                        <p style='padding-left: 20px;'>ทาง IT ได้รับเรื่องคำขอของท่านแล้ว และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ<br>
+                            โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า</p>
+                        <p style='margin: 0;'>ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์ Link:
+                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITACKNOWLEDGE'
+                                style='color: #007bff; text-decoration: underline;'>
+                                https://oneejobs27.oneeclick.co
+                            </a>
+                            เพื่อตรวจสอบความคืบหน้าของคำขอ
+                        </p>
+                        <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
+                        <p style='margin: 0;'>IT Department</p>
+                        <br>
+                        <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
+                    </div>";
+                SubjectMail = $@"ความคืบหน้าของสถานะคำขอใช้งานของ คุณ {firstRecord?.FirstNameThai} {firstRecord?.LastNameThai}";
+            }
 
-            return await SendEmailsAsync(emails!,SubjectMail, hrBody);
+            return await SendEmailsAsync(emails!, SubjectMail, hrBody);
         }
 
     }

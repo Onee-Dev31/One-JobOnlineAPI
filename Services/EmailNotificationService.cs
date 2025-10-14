@@ -11,6 +11,7 @@ namespace JobOnlineAPI.Services
         Task<int> SendHireToHrEmailsAsync(ApplicantRequestData requestData);
         Task<int> SendManagerEmailsAsync(ApplicantRequestData requestData);
         Task<int> SendHrEmailsAsync(ApplicantRequestData requestData);
+        Task<int> SendEmailWhenHRReceived(ApplicantRequestData requestData);
         Task<int> SendNotificationEmailsAsync(ApplicantRequestData requestData);
         Task<int> SendApplicationEmailsAsync(IDictionary<string, object?> req, (int ApplicantId, string ApplicantEmail, string HrManagerEmails, string JobManagerEmails, string JobTitle, string CompanyName, int OutJobID) dbResult, string applicationFormUri);
         Task<int> SendEmailsJobsStatusAsync(int JobID);
@@ -43,6 +44,8 @@ namespace JobOnlineAPI.Services
         {
             var fullNameThai = GetFullName(req);
             var jobTitle = req.TryGetValue("JobTitle", out var jobTitleObj) ? jobTitleObj?.ToString() ?? "-" : "-";
+            var JobStartDate = req.TryGetValue("JobStartDate", out var JobStartDateObj) ? JobStartDateObj?.ToString() ?? "-" : "-";
+            var CodeMPID = req.TryGetValue("CodeMPID", out var CodeMPIDObj) ? CodeMPIDObj?.ToString() ?? "-" : "-";
             var typeMail = req.TryGetValue("TypeMail", out var typeMailObj) && typeMailObj != null
                 ? typeMailObj is JsonElement t && t.ValueKind == JsonValueKind.String ? t.GetString() : typeMailObj.ToString()
                 : null;
@@ -54,6 +57,14 @@ namespace JobOnlineAPI.Services
                 "sp_GetDataSendEmailRegister",
                 new { JobID = dbResult.OutJobID },
                 commandType: CommandType.StoredProcedure);
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@JobID", dbResult.OutJobID);
+            //sp_GetDateSendEmail 
+            var resultsNew = await connection.QueryAsync<StaffEmailNew>(
+                "EXEC sp_GetDataSendEmailByJobID_V2  @JobID",
+                parameters);
+
 
             var firstHr = results.FirstOrDefault(x => x.Role == 2);
 
@@ -77,11 +88,32 @@ namespace JobOnlineAPI.Services
                         _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
                     }
                 }
-            } 
+            }
             else if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "HRConfirmed")
             {
                 string managerBody = GenerateManagerEmailBody(fullNameThai, jobTitle);
-                foreach (var staff in results)
+                var resultsNewlist = resultsNew.Where(staff => staff.DATATYPE == "Openfor").ToList();
+                string fullName = string.Empty;
+                // ถ้าไม่มี DATATYPE == "Openfor" ให้ใช้ results เดิม
+                if (resultsNewlist.Any())
+                {
+                    var openForStaff = resultsNewlist.First(); 
+                    fullName = $"{openForStaff.NAMFIRSTT} {openForStaff.NAMLASTT}".Trim();
+                }
+                else
+                {
+                    var createStaff = resultsNew.FirstOrDefault(staff => staff.DATATYPE == "Create");
+                    if (createStaff != null)
+                    {
+                        fullName = $"{createStaff.NAMFIRSTT} {createStaff.NAMLASTT}".Trim();
+                    }
+                    else
+                    {
+                        fullName = "ไม่พบข้อมูลผู้สมัคร";
+                    }
+                    resultsNewlist = resultsNew.ToList(); 
+                }
+                foreach (var staff in resultsNewlist)
                 {
                     var emailStaff = staff.Email?.Trim();
                     if (string.IsNullOrWhiteSpace(emailStaff))
@@ -91,9 +123,13 @@ namespace JobOnlineAPI.Services
                     {
                         managerBody = $@"
                             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน ทุกท่าน</p>
-                                <p>ขอแจ้งให้ทราบว่า ขณะนี้ได้ดำเนินการสรรหาและตกลงกับผู้สมัคร {fullNameThai} เรียบร้อยแล้วค่ะ</p>
-                                <p style='font-weight: bold; margin: 0 0 10px 0;'>ผู้สมัคร คุณ {fullNameThai} ตำแหน่ง {jobTitle}</p>
+                                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{fullName}</p>
+                                <p>สำเนา ผู้เกี่ยวข้อง</p>
+                                <br>
+                                <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
+                                <p>โดยมีรายละเอียด ดังนี้</p>
+                                <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
+                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs27.oneeclick.co:7191/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
                                 <br>
                                 <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
@@ -165,7 +201,7 @@ namespace JobOnlineAPI.Services
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
                     เรียน ฝ่ายสารรหาบุคคลากร<br>
-                    ทาง Hiring Manager แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
+                    ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
                     มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
                 </p>
                 <p style='margin: 0 0 10px 0;'>
@@ -221,35 +257,40 @@ namespace JobOnlineAPI.Services
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
 
-            var recipients = await GetEmailRecipientsAsync(3,requestData.Department);
+            var recipients = await GetEmailRecipientsAsync(3, requestData.Department);
             return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
         }
 
         public async Task<int> SendHrEmailsAsync(ApplicantRequestData requestData)
         {
-            var candidateNames = requestData.Candidates?
-                .Select(candidate => $"{candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
-                .ToList() ?? [];
+            // var candidateNames = requestData.Candidates?
+            //     .Select(candidate => $"{candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+            //     .ToList() ?? [];
 
-            string candidateNamesString = string.Join(" ", candidateNames);
+            // string candidateNamesString = string.Join(" ", candidateNames);
+
+            var candidateNames = requestData.Candidates?
+                .Select((candidate, index) => $"{index + 1}. คุณ {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+                .ToList() ?? new List<string>();
+
+            string candidateNamesString = string.Join("<br>", candidateNames);
 
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายบุคคล<br>
-                    ตามที่ได้รับแจ้งข้อมูลผู้สมัครในตำแหน่ง {requestData.JobTitle} จำนวน {candidateNames.Count} ท่าน ผมได้พิจารณาประวัติและคุณสมบัติเบื้องต้นแล้ว และประสงค์จะขอเรียกผู้สมัครดังต่อไปนี้เข้ามาสัมภาษณ์
+                    เรียน ฝ่ายสรรหาทรัพยากรบุคคล<br>
+                    หลังจากที่พิจารณาคุณสมบัติของผู้สมัคร ในตำแหน่ง {requestData.JobTitle} แล้วนั้น <br>
+                    ทางต้นสังกัด ใคร่ขอให้ทางฝ่ายสรรหาทรัพยากรบุคคล ติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียด ดังนี้
                 </p>
                 <p style='margin: 0 0 10px 0;'>
-                    จากข้อมูลผู้สมัคร ดิฉัน/ผมเห็นว่า {candidateNamesString} มีคุณสมบัติที่เหมาะสมกับตำแหน่งงาน และมีความเชี่ยวชาญในทักษะที่จำเป็นต่อการทำงานในทีมของเรา
+                    {candidateNamesString}
                 </p>
                 <br>
-                <p style='margin: 0 0 10px 0;'>ขอความกรุณาฝ่ายบุคคลประสานงานกับผู้สมัครเพื่อนัดหมายการสัมภาษณ์</p>
+                <p style='margin: 0 0 10px 0;'>ในส่วนของวัน เวลา นัดหมายในการสัมภาษณ์งานนั้น </p>
                 <p style='margin: 0 0 10px 0;'>หากท่านมีข้อสงสัยประการใด กรุณาติดต่อได้ที่เบอร์ด้านล่าง</p>
-                <p style='margin: 0 0 10px 0;'>ขอบคุณสำหรับความช่วยเหลือ</p>
-                <p style='margin: 0 0 10px 0;'>ขอแสดงความนับถือ</p>
                 <p style='margin: 0 0 10px 0;'>{requestData.RequesterName}</p>
                 <p style='margin: 0 0 10px 0;'>{requestData.RequesterPost}</p>
-                <p style='margin: 0 0 10px 0;'>โทร: {requestData.Tel} ต่อ {requestData.TelOff}</p>
+                <p style='margin: 0 0 10px 0;'>โทร: {requestData.TelOff}</p>
                 <p style='margin: 0 0 10px 0;'>อีเมล: {requestData.RequesterMail}</p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
@@ -289,7 +330,7 @@ namespace JobOnlineAPI.Services
                 int candidateApplicantID = candidateApplicantIDs.Count != 0
                     ? candidateApplicantIDs.First()
                     : 0;
-                int jobId = requestData?.JobID ?? 0; 
+                int jobId = requestData?.JobID ?? 0;
 
                 using var connection = _context.CreateConnection();
                 var url = new DynamicParameters();
@@ -318,7 +359,7 @@ namespace JobOnlineAPI.Services
                     <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                 </div>";
 
-                return await SendEmailsAsync(candidateEmails, "ONEE Jobs - List of selected candidates", reqBody, jobIds.FirstOrDefault());
+                return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
             }
             catch (Exception ex)
             {
@@ -358,7 +399,7 @@ namespace JobOnlineAPI.Services
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน ทุกท่าน</p>
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>ผู้สมัคร คุณ {fullNameThai} ตำแหน่ง {jobTitle}</p>
                     <br>
-                    <p style='margin: 0 0 10px 0;'>ได้ทำการกรอกข้อมูลในการสมัครงานเพิ่มเติมรอบ ที่ 2 หลังจากที่ได้รับคัดเลือกให้เข้าเป็นพนักงาน เรียบร้อยแล้ว ขั้นตอนถัดไป แผนก HR จะต้องทำการเข้าสู่ระบบและไปที่เมนูการว่าจ้าง เพื่อไปทำการตรวจและยืนยันข้อมูลของผู้สมัคร</p>
+                    <p style='margin: 0 0 10px 0;'>ได้ทำการกรอกข้อมูลในการสมัครงานเพิ่มเติมรอบ ที่ 2 หลังจากที่ได้รับคัดเลือกให้เข้าเป็นพนักงาน เรียบร้อยแล้ว <br> ขั้นตอนถัดไป แผนก HR จะต้องทำการเข้าสู่ระบบและไปที่เมนูการว่าจ้าง เพื่อไปทำการตรวจและยืนยันข้อมูลของผู้สมัคร</p>
                     <br>
                     <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                 </div>";
@@ -377,9 +418,9 @@ namespace JobOnlineAPI.Services
                         <p style='margin: 0; font-weight: bold;'>{companyName}: ได้รับใบสมัครงานของคุณแล้ว</p>
                         <p style='margin: 0;'>เรียน คุณ {fullNameThai}</p>
                         <p>
-                            ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong> ที่บริษัท <strong>{companyName}</strong> ของเรา<br>
-                            เราได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน และจะติดต่อกลับภายใน 7-14 วันทำการ หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br><br>
-                            หากมีข้อสงสัยหรือต้องการข้อมูลเพิ่มเติม สามารถติดต่อเราได้ที่อีเมล 
+                            ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong>
+                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน และจะติดต่อกลับภายใน 7-14 วันทำการ หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br><br>
+                            หากมีข้อสงสัยหรือต้องการข้อมูลเพิ่มเติม สามารถติดต่อเราได้ที่อีเมล
                             <span style='color: blue;'>{hrEmail}</span> หรือโทร 
                             <span style='color: blue;'>{hrTel}</span><br>
                             ขอบคุณอีกครั้งสำหรับความสนใจร่วมงานกับเรา
@@ -435,7 +476,10 @@ namespace JobOnlineAPI.Services
             string SubjectMail = string.Empty;
             hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                <p style='margin: 0;'>เรียนคุณ {firstRecord?.NAMETHAI} และคุณ {firstRecord?.ApproveNameThai},</p>
+                <p style='margin: 0;'>
+                    เรียนคุณ {firstRecord?.NAMETHAI}
+                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $" และคุณ {firstRecord?.ApproveNameThai}")},
+                </p>
 
                 {(firstRecord?.ApprovalStatus == "Approved" ? $@"
                     <p>
@@ -456,11 +500,62 @@ namespace JobOnlineAPI.Services
                 <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                 <br>
+                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs27.oneeclick.co:7191/Careers เข้าดูประกาศของท่าน **</p>
                 <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
             SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
         }
 
+        public async Task<int> SendEmailWhenHRReceived(ApplicantRequestData requestData)
+        {
+            using var connection = _context.CreateConnection();
+            var parameters = new DynamicParameters();
+            var DepartmentName = requestData?.DeptName;
+            var JobTitle = requestData?.JobTitle;
+            
+            int jobId = requestData?.JobID ?? 0;
+            parameters.Add("@JobID", jobId, DbType.Int32);
+            // ตัวอย่าง Dapper async
+            var result = await connection.QueryAsync<dynamic>(
+                "sp_GetDataSendEmailByJobID",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            var emails = result
+                .Select(r => ((string?)r?.EMAIL)?.Trim())
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor") 
+                  ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
+
+
+            string hrBody = string.Empty;
+            string SubjectMail = string.Empty;
+            hrBody = $@"
+                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
+                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}</p>
+                    <br>
+                    <p style='margin: 0 0 10px 0;'>
+                        ทางฝ่ายสรรหาทรัพยากรบุคคล ได้รับเรื่องคำขอของท่านแล้ว <br> 
+                        และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ
+                    </p>
+                    <br>
+                    <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
+                    <br>           
+                    <p>
+                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs27.oneeclick.co:7191/LoginAdmin
+                    </p>
+                    <p style='color: red; font-weight: bold;'>
+                        **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**
+                    </p>
+                </div>";
+            SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
+
+            return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
+        }
     }
 }
+
