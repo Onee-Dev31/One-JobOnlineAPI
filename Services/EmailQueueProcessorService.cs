@@ -101,7 +101,6 @@ namespace JobOnlineAPI.Services
                             JobID = item.JobID,
                             JobTitle = item.JobTitle ?? "",
                             Candidates = [candidate]
-                            // Fields อื่น ๆ ไม่จำเป็นสำหรับ SendNotificationEmailsAsync
                         };
 
                         // เรียก SendNotificationEmailsAsync เพื่อส่งเมล (ใช้ logic เดิม)
