@@ -19,7 +19,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
 
         [HttpPut("update-to-success")]
-        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        //[TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -61,7 +61,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("applications-with-link-status")]
-        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        //[TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobApplicationsWithLinkStatus()

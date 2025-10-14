@@ -1,14 +1,16 @@
 ﻿using Dapper;
 using JobOnlineAPI.DAL;
+using JobOnlineAPI.Models;
 using System.Data;
 using System.Diagnostics;
 
 namespace JobOnlineAPI.Services
 {
-    public class EmailQueueProcessorService(ILogger<EmailQueueProcessorService> logger, IServiceProvider serviceProvider) : BackgroundService
+    public class EmailQueueProcessorService(ILogger<EmailQueueProcessorService> logger, IServiceProvider serviceProvider, IEmailNotificationService emailNotificationService) : BackgroundService
     {
         private readonly ILogger<EmailQueueProcessorService> _logger = logger;
         private readonly IServiceProvider _serviceProvider = serviceProvider;
+        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
         private Timer? _timer;
         private int _intervalMinutes = 5;  // Default fallback
 
@@ -60,7 +62,6 @@ namespace JobOnlineAPI.Services
 
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<DapperContext>();
-            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
 
             try
             {
@@ -82,19 +83,30 @@ namespace JobOnlineAPI.Services
                 {
                     try
                     {
-                        // Generate body ถ้ายังไม่มี (คล้ายใน SP เดิม)
-                        string body = item.EmailBody ?? GenerateEmailBody(item);
-                        string subject = item.EmailSubject ?? GenerateEmailSubject(item);
+                        // สร้าง CandidateDto จาก item
+                        var candidate = new CandidateDto
+                        {
+                            ApplicantID = item.ApplicantID,
+                            JobID = item.JobID,
+                            Email = item.RecipientEmail,
+                            Title = item.Title ?? "",
+                            FirstNameThai = item.FirstNameThai ?? "",
+                            LastNameThai = item.LastNameThai ?? "",
+                            Status = "Success"
+                        };
 
-                        // ส่งเมลด้วย IEmailService
-                        await emailService.SendEmailAsync(
-                            item.RecipientEmail,
-                            subject,
-                            body,
-                            true,  // isBodyHtml
-                            "Notification",  // category หรือตาม service
-                            null  // attachments
-                        );
+                        // สร้าง ApplicantRequestData สำหรับ single candidate
+                        var requestData = new ApplicantRequestData
+                        {
+                            JobID = item.JobID,
+                            JobTitle = item.JobTitle ?? "",
+                            Candidates = [candidate]
+                            // Fields อื่น ๆ ไม่จำเป็นสำหรับ SendNotificationEmailsAsync
+                        };
+
+                        // เรียก SendNotificationEmailsAsync เพื่อส่งเมล (ใช้ logic เดิม)
+                        var sentThisTime = await _emailNotificationService.SendNotificationEmailsAsync(requestData);
+                        sentCount += sentThisTime;
 
                         // Update status เป็น Sent ด้วย SP (หลังส่งสำเร็จ)
                         var sentParams = new DynamicParameters();
@@ -107,8 +119,7 @@ namespace JobOnlineAPI.Services
                             commandType: CommandType.StoredProcedure
                         );
 
-                        sentCount++;
-                        _logger.LogInformation("Sent email for QueueID {QueueID} to {RecipientEmail}", item.QueueID, item.RecipientEmail);
+                        _logger.LogInformation("Sent notification email for QueueID {QueueID} to {RecipientEmail} (sent {SentThisTime})", item.QueueID, item.RecipientEmail, sentThisTime);
                     }
                     catch (Exception ex)
                     {
@@ -189,50 +200,12 @@ namespace JobOnlineAPI.Services
             }
         }
 
-        private static string GenerateEmailBody(EmailQueueItem item)
-        {
-            var fullName = $"{item.Title} {item.FirstNameThai} {item.LastNameThai}".Trim();
-            var jobTitle = item.JobTitle ?? "ตำแหน่งงาน";
-
-            return $@"
-                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{fullName}</p>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรื่อง: ผลการคัดเลือกผู้สมัครตำแหน่ง {jobTitle}</p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'>ยินดีด้วยนะครับ/ค่ะ! ทางบริษัทได้พิจารณาและเลือกคุณให้ผ่านการคัดเลือกสำหรับตำแหน่ง {jobTitle}</p>
-                    <p style='margin: 0 0 10px 0;'>กรุณาเข้าไปกรอกรายละเอียดเพิ่มเติมและยืนยันการรับตำแหน่ง ตามลิงก์ด้านล่าง</p>
-                    <p style='margin: 0 0 10px 0;'>Click: <a href='https://oneejobs27.oneeclick.co:7191/RegisterConfirm?app={item.ApplicationID}'>ลิงก์ยืนยันและกรอกข้อมูล</a></p>
-                    <br>
-                    <p style='color: red; font-weight: bold;'>* หากไม่สามารถคลิกลิงก์ได้ กรุณาคัดลอกและวางลงในเบราว์เซอร์ของคุณ *</p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'>หากมีข้อสงสัย สามารถติดต่อฝ่าย HR ได้ที่ hr@onee.co.th</p>
-                    <br>
-                    <p style='margin-top: 30px; margin: 0;'>ด้วยความเคารพ,</p>
-                    <p style='margin: 0;'><strong>ฝ่ายทรัพยากรบุคคล</strong></p>
-                    <p style='margin: 0;'><em>ONEE Jobs System</em></p>
-                    <br>
-                    <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                </div>";
-        }
-
-        private static string GenerateEmailSubject(EmailQueueItem item)
-        {
-            var jobTitle = item.JobTitle ?? "ตำแหน่งงาน";
-            return $"ONEE Jobs - ยินดีด้วย! คุณผ่านการคัดเลือกตำแหน่ง {jobTitle}";
-        }
-
         public override void Dispose()
         {
             _timer?.Dispose();
             GC.SuppressFinalize(this);
             base.Dispose();
         }
-    }
-
-    // Model สำหรับ query interval (return int?)
-    public class SchedulerSetting
-    {
-        public int IntervalMinutes { get; set; }
     }
 
     public class EmailQueueItem
