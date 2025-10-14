@@ -6,11 +6,10 @@ using System.Diagnostics;
 
 namespace JobOnlineAPI.Services
 {
-    public class EmailQueueProcessorService(ILogger<EmailQueueProcessorService> logger, IServiceProvider serviceProvider, IEmailNotificationService emailNotificationService) : BackgroundService
+    public class EmailQueueProcessorService(ILogger<EmailQueueProcessorService> logger, IServiceProvider serviceProvider) : BackgroundService
     {
         private readonly ILogger<EmailQueueProcessorService> _logger = logger;
         private readonly IServiceProvider _serviceProvider = serviceProvider;
-        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
         private Timer? _timer;
         private int _intervalMinutes = 5;  // Default fallback
 
@@ -62,6 +61,7 @@ namespace JobOnlineAPI.Services
 
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<DapperContext>();
+            var emailNotificationService = scope.ServiceProvider.GetRequiredService<IEmailNotificationService>();  // Resolve Scoped service inside scope
 
             try
             {
@@ -104,13 +104,12 @@ namespace JobOnlineAPI.Services
                         };
 
                         // เรียก SendNotificationEmailsAsync เพื่อส่งเมล (ใช้ logic เดิม)
-                        var sentThisTime = await _emailNotificationService.SendNotificationEmailsAsync(requestData);
+                        var sentThisTime = await emailNotificationService.SendNotificationEmailsAsync(requestData);
                         sentCount += sentThisTime;
 
                         // Update status เป็น Sent ด้วย SP (หลังส่งสำเร็จ)
                         var sentParams = new DynamicParameters();
                         sentParams.Add("@QueueID", item.QueueID);
-                        sentParams.Add("@SentDate", DateTime.UtcNow);
 
                         await connection.ExecuteAsync(
                             "sp_UpdateEmailQueueSent",
