@@ -51,7 +51,18 @@ namespace JobOnlineAPI.Controllers
                 string message = result.Message ?? "อัปเดตสำเร็จ";
                 _logger.LogInformation("Application updated to success for ApplicationID {ApplicationId}. Email queued for sending.", applicationId);
 
-                return Ok(new { message });
+                return Ok(new
+                {
+                    message,
+                    applicantId = result.ApplicantID,
+                    jobId = result.JobID,
+                    title = result.Title,
+                    firstNameThai = result.FirstNameThai,
+                    lastNameThai = result.LastNameThai,
+                    email = result.Email,
+                    jobTitle = result.JobTitle,
+                    delayMessage = result.DelayMessage
+                });
             }
             catch (Exception ex)
             {
