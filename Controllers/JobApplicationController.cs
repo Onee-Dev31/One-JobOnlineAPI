@@ -96,22 +96,54 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("pending-emails")]
-        [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetPendingEmailQueue()
+        public async Task<IActionResult> GetPendingEmailQueue(
+            [FromQuery] int? jobId = null,
+            [FromQuery] int? applicantId = null,
+            [FromQuery] string? emailType = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 50; // Limit page size for performance
+
                 using var connection = _context.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@JobID", jobId);
+                parameters.Add("@ApplicantID", applicantId);
+                parameters.Add("@EmailType", emailType);
+                parameters.Add("@DateFrom", dateFrom);
+                parameters.Add("@DateTo", dateTo);
+                parameters.Add("@PageNumber", pageNumber);
+                parameters.Add("@PageSize", pageSize);
 
                 var pendingEmails = await connection.QueryAsync<dynamic>(
                     "sp_GetPendingEmailQueue",
+                    parameters,
                     commandType: CommandType.StoredProcedure
                 );
 
-                _logger.LogInformation("Retrieved {Count} pending emails.", pendingEmails.Count());
+                // Get total count for pagination (optional, can add another SP or query if needed)
+                int totalCount = pendingEmails.Count(); // For simplicity, but better to query separately for efficiency
 
-                return Ok(pendingEmails);
+                _logger.LogInformation("Retrieved {Count} pending emails with filters.", pendingEmails.Count());
+
+                return Ok(new
+                {
+                    data = pendingEmails,
+                    pagination = new
+                    {
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -121,22 +153,54 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("sent-emails")]
-        [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetSentEmailQueue()
+        public async Task<IActionResult> GetSentEmailQueue(
+            [FromQuery] int? jobId = null,
+            [FromQuery] int? applicantId = null,
+            [FromQuery] string? emailType = null,
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 50)
         {
             try
             {
+                if (pageNumber < 1) pageNumber = 1;
+                if (pageSize < 1 || pageSize > 100) pageSize = 50; // Limit page size for performance
+
                 using var connection = _context.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@JobID", jobId);
+                parameters.Add("@ApplicantID", applicantId);
+                parameters.Add("@EmailType", emailType);
+                parameters.Add("@DateFrom", dateFrom);
+                parameters.Add("@DateTo", dateTo);
+                parameters.Add("@PageNumber", pageNumber);
+                parameters.Add("@PageSize", pageSize);
 
                 var sentEmails = await connection.QueryAsync<dynamic>(
                     "sp_GetSentEmailQueue",
+                    parameters,
                     commandType: CommandType.StoredProcedure
                 );
 
-                _logger.LogInformation("Retrieved {Count} sent emails.", sentEmails.Count());
+                // Get total count for pagination (optional, can add another SP or query if needed)
+                int totalCount = sentEmails.Count(); // For simplicity, but better to query separately for efficiency
 
-                return Ok(sentEmails);
+                _logger.LogInformation("Retrieved {Count} sent emails with filters.", sentEmails.Count());
+
+                return Ok(new
+                {
+                    data = sentEmails,
+                    pagination = new
+                    {
+                        pageNumber,
+                        pageSize,
+                        totalCount,
+                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                    }
+                });
             }
             catch (Exception ex)
             {
