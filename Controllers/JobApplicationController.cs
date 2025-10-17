@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using JobOnlineAPI.DAL;
 using System.Data;
 using JobOnlineAPI.Filters;
+using Microsoft.Data.SqlClient;
 using JobOnlineAPI.Services;
 
 namespace JobOnlineAPI.Controllers
@@ -63,6 +64,11 @@ namespace JobOnlineAPI.Controllers
                     jobTitle = result.JobTitle,
                     delayMessage = result.DelayMessage
                 });
+            }
+            catch (SqlException ex) when (ex.Message.Contains("จำนวนผู้สมัครที่ได้รับเลือก"))
+            {
+                _logger.LogWarning("Quota exceeded for ApplicationID {ApplicationId}: {Message}", applicationId, ex.Message);
+                return BadRequest(new { Error = ex.Message });
             }
             catch (Exception ex)
             {
