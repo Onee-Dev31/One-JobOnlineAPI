@@ -26,19 +26,26 @@ namespace JobOnlineAPI.Services
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly ILogger<EmailNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int role, string? department = null)
+        private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int? role = null, int? jobId = null)
         {
             using var connection = _context.CreateConnection();
             var parameters = new DynamicParameters();
-            parameters.Add("@Role", role);
-            parameters.Add("@Department", department);
-            //sp_GetDateSendEmail 
+
+            if (role.HasValue)
+                parameters.Add("@Role", role.Value);
+
+            if (jobId.HasValue)
+                parameters.Add("@JobID", jobId.Value);
+
             var staffList = await connection.QueryAsync<StaffEmail>(
-                "EXEC sp_GetDataSendEmailRecipients  @Role, @Department",
-                parameters);
-            return staffList.Select(staff => staff.Email?.Trim() ?? string.Empty)
-                           .Where(email => !string.IsNullOrWhiteSpace(email));
+                "sp_GetDataSendEmailRecipients",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+            return staffList
+                .Select(staff => staff.Email?.Trim() ?? string.Empty)
+                .Where(email => !string.IsNullOrWhiteSpace(email));
         }
+
 
         public async Task<int> SendApplicationEmailsAsync(IDictionary<string, object?> req, (int ApplicantId, string ApplicantEmail, string HrManagerEmails, string JobManagerEmails, string JobTitle, string CompanyName, int OutJobID) dbResult, string applicationFormUri)
         {
@@ -222,7 +229,7 @@ namespace JobOnlineAPI.Services
         {
             var candidateNames = requestData.Candidates?
                 .Where(candidate =>
-                    candidate.Status is "Success" or "Unsuccess" or "Cancel")
+                    candidate.Status is "Success" or "Unsuccess" or "Cancel" or "Waiting to confirm" or "Reject")
                 .Select((candidate, index) =>
                 {
                     string statusText = candidate.Status switch
@@ -230,6 +237,8 @@ namespace JobOnlineAPI.Services
                         "Success" => "สำเร็จ",
                         "Unsuccess" => "ต่อรองไม่สำเร็จ",
                         "Cancel" => "ยกเลิก",
+                        "Waiting to confirm" => "กำลังดำเนินการ",
+                        "Reject" => "ยกเลิก",
                         _ => ""
                     };
 
@@ -257,7 +266,10 @@ namespace JobOnlineAPI.Services
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
 
-            var recipients = await GetEmailRecipientsAsync(3, requestData.Department);
+            // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
+            var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
             return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
         }
 
