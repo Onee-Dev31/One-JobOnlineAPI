@@ -136,7 +136,7 @@ namespace JobOnlineAPI.Services
                                 <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
                                 <p>โดยมีรายละเอียด ดังนี้</p>
                                 <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
-                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs27.oneeclick.co:7191/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
+                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs.oneeclick.co/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
                                 <br>
                                 <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
@@ -216,7 +216,7 @@ namespace JobOnlineAPI.Services
                 </p>
                 <br>
                 <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> โดยให้ทำการติดต่อ ผู้มัครลำดับที่ 1 ก่อน หากเจรจาไม่สำเร็จ ให้ทำการติดต่อกับผู้มัครลำดับต่อไป <span style='color: red; font-weight: bold;'>*</span></p>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs27.oneeclick.co:7191/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
+                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs.oneeclick.co/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
             </div>";
@@ -512,7 +512,7 @@ namespace JobOnlineAPI.Services
                 <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                 <br>
-                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs27.oneeclick.co:7191/Careers เข้าดูประกาศของท่าน **</p>
+                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs.oneeclick.co/Careers เข้าดูประกาศของท่าน **</p>
                 <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
             SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
@@ -558,7 +558,7 @@ namespace JobOnlineAPI.Services
                     <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
                     <br>           
                     <p>
-                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs27.oneeclick.co:7191/LoginAdmin
+                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs.oneeclick.co/LoginAdmin
                     </p>
                     <p style='color: red; font-weight: bold;'>
                         **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**

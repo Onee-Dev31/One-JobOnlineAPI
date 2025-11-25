@@ -1079,7 +1079,8 @@ namespace JobOnlineAPI.Views.Register
                     {
                         var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
                         col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                        col.Item().Padding(5).Text("Signature (..........................................)").FontSize(12);
+                        col.Item().Padding(5).Text("(..........................................)").FontSize(12);
+                        // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(12);
                         col.Item().AlignCenter().Padding(5).Text($"Date: {DateNow}").FontSize(12);
                     });
                 }); // Close container Page 2

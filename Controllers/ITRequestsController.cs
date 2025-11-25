@@ -654,9 +654,9 @@ namespace JobOnlineAPI.Controllers
                             กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
                         </p>
                         <p style='margin: 0;'>กรุณาคลิก Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=FromMailIT'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=FromMailIT'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อพิจารณาอนุมัติคำขอ
                         </p>     
@@ -708,9 +708,9 @@ namespace JobOnlineAPI.Controllers
                             กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
                         </p>
                         <p style='margin: 0;'>กรุณาคลิก Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITDIRECTOR'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=ITDIRECTOR'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อพิจารณาอนุมัติคำขอ
                         </p>  
@@ -733,9 +733,9 @@ namespace JobOnlineAPI.Controllers
                         <p style='padding-left: 20px;'>ทาง IT ได้รับเรื่องคำขอของท่านแล้ว และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ<br>
                             โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า</p>
                         <p style='margin: 0;'>ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์ Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITACKNOWLEDGE'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=ITACKNOWLEDGE'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อตรวจสอบความคืบหน้าของคำขอ
                         </p>
