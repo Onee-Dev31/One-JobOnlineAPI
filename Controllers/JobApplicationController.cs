@@ -86,9 +86,9 @@ namespace JobOnlineAPI.Controllers
             try
             {
                 using var connection = _context.CreateConnection();
-
+                //spGetJobApplicationsWithLinkStatus
                 var applications = await connection.QueryAsync<dynamic>(
-                    "spGetJobApplicationsWithLinkStatus",
+                    "spGetJobApplicationsWithLinkStatusV2",
                     commandType: CommandType.StoredProcedure
                 );
 

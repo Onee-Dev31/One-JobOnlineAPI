@@ -912,7 +912,7 @@ namespace JobOnlineAPI.Controllers
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณสมศรี (ผู้จัดการฝ่ายบุคคล)</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
-                        เรียน ฝ่ายสารรหาบุคคลากร<br>
+                        เรียน ฝ่ายสรรหาบุคคลากร<br>
                         ทาง Hiring Manager แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {Tel} อีเมล: {requestData.RequesterMail} <br> 
                         มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
                     </p>

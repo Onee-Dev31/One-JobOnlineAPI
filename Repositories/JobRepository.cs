@@ -136,7 +136,7 @@ namespace JobOnlineAPI.Repositories
                                         </tr>
                                         <tr>
                                             <td style='background-color: #2E86C1; padding: 10px; text-align: center; color: #ffffff;'>
-                                                <p style='font-size: 14px;'>กรุณา Link: <a href='https://oneejobs.oneeclick.co/LoginAdmin' target='_blank' style='color: #2E86C1; text-decoration: underline;'>oneejobs.oneeclick.co</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
+                                                <p style='font-size: 14px;'>กรุณา Link: <a href='https://oneejobs.oneeclick.co/LoginAdmin' target='_blank' style='color: #ffffff; text-decoration: underline;'>oneejobs.oneeclick.co</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
                                             </td>
                                         </tr>
                                     </table>
