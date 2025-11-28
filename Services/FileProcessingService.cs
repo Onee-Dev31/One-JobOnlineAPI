@@ -57,6 +57,46 @@
 
             return fileMetadatas;
         }
+        public async Task<List<Dictionary<string, object>>> ProcessFilesForApplicantAsync(IFormFileCollection files, int applicantId)
+        {
+            var fileMetadatas = new List<Dictionary<string, object>>();
+            if (files == null || files.Count == 0 || applicantId <= 0)
+                return fileMetadatas;
+
+            // temp folder (ใช้ applicantId)
+            var tempPath = Path.Combine(_networkShareService.GetBasePath(), $"temp_applicant_{applicantId}");
+            Directory.CreateDirectory(tempPath);
+
+            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0)
+                    continue;
+
+                var extension = Path.GetExtension(file.FileName).ToLower();
+                if (!allowedExtensions.Contains(extension))
+                    throw new InvalidOperationException($"Invalid file type: {extension}");
+
+                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                var filePath = Path.Combine(tempPath, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                fileMetadatas.Add(new Dictionary<string, object>
+                {
+                    { "FilePath", filePath.Replace('\\','/') },
+                    { "FileName", fileName },
+                    { "FileSize", file.Length },
+                    { "FileType", file.ContentType }
+                });
+            }
+
+            return fileMetadatas;
+        }
 
         public void MoveFilesToApplicantDirectory(int applicantId, List<Dictionary<string, object>> fileMetadatas)
         {

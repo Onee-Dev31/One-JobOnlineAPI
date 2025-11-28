@@ -207,7 +207,7 @@ namespace JobOnlineAPI.Services
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายสารรหาบุคคลากร<br>
+                    เรียน ฝ่ายสรรหาบุคคลากร<br>
                     ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
                     มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
                 </p>
