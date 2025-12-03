@@ -19,6 +19,7 @@ namespace JobOnlineAPI.Models
     public class ApplicantRequestData
     {
         public int ApplicantID { get; set; }
+        public int? ApplicationID { get; set; }
         public string? Status { get; set; }
         public List<CandidateDto>? Candidates { get; set; }
         public string? EmailSend { get; set; }
