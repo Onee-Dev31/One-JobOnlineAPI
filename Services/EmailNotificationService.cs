@@ -371,7 +371,15 @@ namespace JobOnlineAPI.Services
                     <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                 </div>";
 
-                return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
+                // return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
+                var result = await SendEmailsAsync(candidateEmails, 
+                    "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", 
+                    reqBody, 
+                    jobIds.FirstOrDefault()
+                );
+
+                await InsertEmailSendQueueAsync( connection, requestData!, reqBody, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน" );
+                return result;
             }
             catch (Exception ex)
             {
@@ -379,6 +387,40 @@ namespace JobOnlineAPI.Services
                 throw;
             }
         }
+
+       private async Task InsertEmailSendQueueAsync( IDbConnection connection, ApplicantRequestData requestData, string emailBody, string emailSubject)
+        {
+            if (requestData?.Candidates == null || !requestData.Candidates.Any())
+                return;
+
+            foreach (var c in requestData.Candidates)
+            {
+                try
+                {
+                    var p = new DynamicParameters();
+                    p.Add("@ApplicationID", c.ApplicationID);
+                    p.Add("@ApplicantID", c.ApplicantID);
+                    p.Add("@JobID", c.JobID);
+                    p.Add("@EmailBody", emailBody);
+                    p.Add("@EmailSubject", emailSubject);
+                    p.Add("@RecipientEmail", c.Email);
+
+                    await connection.ExecuteAsync(
+                        "sp_InsertEmailSendQueue",
+                        p,
+                        commandType: CommandType.StoredProcedure
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, 
+                        "Error inserting EmailSendQueue for ApplicationID {ApplicationID}, ApplicantID {ApplicantID}, JobID {JobID}. Error: {Message}",
+                        c.ApplicationID, c.ApplicantID, c.JobID, ex.Message);
+                }
+            }
+        }
+
+
 
         private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body, int? jobIds)
         {

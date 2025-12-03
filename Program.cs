@@ -49,7 +49,7 @@ if (string.IsNullOrEmpty(connectionString))
     logger.LogError("DefaultConnection string is missing or empty.");
     throw new InvalidOperationException("DefaultConnection string is missing or empty.");
 }
-logger.LogInformation("DefaultConnection: {ConnectionString}", connectionString);
+// logger.LogInformation("DefaultConnection: {ConnectionString}", connectionString);
 
 var fileStorageConfig = builder.Configuration.GetSection("FileStorage").Get<FileStorageConfig>();
 if (fileStorageConfig == null || string.IsNullOrEmpty(fileStorageConfig.BasePath))
@@ -84,11 +84,24 @@ builder.Services.AddLogging(logging =>
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAllOrigins", builder =>
+    // options.AddPolicy("AllowAllOrigins", builder =>
+    // {
+    //     builder.AllowAnyOrigin()
+    //            .AllowAnyHeader()
+    //            .AllowAnyMethod();
+    // });
+    options.AddPolicy("Default", builder =>
     {
-        builder.AllowAnyOrigin()
-               .AllowAnyHeader()
-               .AllowAnyMethod();
+        builder.WithOrigins(
+            "https://oneejobs.oneeclick.co",
+            "https://10.2.0.11:7191",
+            "https://10.10.0.27:7191",
+            "https://localhost:7191",
+            "http://localhost:5236"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
@@ -153,15 +166,43 @@ builder.Services.AddAuthentication(options =>
         throw new InvalidOperationException("JWT Issuer or Audience is not configured.");
     }
 
+    // options.TokenValidationParameters = new TokenValidationParameters
+    // {
+    //     ValidateIssuer = true,
+    //     ValidateAudience = true,
+    //     ValidateLifetime = true,
+    //     ValidateIssuerSigningKey = true,
+    //     ValidIssuer = issuer,
+    //     ValidAudience = audience,
+    //     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+    // };
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
         ValidIssuer = issuer,
+
+        ValidateAudience = true,
         ValidAudience = audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(jwtKey)
+        ),
+
+        ValidateLifetime = true,
+        ClockSkew = TimeSpan.FromMinutes(1),
+
+        RequireExpirationTime = true,
+        RequireSignedTokens = true
+    };
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = ctx =>
+        {
+            if (ctx.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                ctx.Response.Headers.Add("Token-Expired", "true");
+            return Task.CompletedTask;
+        }
     };
 });
 
@@ -258,21 +299,37 @@ else
             await context.Response.WriteAsJsonAsync(error);
             var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
             var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
-            logger.LogError(exception, "An error occurred: {Error}, Path: {Path}, StackTrace: {StackTrace}",
-                exception?.Message, exception?.TargetSite, exception?.StackTrace);
+            // logger.LogError(exception, "An error occurred: {Error}, Path: {Path}, StackTrace: {StackTrace}",
+            //     exception?.Message, exception?.TargetSite, exception?.StackTrace);
+            logger.LogError(exception,
+                "Error: {Message}, Path: {Path}",
+                exception?.Message,
+                context.Request.Path
+            );
         });
     });
 }
-
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.DefaultModelsExpandDepth(-1);
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
-});
+// if (!app.Environment.IsDevelopment())
+// {
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.DefaultModelsExpandDepth(-1);
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
+    });
+// }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowAllOrigins");
+app.Use(async (ctx, next) =>
+{
+    ctx.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
+    ctx.Response.Headers.TryAdd("X-Frame-Options", "DENY");
+    ctx.Response.Headers.TryAdd("X-XSS-Protection", "1; mode=block");
+    ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+    await next();
+});
+// app.UseCors("AllowAllOrigins");
+app.UseCors("Default");
 
 app.UseAuthentication();
 app.UseAuthorization();
