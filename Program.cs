@@ -94,8 +94,10 @@ builder.Services.AddCors(options =>
     {
         builder.WithOrigins(
             "https://oneejobs.oneeclick.co",
+            "https://oneejobs27.oneeclick.co:7191/",
             "https://10.2.0.11:7191",
             "https://10.10.0.27:7191",
+            "https://127.0.0.1:7191",
             "https://localhost:7191",
             "http://localhost:5236"
         )
