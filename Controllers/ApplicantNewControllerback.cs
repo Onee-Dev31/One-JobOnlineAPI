@@ -314,17 +314,20 @@ namespace JobOnlineAPI.Controllers
             catch (System.ComponentModel.Win32Exception win32Ex)
             {
                 _logger.LogError(win32Ex, "Win32 error: {Message}, ErrorCode: {ErrorCode}", win32Ex.Message, win32Ex.NativeErrorCode);
-                return StatusCode(500, new { Error = "Server error", win32Ex.Message, ErrorCode = win32Ex.NativeErrorCode });
+                // return StatusCode(500, new { Error = "Server error", win32Ex.Message, ErrorCode = win32Ex.NativeErrorCode });
+                return StatusCode(500, "Internal Server error");
             }
             catch (DirectoryNotFoundException dirEx)
             {
                 _logger.LogError(dirEx, "Network share not accessible: {Message}", dirEx.Message);
-                return StatusCode(500, new { Error = "Server error", dirEx.Message });
+                // return StatusCode(500, new { Error = "Server error", dirEx.Message });
+                return StatusCode(500, "Internal Server error");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing application: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "Server error", ex.Message });
+                // return StatusCode(500, new { Error = "Server error", ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -573,7 +576,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicants: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -593,7 +597,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicants: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -617,7 +622,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant by ID {ApplicantId}: {Message}", applicantId, ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -653,7 +659,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to insert applicant: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -707,7 +714,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant data for ID {ApplicantId}: {Message}", id, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, new { Error = "Internal Server error" });
+                
             }
         }
 
@@ -761,7 +769,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating applicant status: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -1197,7 +1206,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating job approval status: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -1286,7 +1296,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving PDPA content: {Message}", ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -1329,11 +1340,13 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating consent for user ID {UserId}: {Message}", User, ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
         [HttpGet("GetCheckData")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCheckData([FromQuery] string? Email, int? JobID)
         {
@@ -1356,7 +1369,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant data for ID {ApplicantId}: {Message}", JobID, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 

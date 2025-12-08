@@ -37,7 +37,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Error = "Failed to delete job", ex.Message });
+                // return StatusCode(500, new { Error = "Failed to delete job", ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
     }
