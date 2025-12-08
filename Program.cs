@@ -201,8 +201,11 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = ctx =>
         {
-            if (ctx.Exception.GetType() == typeof(SecurityTokenExpiredException))
+            if (ctx.Exception is SecurityTokenExpiredException)
+            {
                 ctx.Response.Headers["Token-Expired"] = "true";
+                ctx.Response.Headers.Append("Cache-Control", "no-store");
+            }
             return Task.CompletedTask;
         }
     };

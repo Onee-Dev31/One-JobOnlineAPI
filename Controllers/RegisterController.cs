@@ -49,7 +49,8 @@ namespace JobOnlineAPI.Controllers
             }
             else
             {
-                return StatusCode(500, resultMessage);
+                // return StatusCode(500, resultMessage);
+                return StatusCode(500,  new { message = "Internal Server error" });
             }
         }
 

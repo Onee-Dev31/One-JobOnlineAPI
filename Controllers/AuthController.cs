@@ -109,12 +109,14 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex) when (ex is FileNotFoundException)
             {
                 _logger.LogError(ex, "RequestOTP: ไม่พบไฟล์เทมเพลต: {Path}", _templatePathOTP);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: ไฟล์เทมเพลตไม่พบ" });
+                // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: ไฟล์เทมเพลตไม่พบ" });
+                return StatusCode(500, "Internal Server error");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "RequestOTP: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -194,7 +196,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "VerifyOTP: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -262,7 +265,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Register: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -332,7 +336,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ResetPassword: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 

@@ -63,11 +63,11 @@ namespace JobOnlineAPI.Controllers
                     commandType: CommandType.StoredProcedure);
 
                 if (form == null)
-                    return NotFound("ไม่พบข้อมูลผู้สมัคร");
+                    return NotFound("Data not found");
 
                 var dict = form as IDictionary<string, object>;
                 if (dict == null)
-                    return StatusCode(500, "ไม่สามารถแปลงข้อมูลผู้สมัครได้");
+                    return StatusCode(500, "Internal Server error");
 
                 QuestPDF.Settings.License = LicenseType.Community;
                 var pdf = new PersonalDetailsForm(dict).GeneratePdf();
@@ -76,7 +76,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -89,7 +90,7 @@ namespace JobOnlineAPI.Controllers
                 if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
                     !request.TryGetProperty("JobID", out var jobIdEl))
                 {
-                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+                    return BadRequest("Bad Request");
                 }
 
                 int applicantId = applicantIdEl.GetInt32();
@@ -102,11 +103,11 @@ namespace JobOnlineAPI.Controllers
                     commandType: CommandType.StoredProcedure);
 
                 if (form == null)
-                    return NotFound("ไม่พบข้อมูลผู้สมัคร");
+                    return NotFound("Data not found");
 
                 var dict = form as IDictionary<string, object>;
                 if (dict == null)
-                    return StatusCode(500, "ไม่สามารถแปลงข้อมูลผู้สมัครได้");
+                    return StatusCode(500, "Internal Server error");
 
                 QuestPDF.Settings.License = LicenseType.Community;
                 var pdf = new PersonalDetailsV2Form(dict).GeneratePdf();
@@ -115,7 +116,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -128,7 +130,7 @@ namespace JobOnlineAPI.Controllers
                 if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
                     !request.TryGetProperty("JobID", out var jobIdEl))
                 {
-                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+                    return BadRequest("Bad Request");
                 }
 
                 int applicantId = applicantIdEl.GetInt32();
@@ -141,11 +143,11 @@ namespace JobOnlineAPI.Controllers
                     commandType: CommandType.StoredProcedure);
 
                 if (form == null)
-                    return NotFound("ไม่พบข้อมูลผู้สมัคร");
+                    return NotFound("Data no found");
 
                 var dict = form as IDictionary<string, object>;
                 if (dict == null)
-                    return StatusCode(500, "ไม่สามารถแปลงข้อมูลผู้สมัครได้");
+                    return StatusCode(500, "Internal Server error");
 
                 QuestPDF.Settings.License = LicenseType.Community;
                 var pdf = new PersonalDetailsV3Form(dict).GeneratePdf();
@@ -154,7 +156,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
+                return StatusCode(500, "Internal Server error");
             }
         }
     }

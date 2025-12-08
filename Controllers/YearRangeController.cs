@@ -18,7 +18,8 @@ namespace JobOnlineAPI.Controllers
 
             if (string.IsNullOrEmpty(connectionString))
             {
-                return StatusCode(500, new { message = "Connection string is missing or not configured." });
+                // return StatusCode(500, new { message = "Connection string is missing or not configured." });
+                return StatusCode(500,  new { message = "Internal Server error" });
             }
 
             try
@@ -32,11 +33,12 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new
-                {
-                    message = "An error occurred while retrieving year range.",
-                    error = ex.Message
-                });
+                // return StatusCode(500, new
+                // {
+                //     message = "An error occurred while retrieving year range.",
+                //     error = ex.Message
+                // });
+                return StatusCode(500,  new { message = "Internal Server error" });
             }
         }
     }

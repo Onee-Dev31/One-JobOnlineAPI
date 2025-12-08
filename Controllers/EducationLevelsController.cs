@@ -28,7 +28,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");
-                return StatusCode(500, "An error occurred while retrieving education levels.");
+                // return StatusCode(500, "An error occurred while retrieving education levels.");
+                return StatusCode(500, "Internal Server error");
             }
         }
     }

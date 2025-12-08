@@ -5,6 +5,7 @@ using System.Data.SqlClient;
 using Dapper;
 using System.Text.Json;
 using System.IO.Compression;
+using JobOnlineAPI.Filters;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -15,20 +16,21 @@ namespace JobOnlineAPI.Controllers
         private readonly IConfiguration _config = config;
 
         [HttpPost("export-excelV2")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> ExportApplicantsAsync([FromBody] Dictionary<string, List<int>> request)
         {
             request.TryGetValue("applicantIds", out var applicantIds);
             request.TryGetValue("userIds", out var userIds);
             if ((applicantIds == null || applicantIds.Count == 0) && (userIds == null || userIds.Count == 0))
             {
-                return BadRequest("ต้องระบุอย่างน้อย applicantId หรือ userId");
+                return BadRequest("Bad Request");
             }
 
             // ตรวจสอบ input
             if (applicantIds != null && applicantIds.Any(id => id <= 0))
-                return BadRequest("Applicant IDs ต้องเป็นจำนวนเต็มบวก");
+                return BadRequest("Bad Request");
             if (userIds != null && userIds.Any(id => id <= 0))
-                return BadRequest("User IDs ต้องเป็นจำนวนเต็มบวก");
+                return BadRequest("Bad Request");
 
             using var connection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
             try
@@ -46,18 +48,18 @@ namespace JobOnlineAPI.Controllers
                 var rawApplicants = (await grid.ReadAsync<dynamic>()).ToList();
                 var applicants = rawApplicants.Select(r => (IDictionary<string, object>)r).ToList();
                 if (applicants.Count == 0)
-                    return NotFound("ไม่พบข้อมูลผู้สมัครที่ตรงกับเงื่อนไข");
+                    return NotFound("Internal Server error");
                 var sheet1Defs = (await grid.ReadAsync<ColumnDef>()).OrderBy(x => x.Order).ToList();
                 var sheet2Defs = (await grid.ReadAsync<ColumnDef>()).OrderBy(x => x.Order).ToList();
                 var sheet3Defs = (await grid.ReadAsync<ColumnDef>()).OrderBy(x => x.Order).ToList();
 
                 // ตรวจสอบความถูกต้องของ column definitions
                 if (sheet1Defs.Count == 0 || sheet1Defs.Any(d => string.IsNullOrEmpty(d.Key) || string.IsNullOrEmpty(d.Display)))
-                    return StatusCode(500, "กำหนดคอลัมน์สำหรับ sheet 1 ไม่ถูกต้อง");
+                    return StatusCode(500, "Internal Server error");
                 if (sheet2Defs.Count == 0 || sheet2Defs.Any(d => string.IsNullOrEmpty(d.Key) || string.IsNullOrEmpty(d.Display)))
-                    return StatusCode(500, "กำหนดคอลัมน์สำหรับ sheet 2 ไม่ถูกต้อง");
+                    return StatusCode(500, "Internal Server error");
                 if (sheet3Defs.Count == 0 || sheet3Defs.Any(d => string.IsNullOrEmpty(d.Key) || string.IsNullOrEmpty(d.Display)))
-                    return StatusCode(500, "กำหนดคอลัมน์สำหรับ sheet 3 ไม่ถูกต้อง");
+                    return StatusCode(500, "Internal Server error");
 
                 var columnOrderSheet1 = sheet1Defs.Select(x => (x.Key, x.Display)).ToList();
                 var columnOrderSheet2 = sheet2Defs.Select(x => (x.Key, x.Display)).ToList();
@@ -77,7 +79,7 @@ namespace JobOnlineAPI.Controllers
                     }
                     catch (IOException ex)
                     {
-                        return StatusCode(500, $"ข้อผิดพลาดในการสร้าง ZIP: {ex.Message}");
+                        return StatusCode(500, "Internal Server error");
                     }
                 }
 
@@ -87,7 +89,7 @@ namespace JobOnlineAPI.Controllers
             catch (SqlException ex)
             {
                 // Log error
-                return StatusCode(500, $"ข้อผิดพลาดจากฐานข้อมูล: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 

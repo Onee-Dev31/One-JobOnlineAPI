@@ -73,12 +73,12 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating application to success for ApplicationID {ApplicationId}: {Message}", applicationId, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในการอัปเดต" });
+                return StatusCode(500, new { Error = "Internal Server error" });
             }
         }
 
         [HttpGet("applications-with-link-status")]
-        //[TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetJobApplicationsWithLinkStatus()
@@ -97,11 +97,12 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving job applications with link status: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในการดึงข้อมูล" });
+                return StatusCode(500, new { Error = "Internal Server error" });
             }
         }
 
         [HttpGet("pending-emails")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPendingEmailQueue(
@@ -154,11 +155,12 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving pending email queue: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในการดึงข้อมูลอีเมลที่รอส่ง" });
+                return StatusCode(500, new { Error = "Internal Server error" });
             }
         }
 
         [HttpGet("sent-emails")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetSentEmailQueue(
@@ -211,7 +213,7 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving sent email queue: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในการดึงข้อมูลอีเมลที่ส่งแล้ว" });
+                return StatusCode(500, new { Error = "Internal Server error" });
             }
         }
 
@@ -252,7 +254,7 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling pending email for QueueID {QueueId}: {Message}", queueId, ex.Message);
-                return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในการยกเลิก" });
+                return StatusCode(500, new { Error = "Internal Server error" });
             }
         }
     }

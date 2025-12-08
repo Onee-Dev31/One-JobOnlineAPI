@@ -31,7 +31,8 @@ namespace JobOnlineAPI.Controllers
                 return BadRequest(new
                 {
                     Message = "An error occurred while retrieving date options.",
-                    Error = ex.Message
+                    // Error = ex.Message
+                    Error = "Bad Request"
                 });
             }
         }
