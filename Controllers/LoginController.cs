@@ -54,6 +54,37 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpGet("check-otp")]
+        public async Task<IActionResult> CheckOtp(string email)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                    return BadRequest(new { success = false });
+
+                using var connection = new SqlConnection(_connectionString);
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@Email", email);
+
+                var otpRecord = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "usp_GetValidOtpByEmail",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return Ok(new
+                {
+                    success = otpRecord != null
+                });
+            }
+            catch
+            {
+                return StatusCode(500, new { success = false });
+            }
+        }
+
+
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {

@@ -1133,34 +1133,48 @@ namespace JobOnlineAPI.Controllers
 
         [HttpPost("insertApplicant")]
         [Consumes("multipart/form-data")]
+        [RequestSizeLimit(50_000_000)]
+        [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
         public async Task<IActionResult> InsertApplicant([FromForm] IFormCollection formData)
         {
             try
             {
                 IDictionary<string, object?> req = new ExpandoObject();
+
                 foreach (var key in formData.Keys)
                 {
+                    if (key == "Files") continue;
                     req[key] = formData[key].ToString();
                 }
-                string jsonInput = JsonSerializer.Serialize(req);
-                string educationList = "[]";
-                string workList = "[]";
-                string skillsList = "[]";
 
-                if (req.TryGetValue("EducationList", out var educationObj) && educationObj != null)
+                string jsonInput = JsonSerializer.Serialize(req);
+
+                string SafeJson(string? v)
                 {
-                    educationList = educationObj.ToString() ?? "[]";
+                    if (string.IsNullOrWhiteSpace(v)) return "[]";
+                    if (!v.TrimStart().StartsWith("[")) return "[]";
+                    return v;
                 }
-                if (req.TryGetValue("WorkExperienceList", out var workObj) && workObj != null)
-                {
-                    workList = workObj.ToString() ?? "[]";
-                }
-                if (req.TryGetValue("SkillsList", out var skillsObj) && skillsObj != null)
-                {
-                    skillsList = skillsObj.ToString() ?? "[]";
-                }
+
+                string educationList = SafeJson(req.TryGetValue("EducationList", out var e) ? e?.ToString() : null);
+                string workList      = SafeJson(req.TryGetValue("WorkExperienceList", out var w) ? w?.ToString() : null);
+                string skillsList    = SafeJson(req.TryGetValue("SkillsList", out var s) ? s?.ToString() : null);
+
                 var files = formData.Files;
-                var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files);
+
+                const long MaxFileSize = 50L * 1024 * 1024;
+
+                foreach (var file in files)
+                {
+                    if (file.Length > MaxFileSize)
+                        return BadRequest("ไฟล์ต้องมีขนาดไม่เกิน 50MB ต่อไฟล์");
+                }
+
+                List<Dictionary<string, object>> fileMetadatas =
+                    files.Count > 0
+                        ? await _fileProcessingService.ProcessFilesAsync(files)
+                        : new List<Dictionary<string, object>>();
+
                 string filesList = JsonSerializer.Serialize(fileMetadatas);
 
                 using var conn = _context.CreateConnection();
@@ -1172,13 +1186,44 @@ namespace JobOnlineAPI.Controllers
                 param.Add("@FilesList", filesList);
                 param.Add("@ApplicantID", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
-                await conn.ExecuteAsync("InsertApplicantDataRegister", param, commandType: CommandType.StoredProcedure);
+                await conn.ExecuteAsync(
+                    "InsertApplicantDataRegister",
+                    param,
+                    commandType: CommandType.StoredProcedure
+                );
 
                 int applicantId = param.Get<int>("@ApplicantID");
-                _fileProcessingService.MoveFilesToApplicantDirectory(applicantId, fileMetadatas);
-                await _emailNotificationService.SendApplicationEmailsAsync(req, 
-                    (applicantId, req["Email"]?.ToString() ?? "", "", "", req["JobTitle"]?.ToString() ?? "", req["CompanyName"]?.ToString() ?? "", req.TryGetValue("JobID", out object? value) ? Convert.ToInt32(value) : 0),
-                    _applicationFormUri);
+
+                try
+                {
+                    if (fileMetadatas.Count > 0)
+                        _fileProcessingService.MoveFilesToApplicantDirectory(applicantId, fileMetadatas);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "MoveFiles failed (ApplicantID: {ApplicantID})", applicantId);
+                }
+
+                try
+                {
+                    await _emailNotificationService.SendApplicationEmailsAsync(
+                        req,
+                        (
+                            applicantId,
+                            req["Email"]?.ToString() ?? "",
+                            "",
+                            "",
+                            req["JobTitle"]?.ToString() ?? "",
+                            req["CompanyName"]?.ToString() ?? "",
+                            req.TryGetValue("JobID", out var v) ? Convert.ToInt32(v) : 0
+                        ),
+                        _applicationFormUri
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", applicantId);
+                }
 
                 return Ok(new
                 {
@@ -1189,8 +1234,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error inserting applicant");
-                // return StatusCode(500, new { Success = false, Error = ex.Message });
+                _logger.LogError(ex, "Error inserting applicant");
                 return StatusCode(500, "Internal Server error");
             }
         }

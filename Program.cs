@@ -13,6 +13,7 @@ using Rotativa.AspNetCore;
 using Microsoft.Extensions.FileProviders;
 using JobOnlineAPI.Filters;
 using OfficeOpenXml;
+using Microsoft.AspNetCore.Http.Features;
 
 var options = new WebApplicationOptions
 {
@@ -20,6 +21,16 @@ var options = new WebApplicationOptions
     ContentRootPath = Directory.GetCurrentDirectory()
 };
 var builder = WebApplication.CreateBuilder(options);
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 50 * 1024 * 1024; // 50 MB
+});
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50 MB
+});
 
 builder.Services.AddScoped<ITRequestExampleOperationFilter, ITRequestExampleOperationFilter>();
 
