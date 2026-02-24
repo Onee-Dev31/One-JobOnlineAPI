@@ -99,12 +99,81 @@
             return fileMetadatas;
         }
 
+        // public void MoveFilesToApplicantDirectory(int applicantId, List<Dictionary<string, object>> fileMetadatas)
+        // {
+        //     if (fileMetadatas.Count == 0 || applicantId <= 0)
+        //         return;
+
+        //     var applicantPath = Path.Combine(_networkShareService.GetBasePath(), $"applicant_{applicantId}");
+        //     if (!Directory.Exists(applicantPath))
+        //     {
+        //         try
+        //         {
+        //             Directory.CreateDirectory(applicantPath);
+        //             _logger.LogInformation("Created applicant directory: {ApplicantPath}", applicantPath);
+        //         }
+        //         catch (Exception ex)
+        //         {
+        //             _logger.LogError(ex, "Failed to create applicant directory: {ApplicantPath}", applicantPath);
+        //             throw;
+        //         }
+        //     }
+        //     else
+        //     {
+        //         foreach (var oldFile in Directory.GetFiles(applicantPath))
+        //         {
+        //             try
+        //             {
+        //                 System.IO.File.Delete(oldFile);
+        //                 _logger.LogInformation("Deleted old file: {OldFile}", oldFile);
+        //             }
+        //             catch (Exception ex)
+        //             {
+        //                 _logger.LogWarning(ex, "Failed to delete old file: {OldFile}", oldFile);
+        //             }
+        //         }
+        //     }
+
+        //     foreach (var metadata in fileMetadatas)
+        //     {
+        //         var oldFilePath = metadata.GetValueOrDefault("FilePath")?.ToString();
+        //         var fileName = metadata.GetValueOrDefault("FileName")?.ToString();
+        //         if (string.IsNullOrEmpty(oldFilePath) || string.IsNullOrEmpty(fileName))
+        //         {
+        //             _logger.LogWarning("Skipping file with invalid metadata: {Metadata}", System.Text.Json.JsonSerializer.Serialize(metadata));
+        //             continue;
+        //         }
+
+        //         var newFilePath = Path.Combine(applicantPath, fileName);
+        //         if (System.IO.File.Exists(oldFilePath))
+        //         {
+        //             try
+        //             {
+        //                 System.IO.File.Move(oldFilePath, newFilePath, overwrite: true);
+        //                 _logger.LogInformation("Moved file from {OldFilePath} to {NewFilePath}", oldFilePath, newFilePath);
+        //                 metadata["FilePath"] = newFilePath.Replace('\\', '/');
+        //             }
+        //             catch (Exception ex)
+        //             {
+        //                 _logger.LogError(ex, "Failed to move file from {OldFilePath} to {NewFilePath}", oldFilePath, newFilePath);
+        //                 throw;
+        //             }
+        //         }
+        //         else
+        //         {
+        //             _logger.LogWarning("File not found for moving: {OldFilePath}", oldFilePath);
+        //         }
+        //     }
+        // }
+    
+
         public void MoveFilesToApplicantDirectory(int applicantId, List<Dictionary<string, object>> fileMetadatas)
         {
             if (fileMetadatas.Count == 0 || applicantId <= 0)
                 return;
 
             var applicantPath = Path.Combine(_networkShareService.GetBasePath(), $"applicant_{applicantId}");
+
             if (!Directory.Exists(applicantPath))
             {
                 try
@@ -118,44 +187,41 @@
                     throw;
                 }
             }
-            else
-            {
-                foreach (var oldFile in Directory.GetFiles(applicantPath))
-                {
-                    try
-                    {
-                        System.IO.File.Delete(oldFile);
-                        _logger.LogInformation("Deleted old file: {OldFile}", oldFile);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to delete old file: {OldFile}", oldFile);
-                    }
-                }
-            }
 
             foreach (var metadata in fileMetadatas)
             {
                 var oldFilePath = metadata.GetValueOrDefault("FilePath")?.ToString();
                 var fileName = metadata.GetValueOrDefault("FileName")?.ToString();
+
                 if (string.IsNullOrEmpty(oldFilePath) || string.IsNullOrEmpty(fileName))
                 {
-                    _logger.LogWarning("Skipping file with invalid metadata: {Metadata}", System.Text.Json.JsonSerializer.Serialize(metadata));
+                    _logger.LogWarning("Skipping file with invalid metadata: {Metadata}", 
+                        System.Text.Json.JsonSerializer.Serialize(metadata));
                     continue;
                 }
 
                 var newFilePath = Path.Combine(applicantPath, fileName);
+
                 if (System.IO.File.Exists(oldFilePath))
                 {
                     try
                     {
-                        System.IO.File.Move(oldFilePath, newFilePath, overwrite: true);
+                        if (System.IO.File.Exists(newFilePath))
+                        {
+                            System.IO.File.Delete(newFilePath);
+                            _logger.LogInformation("Deleted duplicate file: {File}", newFilePath);
+                        }
+
+                        System.IO.File.Move(oldFilePath, newFilePath);
                         _logger.LogInformation("Moved file from {OldFilePath} to {NewFilePath}", oldFilePath, newFilePath);
+
                         metadata["FilePath"] = newFilePath.Replace('\\', '/');
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to move file from {OldFilePath} to {NewFilePath}", oldFilePath, newFilePath);
+                        _logger.LogError(ex, 
+                            "Failed to move file from {OldFilePath} to {NewFilePath}", 
+                            oldFilePath, newFilePath);
                         throw;
                     }
                 }
@@ -165,6 +231,5 @@
                 }
             }
         }
-    
     }
 }
