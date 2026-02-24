@@ -7,7 +7,7 @@
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly ILogger<FileProcessingService> _logger = logger;
 
-        public async Task<List<Dictionary<string, object>>> ProcessFilesAsync(IFormFileCollection files)
+        public async Task<List<Dictionary<string, object>>> ProcessFilesAsync(IFormFileCollection files, string sectionFile = "Section1")
         {
             var fileMetadatas = new List<Dictionary<string, object>>();
             if (files == null || files.Count == 0)
@@ -51,7 +51,8 @@
                     { "FilePath", filePath.Replace('\\', '/') },
                     { "FileName", fileName },
                     { "FileSize", file.Length },
-                    { "FileType", file.ContentType }
+                    { "FileType", file.ContentType },
+                    { "SectionFile", sectionFile }
                 });
             }
 

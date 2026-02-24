@@ -77,7 +77,7 @@ namespace JobOnlineAPI.Controllers
                 try
                 {
                     
-                    var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files);
+                    var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files, "Section2");
                     var dbResult = await SaveApplicationToDatabaseAsync(req, jobId, fileMetadatas);
                     _fileProcessingService.MoveFilesToApplicantDirectory(dbResult.ApplicantId, fileMetadatas);
                     await _emailNotificationService.SendApplicationEmailsAsync(req, dbResult, _applicationFormUri);
@@ -129,7 +129,7 @@ namespace JobOnlineAPI.Controllers
                 try
                 {
                     // 1) Process files (ตรวจ type, เก็บ metadata)
-                    var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files);
+                    var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files, "Section2");
 
                     // 2) Save เข้า DB (เรียก Store ใหม่)
                     var dbResult = await SaveApplicationToDatabaseNewAsync(req, jobId, fileMetadatas);
@@ -1172,7 +1172,7 @@ namespace JobOnlineAPI.Controllers
 
                 List<Dictionary<string, object>> fileMetadatas =
                     files.Count > 0
-                        ? await _fileProcessingService.ProcessFilesAsync(files)
+                        ? await _fileProcessingService.ProcessFilesAsync(files, "Section1")
                         : new List<Dictionary<string, object>>();
 
                 string filesList = JsonSerializer.Serialize(fileMetadatas);

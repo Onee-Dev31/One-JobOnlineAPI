@@ -58,6 +58,11 @@ namespace JobOnlineAPI.Services
                 : null;
 
             int successCount = 0;
+            if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "HrEdit")
+            {
+                _logger.LogInformation("Skip sending email because typeMail is HrEdit");
+                return 0;
+            }
             //"sp_GetDateSendEmailV3"
             using var connection = _context.CreateConnection();
             var results = await connection.QueryAsync<StaffEmail>(

@@ -753,6 +753,7 @@ namespace JobOnlineAPI.Views.Register
         public int? StartYear { get; set; }
         public int? EndYear { get; set; }
         public string? Major { get; set; }
+        public string? Faculty { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesDto

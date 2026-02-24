@@ -622,7 +622,7 @@ namespace JobOnlineAPI.Views.Register
         public string? Province { get; set; }
         public int? StartYear { get; set; }
         public int? EndYear { get; set; }
-        public string? Major { get; set; }
+        public string? Faculty { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesV2Dto

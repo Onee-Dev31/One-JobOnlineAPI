@@ -218,6 +218,8 @@ namespace JobOnlineAPI.Services
         public string? EmailSubject { get; set; }
         public int RetryCount { get; set; }
         public string? Title { get; set; }
+        public string? TitleENG { get; set; }
+        public string? Gender { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
         public string? JobTitle { get; set; }
