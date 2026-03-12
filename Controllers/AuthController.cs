@@ -2,6 +2,7 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,19 +16,17 @@ namespace JobOnlineAPI.Controllers
     /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger, IMemoryCache memoryCache) : ControllerBase
     {
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly ILogger<AuthController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly IMemoryCache _tokenStore = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
         private readonly string _templatePathOTP = Path.Combine("Templates", "Email", "OTP.html");
         private readonly string _templatePathREGIS = Path.Combine("Templates", "Email", "Registration.html");
         private readonly string _templatePathResetPassword = Path.Combine("Templates", "Email", "ResetPassword.html");
         private readonly string _templatePathCopyOTP = Path.Combine("Templates", "Email", "CopyOTP.html");
-        private readonly TimeSpan _tokenExpiration = TimeSpan.FromMinutes(10); // โทเคนหมดอายุใน 10 นาที
-
-        // เก็บโทเคนชั่วคราว (ควรใช้ฐานข้อมูลในโปรดักชัน)
-        private static readonly Dictionary<string, (string Otp, DateTime Expires)> _tokenStore = [];
+        private readonly TimeSpan _tokenExpiration = TimeSpan.FromMinutes(10);
 
         /// <summary>
         /// ขอ OTP สำหรับสมัครสมาชิกหรือรีเซ็ตรหัสผ่าน
@@ -92,7 +91,7 @@ namespace JobOnlineAPI.Controllers
 
                 // สร้างโทเคนและ URL สำหรับคัดลอก
                 string token = Guid.NewGuid().ToString();
-                _tokenStore[token] = (otp, DateTime.UtcNow + _tokenExpiration);
+                _tokenStore.Set(token, otp, _tokenExpiration);
                 string copyUrl = Url.Action("CopyOtp", "Auth", new { otp, token }, Request.Scheme) ?? "#";
 
                 // โหลดและเติมข้อมูลในเทมเพลต
@@ -133,7 +132,7 @@ namespace JobOnlineAPI.Controllers
         public IActionResult CopyOtp(string otp, string token)
         {
             if (string.IsNullOrEmpty(otp) || string.IsNullOrEmpty(token) ||
-                !_tokenStore.TryGetValue(token, out var tokenData) || tokenData.Otp != otp || tokenData.Expires < DateTime.UtcNow)
+                !_tokenStore.TryGetValue(token, out string? cachedOtp) || cachedOtp != otp)
             {
                 _logger.LogWarning("CopyOtp: โทเคนไม่ถูกต้องหรือหมดอายุสำหรับ OTP: {Otp}", otp);
                 return Unauthorized("โทเคนไม่ถูกต้องหรือหมดอายุ");
