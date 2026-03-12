@@ -53,10 +53,20 @@ namespace JobOnlineAPI.Services
                 Password = isProduction ? null : _fileStorageConfig.NetworkPassword
             };
 
-            if (!_currentStorageConfig.UseNetworkShare && !Directory.Exists(_currentStorageConfig.BasePath))
+            bool isValidLocalPath = Path.IsPathRooted(_currentStorageConfig.BasePath) &&
+                                    (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                                        ? _currentStorageConfig.BasePath.StartsWith('/')
+                                        : true);
+
+            if (!_currentStorageConfig.UseNetworkShare && isValidLocalPath &&
+                !Directory.Exists(_currentStorageConfig.BasePath))
             {
                 Directory.CreateDirectory(_currentStorageConfig.BasePath);
                 _logger.LogInformation("Created local directory: {BasePath}", _currentStorageConfig.BasePath);
+            }
+            else if (!_currentStorageConfig.UseNetworkShare && !isValidLocalPath)
+            {
+                _logger.LogWarning("Skipping directory creation: path '{BasePath}' is not a valid absolute path on this OS.", _currentStorageConfig.BasePath);
             }
         }
 
