@@ -1135,17 +1135,30 @@ namespace JobOnlineAPI.Controllers
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(50_000_000)]
         [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-        public async Task<IActionResult> InsertApplicant([FromForm] IFormCollection formData)
+        public async Task<IActionResult> InsertApplicant([FromForm] InsertApplicantRequest formData)
         {
             try
             {
-                IDictionary<string, object?> req = new ExpandoObject();
-
-                foreach (var key in formData.Keys)
+                IDictionary<string, object?> req = new Dictionary<string, object?>
                 {
-                    if (key == "Files") continue;
-                    req[key] = formData[key].ToString();
-                }
+                    ["JobID"]            = formData.JobID.ToString(),
+                    ["FirstName"]        = formData.FirstName,
+                    ["LastName"]         = formData.LastName,
+                    ["Email"]            = formData.Email,
+                    ["Phone"]            = formData.Phone,
+                    ["JobTitle"]         = formData.JobTitle,
+                    ["CompanyName"]      = formData.CompanyName,
+                    ["Address"]          = formData.Address,
+                    ["BirthDate"]        = formData.BirthDate,
+                    ["Gender"]           = formData.Gender,
+                    ["Nationality"]      = formData.Nationality,
+                    ["ExpectedSalary"]   = formData.ExpectedSalary,
+                    ["CurrentSalary"]    = formData.CurrentSalary,
+                    ["Position"]         = formData.Position,
+                    ["StartWorkDate"]    = formData.StartWorkDate,
+                    ["Source"]           = formData.Source,
+                    ["Remark"]           = formData.Remark,
+                };
 
                 string jsonInput = JsonSerializer.Serialize(req);
 
@@ -1156,11 +1169,11 @@ namespace JobOnlineAPI.Controllers
                     return v;
                 }
 
-                string educationList = SafeJson(req.TryGetValue("EducationList", out var e) ? e?.ToString() : null);
-                string workList      = SafeJson(req.TryGetValue("WorkExperienceList", out var w) ? w?.ToString() : null);
-                string skillsList    = SafeJson(req.TryGetValue("SkillsList", out var s) ? s?.ToString() : null);
+                string educationList = SafeJson(formData.EducationList);
+                string workList      = SafeJson(formData.WorkExperienceList);
+                string skillsList    = SafeJson(formData.SkillsList);
 
-                var files = formData.Files;
+                var files = formData.Files ?? new FormFileCollection();
 
                 const long MaxFileSize = 50L * 1024 * 1024;
 
