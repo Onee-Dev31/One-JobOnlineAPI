@@ -293,6 +293,13 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "AppFiles")),
+    RequestPath = "/AppFiles"
+});
+
 try
 {
     RotativaConfiguration.Setup(app.Environment.ContentRootPath, "Rotativa");
