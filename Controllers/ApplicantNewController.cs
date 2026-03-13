@@ -985,7 +985,7 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, $"Internal server error: {ex.Message}");
                 return StatusCode(500, "Internal Server error");
@@ -1142,18 +1142,20 @@ namespace JobOnlineAPI.Controllers
                 IDictionary<string, object?> req = new Dictionary<string, object?>
                 {
                     ["JobID"]            = formData.JobID.ToString(),
-                    ["FirstName"]        = formData.FirstName,
-                    ["LastName"]         = formData.LastName,
+                    ["FirstNameThai"]    = formData.FirstNameThai,
+                    ["LastNameThai"]     = formData.LastNameThai,
+                    ["FirstNameEng"]     = formData.FirstNameEng,
+                    ["LastNameEng"]      = formData.LastNameEng,
+                    ["Nickname"]         = formData.Nickname,
                     ["Email"]            = formData.Email,
-                    ["Phone"]            = formData.Phone,
+                    ["MobilePhone"]      = formData.MobilePhone,
                     ["JobTitle"]         = formData.JobTitle,
                     ["CompanyName"]      = formData.CompanyName,
+                    ["Salary"]           = formData.Salary,
                     ["Address"]          = formData.Address,
                     ["BirthDate"]        = formData.BirthDate,
                     ["Gender"]           = formData.Gender,
                     ["Nationality"]      = formData.Nationality,
-                    ["ExpectedSalary"]   = formData.ExpectedSalary,
-                    ["CurrentSalary"]    = formData.CurrentSalary,
                     ["Position"]         = formData.Position,
                     ["StartWorkDate"]    = formData.StartWorkDate,
                     ["Source"]           = formData.Source,
