@@ -111,7 +111,8 @@ builder.Services.AddCors(options =>
             "https://10.10.0.27:7191",
             "https://127.0.0.1:7191",
             "https://localhost:7191",
-            "http://localhost:5236"
+            "http://localhost:5236",
+            "http://localhost:3000"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -329,12 +330,12 @@ else
 }
 // if (!app.Environment.IsDevelopment())
 // {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.DefaultModelsExpandDepth(-1);
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
-    });
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.DefaultModelsExpandDepth(-1);
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
+});
 // }
 
 app.UseHttpsRedirection();
