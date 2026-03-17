@@ -2,9 +2,8 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -37,8 +36,10 @@ namespace JobOnlineAPI.Controllers
         /// <response code="400">ข้อมูลไม่ถูกต้องหรืออีเมลซ้ำ</response>
         /// <response code="500">เกิดข้อผิดพลาดในระบบ</response>
         [HttpPost("request-otp")]
+        [EnableRateLimiting("otp-request")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RequestOTP([FromBody] OTPRequest request)
         {
@@ -92,7 +93,7 @@ namespace JobOnlineAPI.Controllers
                 // สร้างโทเคนและ URL สำหรับคัดลอก
                 string token = Guid.NewGuid().ToString();
                 _tokenStore.Set(token, otp, _tokenExpiration);
-                string copyUrl = Url.Action("CopyOtp", "Auth", new { otp, token }, Request.Scheme) ?? "#";
+                string copyUrl = Url.Action("CopyOtp", "Auth", new { token }, Request.Scheme) ?? "#";
 
                 // โหลดและเติมข้อมูลในเทมเพลต
                 string template = System.IO.File.ReadAllText(_templatePathOTP);
@@ -129,19 +130,17 @@ namespace JobOnlineAPI.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
-        public IActionResult CopyOtp(string otp, string token)
+        public IActionResult CopyOtp(string token)
         {
-            if (string.IsNullOrEmpty(otp) || string.IsNullOrEmpty(token) ||
-                !_tokenStore.TryGetValue(token, out string? cachedOtp) || cachedOtp != otp)
+            if (string.IsNullOrEmpty(token) || !_tokenStore.TryGetValue(token, out string? otp) || string.IsNullOrEmpty(otp))
             {
-                _logger.LogWarning("CopyOtp: โทเคนไม่ถูกต้องหรือหมดอายุสำหรับ OTP: {Otp}", otp);
+                _logger.LogWarning("CopyOtp: โทเคนไม่ถูกต้องหรือหมดอายุ");
                 return Unauthorized("โทเคนไม่ถูกต้องหรือหมดอายุ");
             }
 
             // โหลดและเติมข้อมูลในเทมเพลต
             string template = System.IO.File.ReadAllText(_templatePathCopyOTP);
-            string body = template
-                .Replace("{{otp}}", otp);
+            string body = template.Replace("{{otp}}", otp);
 
             return Content(body, "text/html");
         }
@@ -155,8 +154,10 @@ namespace JobOnlineAPI.Controllers
         /// <response code="400">ข้อมูลไม่ถูกต้องหรือ OTP ไม่ถูกต้อง</response>
         /// <response code="500">เกิดข้อผิดพลาดในระบบ</response>
         [HttpPost("verify-otp")]
+        [EnableRateLimiting("otp-verify")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> VerifyOTP([FromBody] OTPVerifyRequest request)
         {
@@ -184,8 +185,8 @@ namespace JobOnlineAPI.Controllers
 
                 if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    _logger.LogWarning("VerifyOTP: ข้อผิดพลาดจาก usp_VerifyOTP สำหรับ Email: {Email}, OTP: {OTP}, Error: {ErrorMessage}",
-                        request.Email, request.OTP, errorMessage);
+                    _logger.LogWarning("VerifyOTP: ข้อผิดพลาดจาก usp_VerifyOTP สำหรับ Email: {Email}, Error: {ErrorMessage}",
+                        request.Email, errorMessage);
                     return BadRequest(new { Error = errorMessage });
                 }
 
@@ -202,6 +203,7 @@ namespace JobOnlineAPI.Controllers
 
         
         [HttpGet("check-otp")]
+        [EnableRateLimiting("check-otp")]
         public async Task<IActionResult> CheckOtp(string email)
         {
             try
@@ -242,8 +244,10 @@ namespace JobOnlineAPI.Controllers
         /// <response code="400">ข้อมูลไม่ถูกต้อง, อีเมลซ้ำ, หรือ OTP ไม่ได้รับการยืนยัน</response>
         /// <response code="500">เกิดข้อผิดพลาดในระบบ</response>
         [HttpPost("register")]
+        [EnableRateLimiting("auth-register")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
@@ -375,8 +379,7 @@ namespace JobOnlineAPI.Controllers
 
         private static string HashPassword(string password)
         {
-            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         private static bool IsValidEmail(string email)

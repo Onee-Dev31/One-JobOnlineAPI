@@ -1,6 +1,8 @@
 using System.Data;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -284,6 +286,52 @@ builder.Services.AddSwaggerGen(c =>
     c.UseAllOfToExtendReferenceSchemas();
 });
 
+builder.Services.AddRateLimiter(options =>
+{
+    // request-otp: 5 ครั้ง / 10 นาที ต่อ IP
+    options.AddPolicy("otp-request", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0
+            }));
+
+    // verify-otp: 5 ครั้ง / 5 นาที ต่อ IP (กัน brute force)
+    options.AddPolicy("otp-verify", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
+            }));
+
+    // register: 3 ครั้ง / 10 นาที ต่อ IP
+    options.AddPolicy("auth-register", httpContext =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromMinutes(10),
+                QueueLimit = 0
+            }));
+
+    // check-otp: 10 ครั้ง / 1 นาที ต่อ IP (กัน probe spam)
+    options.AddFixedWindowLimiter("check-otp", o =>
+    {
+        o.PermitLimit = 10;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueLimit = 0;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 builder.Services.AddHostedService<EmailQueueProcessorService>();
 
 var app = builder.Build();
@@ -360,6 +408,7 @@ app.Use(async (ctx, next) =>
 });
 // app.UseCors("AllowAllOrigins");
 app.UseCors("Default");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
