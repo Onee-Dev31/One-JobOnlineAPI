@@ -72,6 +72,70 @@ namespace JobOnlineAPI.Services
             return (JwtSecurityToken)validatedToken;
         }
 
+        public string GenerateRefreshToken(string username, string role)
+        {
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JwtSettings:Issuer is not configured.");
+            var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JwtSettings:Audience is not configured.");
+            var refreshSecret = _configuration["JwtSettings:RefreshSecret"]
+                ?? throw new InvalidOperationException("JwtSettings:RefreshSecret is not configured.");
+            if (Encoding.UTF8.GetBytes(refreshSecret).Length < 32)
+                throw new InvalidOperationException("JWT refresh secret key must be at least 32 bytes long for HMAC-SHA256.");
+            int refreshExpireDays = int.TryParse(jwtSettings["RefreshExpireDays"], out var d) ? d : 1;
+
+            var keyBytes = Encoding.UTF8.GetBytes(refreshSecret);
+            var key = new SymmetricSecurityKey(keyBytes);
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, username),
+                new Claim(ClaimTypes.Role, role),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: issuer,
+                audience: audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(refreshExpireDays),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public async Task<JwtSecurityToken> ValidateRefreshTokenAsync(string token)
+        {
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JwtSettings:Issuer is not configured.");
+            var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("JwtSettings:Audience is not configured.");
+            var refreshSecret = _configuration["JwtSettings:RefreshSecret"]
+                ?? throw new InvalidOperationException("JwtSettings:RefreshSecret is not configured.");
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var keyBytes = Encoding.UTF8.GetBytes(refreshSecret);
+
+            var validatedToken = await Task.Run(() =>
+            {
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+                    ValidateIssuer = true,
+                    ValidIssuer = issuer,
+                    ValidateAudience = true,
+                    ValidAudience = audience,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken securityToken);
+
+                return securityToken;
+            });
+
+            return (JwtSecurityToken)validatedToken;
+        }
+
         private string GetJwtSecret()
         {
             var jwtSecret = _configuration["JwtSettings:AccessSecret"]

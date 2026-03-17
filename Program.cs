@@ -147,6 +147,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INetworkShareService, NetworkShareService>();
+builder.Services.AddScoped<IClamAVService, ClamAVService>();
 builder.Services.AddScoped<FileProcessingService>();
 builder.Services.Configure<FileStorageConfig>(
     builder.Configuration.GetSection("FileStorage"));

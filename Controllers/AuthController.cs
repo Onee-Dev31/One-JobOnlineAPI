@@ -4,6 +4,8 @@ using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -15,12 +17,13 @@ namespace JobOnlineAPI.Controllers
     /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger, IMemoryCache memoryCache) : ControllerBase
+    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger, IMemoryCache memoryCache, IJwtTokenService jwtTokenService) : ControllerBase
     {
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly ILogger<AuthController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         private readonly IMemoryCache _tokenStore = memoryCache ?? throw new ArgumentNullException(nameof(memoryCache));
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         private readonly string _templatePathOTP = Path.Combine("Templates", "Email", "OTP.html");
         private readonly string _templatePathREGIS = Path.Combine("Templates", "Email", "Registration.html");
         private readonly string _templatePathResetPassword = Path.Combine("Templates", "Email", "ResetPassword.html");
@@ -376,6 +379,29 @@ namespace JobOnlineAPI.Controllers
                 _logger.LogError(ex, "ResetPassword: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
                 // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
                 return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+                return Unauthorized(new { Error = "Refresh token not found." });
+            try
+            {
+                var validated = await _jwtTokenService.ValidateRefreshTokenAsync(refreshToken);
+                var username = validated.Claims.FirstOrDefault(c => c.Type == JwtRegisteredClaimNames.Sub)?.Value;
+                var role = validated.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+                if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(role))
+                    return Unauthorized(new { Error = "Invalid refresh token." });
+                var userModel = new UserModel { Username = username, Role = role };
+                var newAccessToken = _jwtTokenService.GenerateJwtToken(userModel);
+                return Ok(new { Token = newAccessToken });
+            }
+            catch
+            {
+                return Unauthorized(new { Error = "Refresh token is invalid or expired." });
             }
         }
 

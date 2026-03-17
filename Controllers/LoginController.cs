@@ -48,6 +48,15 @@ namespace JobOnlineAPI.Controllers
 
                     var token = _jwtTokenService.GenerateJwtToken(userModel);
 
+                    var refreshToken = _jwtTokenService.GenerateRefreshToken(userModel.Username, userModel.Role);
+                    Response.Cookies.Append("refreshToken", refreshToken, new CookieOptions
+                    {
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.Strict,
+                        Expires = DateTimeOffset.UtcNow.AddDays(1)
+                    });
+
                     return Ok(new { Token = token, userModel.Username, userModel.Role, userModel.ConfirmConsent, userModel.UserId, userModel.ApplicantID, userModel.JobID, userModel.Status });
                 }
 

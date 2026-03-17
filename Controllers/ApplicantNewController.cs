@@ -21,6 +21,7 @@ namespace JobOnlineAPI.Controllers
         private readonly INetworkShareService _networkShareService;
         private readonly ILogger<ApplicantNewController> _logger;
         private readonly IEmailNotificationService _emailNotificationService;
+        private readonly IClamAVService _clamAVService;
         private readonly string _applicationFormUri;
         private const string JobTitleKey = "JobTitle";
         private const string JobIdKey = "JobID";
@@ -44,7 +45,8 @@ namespace JobOnlineAPI.Controllers
             INetworkShareService networkShareService,
             ILogger<ApplicantNewController> logger,
             IEmailNotificationService emailNotificationService,
-            IOptions<FileStorageConfig> config)
+            IOptions<FileStorageConfig> config,
+            IClamAVService clamAVService)
         {
             _context = context;
             _emailService = emailService;
@@ -52,6 +54,7 @@ namespace JobOnlineAPI.Controllers
             _networkShareService = networkShareService;
             _logger = logger;
             _emailNotificationService = emailNotificationService;
+            _clamAVService = clamAVService;
             var fileStorageConfig = config.Value ?? throw new ArgumentNullException(nameof(config));
             _applicationFormUri = fileStorageConfig.ApplicationFormUri ?? throw new InvalidOperationException("Application form URI is not configured.");
         }
@@ -76,7 +79,13 @@ namespace JobOnlineAPI.Controllers
                 await _networkShareService.ConnectAsync();
                 try
                 {
-                    
+                    foreach (var file in files)
+                    {
+                        using var stream = file.OpenReadStream();
+                        if (!await _clamAVService.IsSafeAsync(stream))
+                            return UnprocessableEntity(new { Error = "ไฟล์ที่อัปโหลดตรวจพบไวรัส กรุณาตรวจสอบและอัปโหลดใหม่" });
+                    }
+
                     var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files, "Section2");
                     var dbResult = await SaveApplicationToDatabaseAsync(req, jobId, fileMetadatas);
                     _fileProcessingService.MoveFilesToApplicantDirectory(dbResult.ApplicantId, fileMetadatas);

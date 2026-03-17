@@ -7,5 +7,7 @@ namespace JobOnlineAPI.Services
     {
         string GenerateJwtToken(UserModel user);
         Task<JwtSecurityToken> ValidateTokenAsync(string token);
+        string GenerateRefreshToken(string username, string role);
+        Task<JwtSecurityToken> ValidateRefreshTokenAsync(string token);
     }
 }
