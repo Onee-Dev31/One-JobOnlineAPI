@@ -315,8 +315,10 @@ namespace JobOnlineAPI.Controllers
         /// <response code="400">ข้อมูลไม่ถูกต้อง, อีเมลไม่พบ, หรือ OTP ไม่ได้รับการยืนยัน</response>
         /// <response code="500">เกิดข้อผิดพลาดในระบบ</response>
         [HttpPost("reset-password")]
+        [EnableRateLimiting("auth-reset")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {

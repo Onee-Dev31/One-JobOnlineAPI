@@ -93,7 +93,7 @@ builder.Services.AddLogging(logging =>
 {
     logging.AddConsole();
     logging.AddDebug();
-    logging.SetMinimumLevel(LogLevel.Debug);
+    logging.SetMinimumLevel(builder.Environment.IsDevelopment() ? LogLevel.Debug : LogLevel.Information);
 });
 
 builder.Services.AddCors(options =>
@@ -236,11 +236,6 @@ builder.Services.AddControllersWithViews()
     {
         options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
     });
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
-    });
 builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(c =>
@@ -321,6 +316,14 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
+    // reset-password: 3 ครั้ง / 10 นาที ต่อ IP
+    options.AddFixedWindowLimiter("auth-reset", o =>
+    {
+        o.PermitLimit = 3;
+        o.Window = TimeSpan.FromMinutes(10);
+        o.QueueLimit = 0;
+    });
+
     // login: 5 ครั้ง / 15 นาที ต่อ IP (กัน brute force)
     options.AddFixedWindowLimiter("login", o =>
     {
@@ -395,15 +398,15 @@ else
         });
     });
 }
-// if (!app.Environment.IsDevelopment())
-// {
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.DefaultModelsExpandDepth(-1);
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
-});
-// }
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.DefaultModelsExpandDepth(-1);
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
+    });
+}
 
 app.UseHttpsRedirection();
 app.Use(async (ctx, next) =>
@@ -412,6 +415,8 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers.TryAdd("X-Frame-Options", "DENY");
     ctx.Response.Headers.TryAdd("X-XSS-Protection", "1; mode=block");
     ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+    ctx.Response.Headers.TryAdd("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    ctx.Response.Headers.TryAdd("Content-Security-Policy", "default-src 'self'");
     await next();
 });
 // app.UseCors("AllowAllOrigins");
