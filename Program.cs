@@ -321,6 +321,14 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             }));
 
+    // login: 5 ครั้ง / 15 นาที ต่อ IP (กัน brute force)
+    options.AddFixedWindowLimiter("login", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(15);
+        o.QueueLimit = 0;
+    });
+
     // check-otp: 10 ครั้ง / 1 นาที ต่อ IP (กัน probe spam)
     options.AddFixedWindowLimiter("check-otp", o =>
     {

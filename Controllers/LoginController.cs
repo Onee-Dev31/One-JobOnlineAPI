@@ -1,8 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using JobOnlineAPI.Filters;
 using JobOnlineAPI.Services;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Dapper;
-using System.Data.SqlClient;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Data.SqlClient;
 using System.Data;
 
 namespace JobOnlineAPI.Controllers
@@ -17,6 +21,7 @@ namespace JobOnlineAPI.Controllers
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
         [HttpPost]
+        [EnableRateLimiting("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             try
@@ -55,20 +60,27 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("change-password")]
+        [JwtAuthorize]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.NewPassword))
+                var emailFromToken = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+                    ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (string.IsNullOrWhiteSpace(emailFromToken))
+                    return Unauthorized(new { message = "Invalid token." });
+
+                if (string.IsNullOrWhiteSpace(request.NewPassword))
                 {
-                    return BadRequest(new { message = "Email and new password are required." });
+                    return BadRequest(new { message = "New password is required." });
                 }
 
                 var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
 
                 using var connection = new SqlConnection(_connectionString);
                 var parameters = new DynamicParameters();
-                parameters.Add("@Email", request.Email);
+                parameters.Add("@Email", emailFromToken);
                 parameters.Add("@PasswordHash", hashedPassword);
                 parameters.Add("@Status", dbType: DbType.Int32, direction: ParameterDirection.Output);
                 parameters.Add("@Message", dbType: DbType.String, size: 100, direction: ParameterDirection.Output);
@@ -113,10 +125,6 @@ namespace JobOnlineAPI.Controllers
 
     public class ChangePasswordRequest
     {
-        [Required]
-        [EmailAddress]
-        public required string Email { get; set; }
-
         [Required]
         [MinLength(8)]
         public required string NewPassword { get; set; }
