@@ -82,8 +82,9 @@ namespace JobOnlineAPI.Controllers
                     foreach (var file in files)
                     {
                         using var stream = file.OpenReadStream();
-                        if (!await _clamAVService.IsSafeAsync(stream))
-                            return UnprocessableEntity(new { Error = "ไฟล์ที่อัปโหลดตรวจพบไวรัส กรุณาตรวจสอบและอัปโหลดใหม่" });
+                        var (isSafe, virusName) = await _clamAVService.ScanAsync(stream, file.FileName);
+                        if (!isSafe)
+                            return UnprocessableEntity(new { Error = $"ไฟล์ '{file.FileName}' ตรวจพบมัลแวร์ ({virusName}) กรุณาตรวจสอบไฟล์แล้วลองใหม่" });
                     }
 
                     var fileMetadatas = await _fileProcessingService.ProcessFilesAsync(files, "Section2");

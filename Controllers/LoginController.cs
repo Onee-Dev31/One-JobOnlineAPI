@@ -54,7 +54,8 @@ namespace JobOnlineAPI.Controllers
                         HttpOnly = true,
                         Secure = true,
                         SameSite = SameSiteMode.Strict,
-                        Expires = DateTimeOffset.UtcNow.AddDays(1)
+                        Expires = DateTimeOffset.UtcNow.AddDays(1),
+                        Path = "/api/Auth/refresh"
                     });
 
                     return Ok(new { Token = token, userModel.Username, userModel.Role, userModel.ConfirmConsent, userModel.UserId, userModel.ApplicantID, userModel.JobID, userModel.Status });

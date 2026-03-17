@@ -8,7 +8,7 @@ namespace JobOnlineAPI.Services
         private readonly int _port = int.Parse(configuration["ClamAV:Port"] ?? "3310");
         private readonly ILogger<ClamAVService> _logger = logger;
 
-        public async Task<bool> IsSafeAsync(Stream fileStream)
+        public async Task<(bool IsSafe, string? VirusName)> ScanAsync(Stream fileStream, string fileName)
         {
             try
             {
@@ -16,15 +16,16 @@ namespace JobOnlineAPI.Services
                 var result = await clam.SendAndScanFileAsync(fileStream);
                 if (result.Result == ClamScanResults.VirusDetected)
                 {
-                    _logger.LogWarning("ClamAV: virus detected — {VirusName}", result.InfectedFiles?.FirstOrDefault()?.VirusName);
-                    return false;
+                    var virusName = result.InfectedFiles?.FirstOrDefault()?.VirusName ?? "Unknown";
+                    _logger.LogWarning("ClamAV: virus detected in {FileName} — {VirusName}", fileName, virusName);
+                    return (false, virusName);
                 }
-                return true;
+                return (true, null);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "ClamAV: scan failed, allowing file through");
-                return true; // fail-open: don't block upload if ClamAV is down
+                _logger.LogWarning(ex, "ClamAV: unreachable — fail-open for {FileName}", fileName);
+                return (true, null); // fail-open: ถ้า ClamAV down ให้ผ่าน
             }
         }
     }

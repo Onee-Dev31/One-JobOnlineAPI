@@ -418,6 +418,7 @@ app.Use(async (ctx, next) =>
 // app.UseCors("AllowAllOrigins");
 app.UseCors("Default");
 app.UseRateLimiter();
+app.UseCookiePolicy();
 
 app.UseAuthentication();
 app.UseAuthorization();
