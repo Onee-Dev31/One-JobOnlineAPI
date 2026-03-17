@@ -354,12 +354,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = ""
 });
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "AppFiles")),
-    RequestPath = "/AppFiles"
-});
+// AppFiles ไม่ serve เป็น static files อีกต่อไป — ใช้ GET /api/files/{*filePath} แทน (ต้อง JWT)
 
 try
 {
