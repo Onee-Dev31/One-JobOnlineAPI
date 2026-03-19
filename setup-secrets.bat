@@ -6,8 +6,8 @@ echo Setting up User Secrets for JobOnlineAPI...
 cd /d %~dp0
 
 :: --- Database ---
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=<DB_HOST>;Database=JobOnlineDB;User Id=<DB_USER>;Password=<DB_PASS>;Trusted_Connection=False;MultipleActiveResultSets=true;TrustServerCertificate=True;"
-dotnet user-secrets set "ConnectionStrings:DefaultConnectionHRMS" "Server=<DB_HOST>;Database=HRMS;User Id=<DB_USER>;Password=<DB_PASS>;Trusted_Connection=False;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=10.31.1.90;Database=JobOnlineDB;User Id=<DB_USER>;Password=<DB_PASS>;Trusted_Connection=False;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+dotnet user-secrets set "ConnectionStrings:DefaultConnectionHRMS" "Server=10.31.1.90;Database=HRMS;User Id=<DB_USER>;Password=<DB_PASS>;Trusted_Connection=False;MultipleActiveResultSets=true;TrustServerCertificate=True;"
 
 :: --- JWT ---
 dotnet user-secrets set "JwtSettings:AccessSecret"  "<ACCESS_SECRET>"
