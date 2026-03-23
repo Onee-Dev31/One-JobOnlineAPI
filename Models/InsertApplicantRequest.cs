@@ -30,6 +30,7 @@ namespace JobOnlineAPI.Models
 
         /// <summary>JSON array string เช่น [{"SkillName":"C#","Level":"ดี"}]</summary>
         public string? SkillsList { get; set; }
+        public string? Title { get; set; }
 
         public IFormFileCollection? Files { get; set; }
     }

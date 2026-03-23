@@ -1179,6 +1179,7 @@ namespace JobOnlineAPI.Controllers
                     ["StartWorkDate"]    = formData.StartWorkDate,
                     ["Source"]           = formData.Source,
                     ["Remark"]           = formData.Remark,
+                    ["Title"]            = formData.Title,
                 };
 
                 string jsonInput = JsonSerializer.Serialize(req);
