@@ -8,6 +8,7 @@ using System.Data;
 using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using Microsoft.Extensions.Options;
+using Microsoft.Data.SqlClient;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -172,46 +173,64 @@ namespace JobOnlineAPI.Controllers
             List<Dictionary<string, object>> fileMetadatas)
         {
             using var conn = _context.CreateConnection();
-            var param = new DynamicParameters();
 
-            // Serialize lists (Education, WorkExperience, Skills, Relationship)
-            string[] listKeys = ["EducationList", "WorkExperienceList", "SkillsList", "RelationshipList"];
-            foreach (var key in listKeys)
+            try
             {
-                param.Add(key, req.TryGetValue(key, out var val) && val is JsonElement je && je.ValueKind == JsonValueKind.Array
-                    ? je.GetRawText()
-                    : "[]");
+                var param = new DynamicParameters();
+
+                // Serialize lists
+                string[] listKeys = ["EducationList", "WorkExperienceList", "SkillsList", "RelationshipList"];
+                foreach (var key in listKeys)
+                {
+                    if (req.TryGetValue(key, out var val) && val != null)
+                    {
+                        if (val is JsonElement je && je.ValueKind == JsonValueKind.Array)
+                        {
+                            param.Add(key, je.GetRawText());
+                        }
+                        else
+                        {
+                            param.Add(key, JsonSerializer.Serialize(val));
+                        }
+                    }
+                    else
+                    {
+                        param.Add(key, "[]");
+                    }
+                }
+                var jsonInput = JsonSerializer.Serialize(req, JsonOptions);
+                var filesJson = JsonSerializer.Serialize(fileMetadatas ?? new List<Dictionary<string, object>>(), JsonOptions);
+
+                param.Add("JsonInput", jsonInput);
+                param.Add("FilesList", filesJson);
+                param.Add("JobID", jobId);
+                param.Add("ApplicantID", dbType: DbType.Int32, direction: ParameterDirection.Output);
+                param.Add("ApplicantEmail", dbType: DbType.String, direction: ParameterDirection.Output, size: 100);
+                param.Add("HRManagerEmails", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+                param.Add("JobManagerEmails", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
+                param.Add("JobTitle", dbType: DbType.String, direction: ParameterDirection.Output, size: 200);
+                param.Add("CompanyName", dbType: DbType.String, direction: ParameterDirection.Output, size: 200);
+                param.Add("OutJobID", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+                await conn.ExecuteAsync("InsertOrUpdateApplicantDataNew", param, commandType: CommandType.StoredProcedure);
+
+                return (
+                    param.Get<int>("ApplicantID"),
+                    param.Get<string>("ApplicantEmail"),
+                    param.Get<string>("HRManagerEmails"),
+                    param.Get<string>("JobManagerEmails"),
+                    param.Get<string>("JobTitle"),
+                    param.Get<string>("CompanyName"),
+                    param.Get<int>("OutJobID")
+                );
             }
-
-            // แก้ไข: ใช้ JsonOptions สำหรับ Serialize
-            param.Add("JsonInput", JsonSerializer.Serialize(req, JsonOptions));
-            // แก้ไข: ใช้ JsonOptions สำหรับ Serialize
-            param.Add("FilesList", JsonSerializer.Serialize(fileMetadatas, JsonOptions));
-
-            // JobId
-            param.Add("JobID", jobId);
-
-            // OUTPUT params
-            param.Add("ApplicantID", dbType: DbType.Int32, direction: ParameterDirection.Output);
-            param.Add("ApplicantEmail", dbType: DbType.String, direction: ParameterDirection.Output, size: 100);
-            param.Add("HRManagerEmails", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
-            param.Add("JobManagerEmails", dbType: DbType.String, direction: ParameterDirection.Output, size: 500);
-            param.Add("JobTitle", dbType: DbType.String, direction: ParameterDirection.Output, size: 200);
-            param.Add("CompanyName", dbType: DbType.String, direction: ParameterDirection.Output, size: 200);
-            param.Add("OutJobID", dbType: DbType.Int32, direction: ParameterDirection.Output);
-
-            // Call new Store
-            await conn.ExecuteAsync("InsertOrUpdateApplicantDataNew", param, commandType: CommandType.StoredProcedure);
-
-            return (
-                param.Get<int>("ApplicantID"),
-                param.Get<string>("ApplicantEmail"),
-                param.Get<string>("HRManagerEmails"),
-                param.Get<string>("JobManagerEmails"),
-                param.Get<string>("JobTitle"),
-                param.Get<string>("CompanyName"),
-                param.Get<int>("OutJobID")
-            );
+            catch (Exception ex)
+            {
+                Console.WriteLine("===== GENERAL ERROR =====");
+                Console.WriteLine(ex.Message);
+                Console.WriteLine(ex.ToString());
+                throw new Exception($"General Error: {ex.Message}");
+            }
         }
 
 
@@ -1135,17 +1154,32 @@ namespace JobOnlineAPI.Controllers
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(50_000_000)]
         [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-        public async Task<IActionResult> InsertApplicant([FromForm] IFormCollection formData)
+        public async Task<IActionResult> InsertApplicant([FromForm] InsertApplicantRequest formData)
         {
             try
             {
-                IDictionary<string, object?> req = new ExpandoObject();
-
-                foreach (var key in formData.Keys)
+                IDictionary<string, object?> req = new Dictionary<string, object?>
                 {
-                    if (key == "Files") continue;
-                    req[key] = formData[key].ToString();
-                }
+                    ["JobID"]            = formData.JobID.ToString(),
+                    ["FirstNameThai"]    = formData.FirstNameThai,
+                    ["LastNameThai"]     = formData.LastNameThai,
+                    ["FirstNameEng"]     = formData.FirstNameEng,
+                    ["LastNameEng"]      = formData.LastNameEng,
+                    ["Nickname"]         = formData.Nickname,
+                    ["Email"]            = formData.Email,
+                    ["MobilePhone"]      = formData.MobilePhone,
+                    ["JobTitle"]         = formData.JobTitle,
+                    ["CompanyName"]      = formData.CompanyName,
+                    ["Salary"]           = formData.Salary,
+                    ["Address"]          = formData.Address,
+                    ["BirthDate"]        = formData.BirthDate,
+                    ["Gender"]           = formData.Gender,
+                    ["Nationality"]      = formData.Nationality,
+                    ["Position"]         = formData.Position,
+                    ["StartWorkDate"]    = formData.StartWorkDate,
+                    ["Source"]           = formData.Source,
+                    ["Remark"]           = formData.Remark,
+                };
 
                 string jsonInput = JsonSerializer.Serialize(req);
 
@@ -1156,11 +1190,11 @@ namespace JobOnlineAPI.Controllers
                     return v;
                 }
 
-                string educationList = SafeJson(req.TryGetValue("EducationList", out var e) ? e?.ToString() : null);
-                string workList      = SafeJson(req.TryGetValue("WorkExperienceList", out var w) ? w?.ToString() : null);
-                string skillsList    = SafeJson(req.TryGetValue("SkillsList", out var s) ? s?.ToString() : null);
+                string educationList = SafeJson(formData.EducationList);
+                string workList      = SafeJson(formData.WorkExperienceList);
+                string skillsList    = SafeJson(formData.SkillsList);
 
-                var files = formData.Files;
+                var files = formData.Files ?? new FormFileCollection();
 
                 const long MaxFileSize = 50L * 1024 * 1024;
 

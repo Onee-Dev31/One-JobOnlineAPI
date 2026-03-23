@@ -26,7 +26,8 @@
                 if (!allowedExtensions.Contains(extension))
                     throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
 
-                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                // var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                var fileName = $"{file.FileName}";
                 var filePath = Path.Combine(_networkShareService.GetBasePath(), fileName);
                 var directoryPath = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Invalid directory path for: {filePath}");
 
