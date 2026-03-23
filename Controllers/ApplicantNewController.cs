@@ -1180,6 +1180,7 @@ namespace JobOnlineAPI.Controllers
                     ["Source"]           = formData.Source,
                     ["Remark"]           = formData.Remark,
                     ["Title"]            = formData.Title,
+                    ["UserId"]           = formData.UserId,
                 };
 
                 string jsonInput = JsonSerializer.Serialize(req);
