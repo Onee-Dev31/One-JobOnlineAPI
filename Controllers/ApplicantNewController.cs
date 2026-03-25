@@ -1161,6 +1161,7 @@ namespace JobOnlineAPI.Controllers
                 IDictionary<string, object?> req = new Dictionary<string, object?>
                 {
                     ["JobID"]            = formData.JobID.ToString(),
+                    ["JobOtherName"]    = formData.JobOtherName,
                     ["FirstNameThai"]    = formData.FirstNameThai,
                     ["LastNameThai"]     = formData.LastNameThai,
                     ["FirstNameEng"]     = formData.FirstNameEng,

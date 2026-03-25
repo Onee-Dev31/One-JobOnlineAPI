@@ -3,6 +3,7 @@ namespace JobOnlineAPI.Models
     public class InsertApplicantRequest
     {
         public int JobID { get; set; }
+        public string? JobOtherName { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
         public string? FirstNameEng { get; set; }

@@ -322,7 +322,8 @@ namespace JobOnlineAPI.Services
             try
             {
                 var candidateNames = requestData.Candidates?
-                    .Select(candidate => $"{candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+                    .Select(candidate => $"{candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+                    // .Select(candidate => $"{candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
                     .ToList() ?? [];
 
                 var candidateEmails = requestData.Candidates?
