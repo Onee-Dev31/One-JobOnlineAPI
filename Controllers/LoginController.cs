@@ -1,33 +1,52 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using JobOnlineAPI.Services;
-using System.ComponentModel.DataAnnotations;
-using Dapper;
-using System.Data.SqlClient;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Data;
+using System.Data.SqlClient;
+using Dapper;
+using JobOnlineAPI.Repositories;
+using JobOnlineAPI.Services;
+using Microsoft.AspNetCore.Mvc;
 
 namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class LoginController(IUserService userService, IJwtTokenService jwtTokenService, IConfiguration configuration) : ControllerBase
+    public class LoginController(IUserService userService, IJwtTokenService jwtTokenService, IConfiguration configuration,IAdminRepository adminRepository) : ControllerBase
     {
         private readonly IUserService _userService = userService ?? throw new ArgumentNullException(nameof(userService));
         private readonly IJwtTokenService _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
+        private readonly IAdminRepository _adminRepository = adminRepository;
 
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
         {
             try
             {
-                var adminUser = await _userService.AuthenticateAsync(loginRequest.Username, loginRequest.Password, loginRequest.JobID);
+                // 1) เช็กก่อนว่ามี user ในระบบไหม
+                var existingUser = await _adminRepository.GetUserByEmailAsync(loginRequest.Username, loginRequest.JobID);
+
+                if (existingUser == null)
+                {
+                    return Unauthorized(new
+                    {
+                        message = "ไม่พบบัญชีผู้ใช้งาน กรุณาลงทะเบียนก่อนเรื่มใช้งาน"
+                    });
+                }
+                var adminUser = await _userService.AuthenticateAsync(
+                    loginRequest.Username,
+                    loginRequest.Password,
+                    loginRequest.JobID
+                );
 
                 if (adminUser != null)
                 {
                     if (!adminUser.UserId.HasValue)
                     {
-                        return BadRequest(new { message = "UserId is missing for the authenticated user." });
+                        return BadRequest(new
+                        {
+                            message = "UserId is missing for the authenticated user."
+                        });
                     }
 
                     var userModel = new UserModel
@@ -43,10 +62,24 @@ namespace JobOnlineAPI.Controllers
 
                     var token = _jwtTokenService.GenerateJwtToken(userModel);
 
-                    return Ok(new { Token = token, userModel.Username, userModel.Role, userModel.ConfirmConsent, userModel.UserId, userModel.ApplicantID, userModel.JobID, userModel.Status });
+                    return Ok(new
+                    {
+                        Token = token,
+                        userModel.Username,
+                        userModel.Role,
+                        userModel.ConfirmConsent,
+                        userModel.UserId,
+                        userModel.ApplicantID,
+                        userModel.JobID,
+                        userModel.Status
+                    });
                 }
 
-                return Unauthorized("Invalid username or password.");
+                // 3) ถ้ามี user แต่ login ไม่ผ่าน = password ผิด
+                return Unauthorized(new
+                {
+                    message = "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"
+                });
             }
             catch (Exception)
             {
