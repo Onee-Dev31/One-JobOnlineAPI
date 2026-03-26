@@ -33,6 +33,9 @@ namespace JobOnlineAPI.Models
         public string? SkillsList { get; set; }
         public string? Title { get; set; }
         public int UserId { get; set; }
+        public string? TitleENG { get; set; }
+        public bool? ThaiNationality { get; set; }
+        public string? NicknameE { get; set; }
 
         public IFormFileCollection? Files { get; set; }
     }

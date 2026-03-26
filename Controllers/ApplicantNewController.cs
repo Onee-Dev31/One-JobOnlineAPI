@@ -1158,32 +1158,34 @@ namespace JobOnlineAPI.Controllers
         {
             try
             {
-                IDictionary<string, object?> req = new Dictionary<string, object?>
-                {
-                    ["JobID"]            = formData.JobID.ToString(),
-                    ["JobOtherName"]    = formData.JobOtherName,
-                    ["FirstNameThai"]    = formData.FirstNameThai,
-                    ["LastNameThai"]     = formData.LastNameThai,
-                    ["FirstNameEng"]     = formData.FirstNameEng,
-                    ["LastNameEng"]      = formData.LastNameEng,
-                    ["Nickname"]         = formData.Nickname,
-                    ["Email"]            = formData.Email,
-                    ["MobilePhone"]      = formData.MobilePhone,
-                    ["JobTitle"]         = formData.JobTitle,
-                    ["CompanyName"]      = formData.CompanyName,
-                    ["Salary"]           = formData.Salary,
-                    ["Address"]          = formData.Address,
-                    ["BirthDate"]        = formData.BirthDate,
-                    ["Gender"]           = formData.Gender,
-                    ["Nationality"]      = formData.Nationality,
-                    ["Position"]         = formData.Position,
-                    ["StartWorkDate"]    = formData.StartWorkDate,
-                    ["Source"]           = formData.Source,
-                    ["Remark"]           = formData.Remark,
-                    ["Title"]            = formData.Title,
-                    ["UserId"]           = formData.UserId,
-                };
+                IDictionary<string, object?> req = new ExpandoObject();
 
+                var props = typeof(InsertApplicantRequest).GetProperties();
+
+                foreach (var prop in props)
+                {
+                    var value = prop.GetValue(formData);
+
+                    if (value == null)
+                    {
+                        req[prop.Name] = null;
+                        continue;
+                    }
+
+                    var str = value.ToString();
+
+                    if (string.IsNullOrWhiteSpace(str))
+                        req[prop.Name] = null;
+                    else if (bool.TryParse(str, out var b))
+                        req[prop.Name] = b ? 1 : 0;
+                    else if (int.TryParse(str, out var i))
+                        req[prop.Name] = i;
+                    else if (decimal.TryParse(str, out var d))
+                        req[prop.Name] = d;
+                    else
+                        req[prop.Name] = str;
+                }
+                
                 string jsonInput = JsonSerializer.Serialize(req);
 
                 string SafeJson(string? v)
