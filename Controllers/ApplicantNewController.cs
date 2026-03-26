@@ -109,6 +109,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("submit-application-with-filesNew")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> SubmitApplicationWithFilesNew([FromForm] IFormFileCollection files, [FromForm] string jsonData)
         {
@@ -1086,71 +1087,8 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
-
-        // [HttpPost("insertApplicant")]
-        // [Consumes("multipart/form-data")]
-        // public async Task<IActionResult> InsertApplicant([FromForm] IFormCollection formData)
-        // {
-        //     try
-        //     {
-        //         IDictionary<string, object?> req = new ExpandoObject();
-        //         foreach (var key in formData.Keys)
-        //             req[key] = formData[key].ToString();
-
-        //         string jsonInput = JsonSerializer.Serialize(req);
-        //         string educationList = req.TryGetValue("EducationList", out var ed) ? ed?.ToString() ?? "[]" : "[]";
-        //         string workList = req.TryGetValue("WorkExperienceList", out var wk) ? wk?.ToString() ?? "[]" : "[]";
-        //         string skillsList = req.TryGetValue("SkillsList", out var sk) ? sk?.ToString() ?? "[]" : "[]";
-
-        //         using var conn = _context.CreateConnection();
-        //         var param = new DynamicParameters();
-        //         param.Add("@JsonInput", jsonInput);
-        //         param.Add("@EducationList", educationList);
-        //         param.Add("@WorkExperienceList", workList);
-        //         param.Add("@SkillsList", skillsList);
-        //         param.Add("@FilesList", "[]");  // ยังไม่ต้องส่งจริง
-        //         param.Add("@ApplicantID", dbType: DbType.Int32, direction: ParameterDirection.Output);
-
-        //         await conn.ExecuteAsync("InsertApplicantDataRegister", param, commandType: CommandType.StoredProcedure);
-
-        //         int applicantId = param.Get<int>("@ApplicantID");
-
-        //         // --------------------- STEP 3 : Process Files (now applicantId exists!) ---------------------
-        //         var files = formData.Files;
-        //         var fileMetadatas = await _fileProcessingService.ProcessFilesForApplicantAsync(files, applicantId); 
-        //         // ↑ ต้องแก้ signature ให้รับ applicantId ด้วย
-
-        //         // --------------------- STEP 4 : Move files into applicant folder ---------------------
-        //         _fileProcessingService.MoveFilesToApplicantDirectory(applicantId, fileMetadatas);
-
-        //         // --------------------- STEP 5 : Update database with real filesList ---------------------
-        //         var fileParam = new DynamicParameters();
-        //         fileParam.Add("@ApplicantID", applicantId);
-        //         fileParam.Add("@FilesList", JsonSerializer.Serialize(fileMetadatas));
-
-        //         await conn.ExecuteAsync("UpdateApplicantFilesList", fileParam, commandType: CommandType.StoredProcedure);
-
-        //         // --------------------- STEP 6 : email ---------------------
-        //         await _emailNotificationService.SendApplicationEmailsAsync(
-        //             req,
-        //             (applicantId, req["Email"]?.ToString() ?? "", "", "", 
-        //                 req["JobTitle"]?.ToString() ?? "",
-        //                 req["CompanyName"]?.ToString() ?? "",
-        //                 req.TryGetValue("JobID", out object? value) ? Convert.ToInt32(value) : 0
-        //             ),
-        //             _applicationFormUri
-        //         );
-
-        //         return Ok(new { Success = true, ApplicantID = applicantId, Message = "สมัครงานสำเร็จ" });
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "❌ Error inserting applicant");
-        //         return StatusCode(500, new { Success = false, Error = ex.Message });
-        //     }
-        // }
-
         [HttpPost("insertApplicant")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [Consumes("multipart/form-data")]
         [RequestSizeLimit(50_000_000)]
         [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
