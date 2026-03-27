@@ -1099,31 +1099,16 @@ namespace JobOnlineAPI.Controllers
                 IDictionary<string, object?> req = new ExpandoObject();
 
                 var props = typeof(InsertApplicantRequest).GetProperties();
-
                 foreach (var prop in props)
                 {
+                    if (prop.Name == "Files") continue;
+
                     var value = prop.GetValue(formData);
+                    var str = value?.ToString();
 
-                    if (value == null)
-                    {
-                        req[prop.Name] = null;
-                        continue;
-                    }
-
-                    var str = value.ToString();
-
-                    if (string.IsNullOrWhiteSpace(str))
-                        req[prop.Name] = null;
-                    else if (bool.TryParse(str, out var b))
-                        req[prop.Name] = b ? 1 : 0;
-                    else if (int.TryParse(str, out var i))
-                        req[prop.Name] = i;
-                    else if (decimal.TryParse(str, out var d))
-                        req[prop.Name] = d;
-                    else
-                        req[prop.Name] = str;
+                    req[prop.Name] = string.IsNullOrWhiteSpace(str) ? null : str;
                 }
-                
+
                 string jsonInput = JsonSerializer.Serialize(req);
 
                 string SafeJson(string? v)
@@ -1187,12 +1172,14 @@ namespace JobOnlineAPI.Controllers
                         req,
                         (
                             applicantId,
-                            req["Email"]?.ToString() ?? "",
+                            req.TryGetValue("Email", out var email) ? email?.ToString() ?? "" : "",
                             "",
                             "",
-                            req["JobTitle"]?.ToString() ?? "",
-                            req["CompanyName"]?.ToString() ?? "",
-                            req.TryGetValue("JobID", out var v) ? Convert.ToInt32(v) : 0
+                            req.TryGetValue("JobTitle", out var jobTitle) ? jobTitle?.ToString() ?? "" : "",
+                            req.TryGetValue("CompanyName", out var company) ? company?.ToString() ?? "" : "",
+                            req.TryGetValue("JobID", out var v) && int.TryParse(v?.ToString(), out var jobId)
+                                ? jobId
+                                : 0
                         ),
                         _applicationFormUri
                     );

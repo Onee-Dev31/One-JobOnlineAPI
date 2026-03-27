@@ -39,7 +39,7 @@ namespace JobOnlineAPI.Repositories
             }
             if (string.IsNullOrEmpty(jobApplication.Status))
             {
-                jobApplication.Status = "Pending";
+                jobApplication.Status = "Waiting HR Approve";
             }
             if (jobApplication.SubmissionDate == default)
             {
