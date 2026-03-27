@@ -20,12 +20,12 @@ namespace JobOnlineAPI.Services
     public class EmailNotificationService(
         IEmailService emailService,
         DapperContext context,
-        ILogger<EmailNotificationService> logger) : IEmailNotificationService
+        ILogger<EmailNotificationService> logger, IConfiguration config) : IEmailNotificationService
     {
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly ILogger<EmailNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
+        private readonly IConfiguration _config = config;
         private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int? role = null, int? jobId = null)
         {
             using var connection = _context.CreateConnection();
@@ -78,7 +78,7 @@ namespace JobOnlineAPI.Services
                 parameters);
 
 
-            var firstHr = results.FirstOrDefault(x => x.Role == 2);
+            var firstHr = results.FirstOrDefault(x => x.Role == 2 && !string.IsNullOrEmpty(x.NAMETHAI));
 
             if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "Applicant")
             {
@@ -141,7 +141,7 @@ namespace JobOnlineAPI.Services
                                 <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
                                 <p>โดยมีรายละเอียด ดังนี้</p>
                                 <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
-                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs.oneeclick.co/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
+                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ {applicationFormUri} <span style='color: red; font-weight: bold;'>*</span></p>
                                 <br>
                                 <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
@@ -205,7 +205,7 @@ namespace JobOnlineAPI.Services
                 .Select((candidate, index) =>
                     $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
                 .ToList() ?? [];
-
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             string candidateNamesString = string.Join("<br>", candidateNames);
             string tel = requestData.Tel ?? "-";
 
@@ -214,14 +214,14 @@ namespace JobOnlineAPI.Services
                 <p style='margin: 0 0 10px 0;'>
                     เรียน ฝ่ายสรรหาบุคคลากร<br>
                     ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
-                    มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
+                    มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง <b>{requestData.JobTitle}</b>
                 </p>
                 <p style='margin: 0 0 10px 0;'>
                     โดยมี ลำดับรายชื่อการติดต่อดังนี้ <br> {candidateNamesString}
                 </p>
                 <br>
                 <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> โดยให้ทำการติดต่อ ผู้มัครลำดับที่ 1 ก่อน หากเจรจาไม่สำเร็จ ให้ทำการติดต่อกับผู้มัครลำดับต่อไป <span style='color: red; font-weight: bold;'>*</span></p>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs.oneeclick.co/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
+                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ {applicationFormUri} และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
             </div>";
@@ -479,14 +479,9 @@ namespace JobOnlineAPI.Services
                         <p style='margin: 0;'>เรียน คุณ {fullNameThai}</p>
                         <p>
                             ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong>
-                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน และจะติดต่อกลับภายใน 7-14 วันทำการ หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br><br>
-                            หากมีข้อสงสัยหรือต้องการข้อมูลเพิ่มเติม สามารถติดต่อเราได้ที่อีเมล
-                            <span style='color: blue;'>{hrEmail}</span> หรือโทร 
-                            <span style='color: blue;'>{hrTel}</span><br>
-                            ขอบคุณอีกครั้งสำหรับความสนใจร่วมงานกับเรา
+                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน<br><br>
                         </p>
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
-                        <p style='margin: 0;'>{hrName}</p>
                         <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                         <p style='margin: 0;'>{companyName}</p>
                         <br>
@@ -537,8 +532,8 @@ namespace JobOnlineAPI.Services
             hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                 <p style='margin: 0;'>
-                    เรียนคุณ {firstRecord?.NAMETHAI}
-                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $" และคุณ {firstRecord?.ApproveNameThai}")},
+                    เรียน คุณ{firstRecord?.NAMETHAI}
+                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $"และคุณ{firstRecord?.ApproveNameThai}")},
                 </p>
 
                 {(firstRecord?.ApprovalStatus == "Approved" ? $@"
@@ -573,7 +568,7 @@ namespace JobOnlineAPI.Services
             var parameters = new DynamicParameters();
             var DepartmentName = requestData?.DeptName;
             var JobTitle = requestData?.JobTitle;
-            
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             int jobId = requestData?.JobID ?? 0;
             parameters.Add("@JobID", jobId, DbType.Int32);
             // ตัวอย่าง Dapper async
@@ -582,7 +577,14 @@ namespace JobOnlineAPI.Services
                 parameters,
                 commandType: CommandType.StoredProcedure);
 
+            var hasOpenFor = result.Any(r => (string?)r?.DATATYPE == "Openfor");
+
             var emails = result
+                .Where(r =>
+                    (string?)r?.DATATYPE == "DiHr" ||
+                    (string?)r?.DATATYPE == "Openfor" ||
+                    (!hasOpenFor && (string?)r?.DATATYPE == "Create")
+                )
                 .Select(r => ((string?)r?.EMAIL)?.Trim())
                 .Where(email => !string.IsNullOrWhiteSpace(email))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -606,7 +608,7 @@ namespace JobOnlineAPI.Services
                     <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
                     <br>           
                     <p>
-                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs.oneeclick.co/LoginAdmin
+                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> {applicationFormUri}
                     </p>
                     <p style='color: red; font-weight: bold;'>
                         **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**
