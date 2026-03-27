@@ -53,7 +53,7 @@ namespace JobOnlineAPI.Services
         private async void ProcessQueue(object? state)
         {
             var stopwatch = Stopwatch.StartNew();  // เริ่มวัดเวลา
-            string status = "Success";
+            string status = "Nagotiate Success";
             string? errorMessage = null;
             int processedCount = 0;
             int sentCount = 0;
@@ -92,7 +92,7 @@ namespace JobOnlineAPI.Services
                             Title = item.Title ?? "",
                             FirstNameThai = item.FirstNameThai ?? "",
                             LastNameThai = item.LastNameThai ?? "",
-                            Status = "Success"
+                            Status = "Nagotiate Success"
                         };
 
                         // สร้าง ApplicantRequestData สำหรับ single candidate

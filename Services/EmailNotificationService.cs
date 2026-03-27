@@ -234,20 +234,20 @@ namespace JobOnlineAPI.Services
         {
             var candidateNames = requestData.Candidates?
                 .Where(candidate =>
-                    candidate.Status is "Success" or "Unsuccess" or "Cancel" or "Waiting to confirm" or "Reject")
+                    candidate.Status is "Nagotiate Success" or "Nagotiate Failed" or "Nagotiate Cancel" or "Waiting HR Re-check" or "Reject")
                 .Select((candidate, index) =>
                 {
                     string statusText = candidate.Status switch
                     {
-                        "Success" => "สำเร็จ",
-                        "Unsuccess" => "ต่อรองไม่สำเร็จ",
-                        "Cancel" => "ยกเลิก",
-                        "Waiting to confirm" => "กำลังดำเนินการ",
+                        "Nagotiate Success" => "สำเร็จ",
+                        "Nagotiate Failed" => "ต่อรองไม่สำเร็จ",
+                        "Nagotiate Cancel" => "ยกเลิก",
+                        "Waiting HR Re-check" => "กำลังดำเนินการ",
                         "Reject" => "ยกเลิก",
                         _ => ""
                     };
 
-                    string remarkText = (candidate.Status == "Unsuccess" && !string.IsNullOrWhiteSpace(candidate.Remark))
+                    string remarkText = (candidate.Status == "Nagotiate Failed" && !string.IsNullOrWhiteSpace(candidate.Remark))
                         ? $" <span style='color: red;'>(หมายเหตุ: {candidate.Remark})</span>"
                         : "";
 

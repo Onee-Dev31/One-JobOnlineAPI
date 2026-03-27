@@ -972,7 +972,7 @@ namespace JobOnlineAPI.Controllers
                 {
                     var candidateDict = candidateObj as IDictionary<string, object>;
                     return candidateDict.TryGetValue("Status", out var statusObj) &&
-                        (statusObj?.ToString() == "Success" || statusObj?.ToString() == "Unsuccess" || statusObj?.ToString() == "Cancel");
+                        (statusObj?.ToString() == "Nagotiate Success" || statusObj?.ToString() == "Nagotiate Failed" || statusObj?.ToString() == "Nagotiate Cancel");
                 })
                 .Select((candidateObj, index) =>
                 {
@@ -984,9 +984,9 @@ namespace JobOnlineAPI.Controllers
                     string statusText = "";
                     if (candidateDict.TryGetValue("Status", out var statusObj))
                     {
-                        if(statusObj?.ToString() == "Success") statusText = "สำเร็จ";
-                        if(statusObj?.ToString() == "Unsuccess") statusText = "ต่อรองไม่สำเร็จ";
-                        if(statusObj?.ToString() == "Cancel") statusText = "ยกเลิก";
+                        if(statusObj?.ToString() == "Nagotiate Success") statusText = "สำเร็จ";
+                        if(statusObj?.ToString() == "Nagotiate Failed") statusText = "ต่อรองไม่สำเร็จ";
+                        if(statusObj?.ToString() == "Nagotiate Cancel") statusText = "ยกเลิก";
                     }
 
                     return $"ลำดับที่ {index + 1}: {title} {firstNameThai} {lastNameThai} สถานะ {statusText}".Trim();
