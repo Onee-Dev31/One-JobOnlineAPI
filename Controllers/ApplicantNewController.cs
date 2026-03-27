@@ -474,11 +474,11 @@ namespace JobOnlineAPI.Controllers
                 {
                     await _emailNotificationService.SendHrEmailsAsync(requestData);
                 }
-                else if (typeMail == "Confirmed")
+                else if (typeMail == "Employment confirm") // Confirmed
                 {
                     await _emailNotificationService.SendManagerEmailsAsync(requestData);
                 }
-                else if (typeMail == "Acknowledge")
+                else if (typeMail == "Nagotiate Process")  // Acknowledge
                 {
                     await _emailNotificationService.SendEmailWhenHRReceived(requestData);
                 }
