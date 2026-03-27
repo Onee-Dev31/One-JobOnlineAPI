@@ -78,7 +78,7 @@ namespace JobOnlineAPI.Services
                 parameters);
 
 
-            var firstHr = results.FirstOrDefault(x => x.Role == 2);
+            var firstHr = results.FirstOrDefault(x => x.Role == 2 && !string.IsNullOrEmpty(x.NAMETHAI));
 
             if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "Applicant")
             {
@@ -479,14 +479,9 @@ namespace JobOnlineAPI.Services
                         <p style='margin: 0;'>เรียน คุณ {fullNameThai}</p>
                         <p>
                             ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong>
-                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน และจะติดต่อกลับภายใน 7-14 วันทำการ หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br><br>
-                            หากมีข้อสงสัยหรือต้องการข้อมูลเพิ่มเติม สามารถติดต่อเราได้ที่อีเมล
-                            <span style='color: blue;'>{hrEmail}</span> หรือโทร 
-                            <span style='color: blue;'>{hrTel}</span><br>
-                            ขอบคุณอีกครั้งสำหรับความสนใจร่วมงานกับเรา
+                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน<br><br>
                         </p>
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
-                        <p style='margin: 0;'>{hrName}</p>
                         <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                         <p style='margin: 0;'>{companyName}</p>
                         <br>
