@@ -20,12 +20,12 @@ namespace JobOnlineAPI.Services
     public class EmailNotificationService(
         IEmailService emailService,
         DapperContext context,
-        ILogger<EmailNotificationService> logger) : IEmailNotificationService
+        ILogger<EmailNotificationService> logger, IConfiguration config) : IEmailNotificationService
     {
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly ILogger<EmailNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-
+        private readonly IConfiguration _config = config;
         private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int? role = null, int? jobId = null)
         {
             using var connection = _context.CreateConnection();
@@ -141,7 +141,7 @@ namespace JobOnlineAPI.Services
                                 <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
                                 <p>โดยมีรายละเอียด ดังนี้</p>
                                 <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
-                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs.oneeclick.co/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
+                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ {applicationFormUri} <span style='color: red; font-weight: bold;'>*</span></p>
                                 <br>
                                 <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
@@ -205,7 +205,7 @@ namespace JobOnlineAPI.Services
                 .Select((candidate, index) =>
                     $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
                 .ToList() ?? [];
-
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             string candidateNamesString = string.Join("<br>", candidateNames);
             string tel = requestData.Tel ?? "-";
 
@@ -214,14 +214,14 @@ namespace JobOnlineAPI.Services
                 <p style='margin: 0 0 10px 0;'>
                     เรียน ฝ่ายสรรหาบุคคลากร<br>
                     ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
-                    มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
+                    มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง <b>{requestData.JobTitle}</b>
                 </p>
                 <p style='margin: 0 0 10px 0;'>
                     โดยมี ลำดับรายชื่อการติดต่อดังนี้ <br> {candidateNamesString}
                 </p>
                 <br>
                 <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> โดยให้ทำการติดต่อ ผู้มัครลำดับที่ 1 ก่อน หากเจรจาไม่สำเร็จ ให้ทำการติดต่อกับผู้มัครลำดับต่อไป <span style='color: red; font-weight: bold;'>*</span></p>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs.oneeclick.co/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
+                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ {applicationFormUri} และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
             </div>";
