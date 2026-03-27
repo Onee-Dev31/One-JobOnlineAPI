@@ -320,11 +320,40 @@ namespace JobOnlineAPI.Services
 
             string candidateNamesString = string.Join("<br>", candidateNames);
 
+            using var connection = _context.CreateConnection();
+            var parameters = new DynamicParameters();
+            var DepartmentName = requestData?.DeptName;
+            var JobTitle = requestData?.JobTitle;
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
+            int jobId = requestData?.JobID ?? 0;
+            parameters.Add("@JobID", jobId, DbType.Int32);
+            // ตัวอย่าง Dapper async
+            var result = await connection.QueryAsync<dynamic>(
+                "sp_GetDataSendEmailByJobID",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            var hasOpenFor = result.Any(r => (string?)r?.DATATYPE == "Openfor");
+
+            var emails = result
+                .Where(r =>
+                    (string?)r?.DATATYPE == "DiHr" ||
+                    (string?)r?.DATATYPE == "Openfor" ||
+                    (!hasOpenFor && (string?)r?.DATATYPE == "Create")
+                )
+                .Select(r => ((string?)r?.EMAIL)?.Trim())
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor") 
+                  ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
+
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
                     เรียน ฝ่ายสรรหาทรัพยากรบุคคล<br>
-                    หลังจากที่พิจารณาคุณสมบัติของผู้สมัคร ในตำแหน่ง {requestData.JobTitle} แล้วนั้น <br>
+                    หลังจากที่พิจารณาคุณสมบัติของผู้สมัคร ในตำแหน่ง <b>{requestData!.JobTitle}</b> แล้วนั้น <br>
                     ทางต้นสังกัด ใคร่ขอให้ทางฝ่ายสรรหาทรัพยากรบุคคล ติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียด ดังนี้
                 </p>
                 <p style='margin: 0 0 10px 0;'>
@@ -333,10 +362,10 @@ namespace JobOnlineAPI.Services
                 <br>
                 <p style='margin: 0 0 10px 0;'>ในส่วนของวัน เวลา นัดหมายในการสัมภาษณ์งานนั้น </p>
                 <p style='margin: 0 0 10px 0;'>หากท่านมีข้อสงสัยประการใด กรุณาติดต่อได้ที่เบอร์ด้านล่าง</p>
-                <p style='margin: 0 0 10px 0;'>{requestData.RequesterName}</p>
-                <p style='margin: 0 0 10px 0;'>{requestData.RequesterPost}</p>
-                <p style='margin: 0 0 10px 0;'>โทร: {requestData.TelOff}</p>
-                <p style='margin: 0 0 10px 0;'>อีเมล: {requestData.RequesterMail}</p>
+                <p style='margin: 0 0 10px 0;'>{SentToName!.NAMFIRSTT} {SentToName.NAMLASTT}</p>
+                <p style='margin: 0 0 10px 0;'>{SentToName.POST}</p>
+                <p style='margin: 0 0 10px 0;'>โทร: {SentToName.TelOff}</p>
+                <p style='margin: 0 0 10px 0;'>อีเมล: {SentToName.EMAIL}</p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
