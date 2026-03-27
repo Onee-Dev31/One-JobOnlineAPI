@@ -488,7 +488,7 @@ namespace JobOnlineAPI.Controllers
                 }
 
 
-                if (typeMail != "notiMail")
+                if (typeMail != "notiMail" || requestData.Status == "Waiting candidate Info")
                 {
                     var hasRank = requestData.Candidates?.Any(c => c.RankOfSelect.HasValue) == true;
 
