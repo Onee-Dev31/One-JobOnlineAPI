@@ -532,8 +532,8 @@ namespace JobOnlineAPI.Services
             hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                 <p style='margin: 0;'>
-                    เรียนคุณ {firstRecord?.NAMETHAI}
-                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $" และคุณ {firstRecord?.ApproveNameThai}")},
+                    เรียน คุณ{firstRecord?.NAMETHAI}
+                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $"และคุณ{firstRecord?.ApproveNameThai}")},
                 </p>
 
                 {(firstRecord?.ApprovalStatus == "Approved" ? $@"
@@ -568,7 +568,7 @@ namespace JobOnlineAPI.Services
             var parameters = new DynamicParameters();
             var DepartmentName = requestData?.DeptName;
             var JobTitle = requestData?.JobTitle;
-            
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             int jobId = requestData?.JobID ?? 0;
             parameters.Add("@JobID", jobId, DbType.Int32);
             // ตัวอย่าง Dapper async
@@ -577,7 +577,14 @@ namespace JobOnlineAPI.Services
                 parameters,
                 commandType: CommandType.StoredProcedure);
 
+            var hasOpenFor = result.Any(r => (string?)r?.DATATYPE == "Openfor");
+
             var emails = result
+                .Where(r =>
+                    (string?)r?.DATATYPE == "DiHr" ||
+                    (string?)r?.DATATYPE == "Openfor" ||
+                    (!hasOpenFor && (string?)r?.DATATYPE == "Create")
+                )
                 .Select(r => ((string?)r?.EMAIL)?.Trim())
                 .Where(email => !string.IsNullOrWhiteSpace(email))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -601,7 +608,7 @@ namespace JobOnlineAPI.Services
                     <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
                     <br>           
                     <p>
-                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs.oneeclick.co/LoginAdmin
+                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> {applicationFormUri}
                     </p>
                     <p style='color: red; font-weight: bold;'>
                         **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**
