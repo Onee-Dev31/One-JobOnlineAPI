@@ -239,11 +239,11 @@ namespace JobOnlineAPI.Services
                 {
                     string statusText = candidate.Status switch
                     {
-                        "Nagotiate Success" => "สำเร็จ",
-                        "Nagotiate Failed" => "ต่อรองไม่สำเร็จ",
-                        "Nagotiate Cancel" => "ยกเลิก",
-                        "Waiting HR Re-check" => "กำลังดำเนินการ",
-                        "Reject" => "ยกเลิก",
+                        "Nagotiate Success" => "<b style='color: green;'>สำเร็จ</b>",
+                        "Nagotiate Failed" => "<b style='color: red;'>ต่อรองไม่สำเร็จ</b>",
+                        "Nagotiate Cancel" => "<b style='color: red;'>ยกเลิก</b>",
+                        "Waiting HR Re-check" => "<b style='color: #1677ff;'>กำลังดำเนินการ</b>", // nz primary
+                        "Reject" => "<b style='color: red;'>ยกเลิก</b>",
                         _ => ""
                     };
 
@@ -255,15 +255,43 @@ namespace JobOnlineAPI.Services
                 }).ToList() ?? [];
 
             string candidateNamesString = string.Join("<br>", candidateNames);
+            using var connection = _context.CreateConnection();
+            var parameters = new DynamicParameters();
+            var DepartmentName = requestData?.DeptName;
+            var JobTitle = requestData?.JobTitle;
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
+            int jobId = requestData?.JobID ?? 0;
+            parameters.Add("@JobID", jobId, DbType.Int32);
+            // ตัวอย่าง Dapper async
+            var result = await connection.QueryAsync<dynamic>(
+                "sp_GetDataSendEmailByJobID",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            var hasOpenFor = result.Any(r => (string?)r?.DATATYPE == "Openfor");
+
+            var emails = result
+                .Where(r =>
+                    (string?)r?.DATATYPE == "DiHr" ||
+                    (string?)r?.DATATYPE == "Openfor" ||
+                    (!hasOpenFor && (string?)r?.DATATYPE == "Create")
+                )
+                .Select(r => ((string?)r?.EMAIL)?.Trim())
+                .Where(email => !string.IsNullOrWhiteSpace(email))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor")
+                  ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
             // <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ {requestData.RequesterName}</p>
             // <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน Manager ฝ่าย {requestData.JobTitle} </p>
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน ทีม</p>
+                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}</p>
                 <p style='font-weight: bold; margin: 0 0 10px 0;'>ทางฝ่าย ฝ่ายสรรหาบุคลากร ขอแจ้งผลการเจรจากับผู้สมัครเพื่อรับเข้าทำงาน โดยมีรายละเอียดดังต่อไปนี้</p>
                 <br>
                 <p style='margin: 0 0 10px 0;'>
-                    ตำแหน่ง {requestData.JobTitle}<br>
+                    ตำแหน่ง {requestData!.JobTitle}<br>
                     {candidateNamesString}
                 </p>
                 <br>
@@ -275,7 +303,7 @@ namespace JobOnlineAPI.Services
             var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-            return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
+            return await SendEmailsAsync(emails!, "ONEE Jobs - List of candidates for job interview", hrBody, null);
         }
 
         public async Task<int> SendHrEmailsAsync(ApplicantRequestData requestData)
