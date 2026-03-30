@@ -32,6 +32,8 @@
 	  <None Remove="Templates\Email\Registration.html" />
 	  <None Remove="Templates\Email\RequestOtp.html" />
 	  <None Remove="Templates\Email\ResetPassword.html" />
+          <None Remove="Templates\Email\ApplicantPart2.html" />
+	  <None Remove="Templates\Email\ApplicantPart2ToHR.html" />
 	</ItemGroup>
 
 
@@ -89,6 +91,12 @@
 	  <Content Include="Templates\Email\ResetPassword.html">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
+          <Content Include="Templates\Email\ApplicantPart2.html">
+    	     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+  	   </Content>
+          <Content Include="Templates\Email\ApplicantPart2ToHR.html">
+    	     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+  	   </Content>
 	</ItemGroup>
 
 	<ItemGroup>

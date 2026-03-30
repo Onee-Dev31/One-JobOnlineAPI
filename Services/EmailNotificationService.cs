@@ -163,10 +163,15 @@ namespace JobOnlineAPI.Services
             {
                 if (!string.IsNullOrEmpty(dbResult.ApplicantEmail))
                 {
-                    string applicantBody = GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                    string applicantBody = typeMail == "Part2"
+                    ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle)
+                    : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                    string applicantSubject = typeMail == "Part2"
+                    ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
+                    : "Application Received";
                     try
                     {
-                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, "Application Received", applicantBody, true, "Register", null);
+                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
                         successCount++;
                         _logger.LogInformation("Successfully sent email to {Email}", dbResult.ApplicantEmail);
                     }
@@ -182,7 +187,13 @@ namespace JobOnlineAPI.Services
                     if (string.IsNullOrWhiteSpace(emailStaff))
                         continue;
 
-                    string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
+                    //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
+                    string managerBody = typeMail == "Part2"
+                   ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle)
+                   : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                    string applicantSubject = typeMail == "Part2"
+                    ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
+                    : "Application Received";
                     try
                     {
                         await _emailService.SendEmailAsync(emailStaff, "ONEE Jobs - You've got the new candidate", managerBody, true, "Register", null);
@@ -674,6 +685,51 @@ namespace JobOnlineAPI.Services
             SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
 
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
+        }
+
+        private static string GenerateApplicantPart2EmailBody(string fullNameThai, string jobTitle)
+        {
+            var template = LoadEmailTemplate("ApplicantPart2.html");
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle }
+            });
+        }
+        private static string GenerateApplicantPart2ToHREmailBody(string fullNameThai, string jobTitle)
+        {
+            var template = LoadEmailTemplate("ApplicantPart2ToHR.html");
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle }
+            });
+        }
+        private static string LoadEmailTemplate(string templateName)
+        {
+            var templatePath = Path.Combine(
+                AppContext.BaseDirectory,
+                "Templates",
+                "Email",
+                templateName
+            );
+
+            if (!File.Exists(templatePath))
+                throw new FileNotFoundException($"Email template not found: {templatePath}");
+
+            return File.ReadAllText(templatePath);
+        }
+
+        private static string ReplaceTemplatePlaceholders(string template, Dictionary<string, string> values)
+        {
+            foreach (var item in values)
+            {
+                template = template.Replace($"{{{{{item.Key}}}}}", item.Value ?? string.Empty);
+            }
+
+            return template;
         }
     }
 }

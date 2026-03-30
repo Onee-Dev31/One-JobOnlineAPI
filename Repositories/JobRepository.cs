@@ -1,8 +1,9 @@
 ﻿using System.Data;
 using Dapper;
 using JobOnlineAPI.Models;
-using Microsoft.Data.SqlClient;
 using JobOnlineAPI.Services;
+using Microsoft.Data.SqlClient;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 
 namespace JobOnlineAPI.Repositories
@@ -15,6 +16,7 @@ namespace JobOnlineAPI.Repositories
                 ?? throw new ArgumentNullException(nameof(configuration), "Connection string 'DefaultConnection' is not found.");
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly IEmailNotificationService _emailNotificationService = emailNotificationService ?? throw new ArgumentNullException(nameof(emailNotificationService));
+        private readonly IConfiguration _config = configuration;
         public async Task<IEnumerable<Job>> GetAllJobsAsync()
         {
             using var db = new SqlConnection(_connectionString);
@@ -91,7 +93,7 @@ namespace JobOnlineAPI.Repositories
                     ? (object)DBNull.Value
                     : job.OpenFor,
                 DbType.String);
-
+            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             try
             {
                 //"sp_GetDateSendEmailV4"
@@ -136,7 +138,7 @@ namespace JobOnlineAPI.Repositories
                                         </tr>
                                         <tr>
                                             <td style='background-color: #2E86C1; padding: 10px; text-align: center; color: #ffffff;'>
-                                                <p style='font-size: 14px;'>กรุณา Link: <a href='https://oneejobs.oneeclick.co/LoginAdmin' target='_blank' style='color: #ffffff; text-decoration: underline;'>oneejobs.oneeclick.co</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
+                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='color: #ffffff; text-decoration: underline;'>oneejobs.oneeclick.co</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
                                             </td>
                                         </tr>
                                     </table>
