@@ -47,7 +47,13 @@ namespace JobOnlineAPI.Controllers
 
                 userDict["accessToken"] = accessToken;
                 userDict["refreshToken"] = refreshToken;
-                
+                Response.Cookies.Append("token", accessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
                 return Ok(user);
             }
             catch (Exception ex)

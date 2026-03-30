@@ -210,8 +210,32 @@ builder.Services.AddAuthentication(options =>
         RequireExpirationTime = true,
         RequireSignedTokens = true
     };
+    // options.Events = new JwtBearerEvents
+    // {
+    //     OnAuthenticationFailed = ctx =>
+    //     {
+    //         if (ctx.Exception is SecurityTokenExpiredException)
+    //         {
+    //             ctx.Response.Headers["Token-Expired"] = "true";
+    //             ctx.Response.Headers.Append("Cache-Control", "no-store");
+    //         }
+    //         return Task.CompletedTask;
+    //     }
+    // };
     options.Events = new JwtBearerEvents
     {
+        OnMessageReceived = context =>
+        {
+            var token = context.Request.Cookies["auth_token"];
+
+            if (!string.IsNullOrEmpty(token))
+            {
+                context.Token = token;
+            }
+
+            return Task.CompletedTask;
+        },
+
         OnAuthenticationFailed = ctx =>
         {
             if (ctx.Exception is SecurityTokenExpiredException)
@@ -222,6 +246,7 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+        
 });
 
 builder.Services.AddControllersWithViews()

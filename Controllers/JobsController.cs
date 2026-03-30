@@ -6,7 +6,7 @@ using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using JobOnlineAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.AspNetCore.Authorization;
 namespace JobOnlineAPI.Controllers
 {
     [ApiController]
@@ -141,6 +141,7 @@ namespace JobOnlineAPI.Controllers
         /// </summary>
         [HttpPut("{id}")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        // [Authorize] // Cookie
         public async Task<IActionResult> UpdateJob(int id, [FromBody] Job job)
         {
             if (id <= 0 || id != job.JobID)
