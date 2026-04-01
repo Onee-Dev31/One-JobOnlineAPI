@@ -436,7 +436,7 @@ namespace JobOnlineAPI.Services
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรื่อง: ผลสัมภาษณ์ผู้สมัครตำแหน่ง {requestData?.JobTitle}</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
-                        ตามที่ท่านได้สมัครในตำแหน่ง {requestData?.JobTitle} ทางบริษัทได้พิจารณาให้คุณผ่านการคัดเลือก กรุณาเข้าไปกรอกรายละเอียดของท่าน ตามลิงก์ด้านล่าง
+                        ตามที่ท่านได้สมัครในตำแหน่ง <strong>{requestData?.JobTitle}</strong> ทางบริษัทได้พิจารณาให้คุณผ่านการคัดเลือก กรุณาเข้าไปกรอกรายละเอียดของท่าน ตามลิงก์ด้านล่าง
                     </p>
                     <p style='margin: 0 0 10px 0;'>
                         Click : <a href='{fromRegis}'>{fromRegis}</a>
