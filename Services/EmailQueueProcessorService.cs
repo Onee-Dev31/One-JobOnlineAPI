@@ -130,7 +130,7 @@ namespace JobOnlineAPI.Services
                             retryParams.Add("@QueueID", item.QueueID);
                             retryParams.Add("@ScheduledSendTime", DateTime.UtcNow.AddHours(1));
                             retryParams.Add("@RetryCount", item.RetryCount + 1);
-                            retryParams.Add("@ErrorMessage", ex.Message);
+                            retryParams.Add("@ErrorMessage", ex.Message.Length > 500 ? ex.Message[..500] : ex.Message);
 
                             await connection.ExecuteAsync(
                                 "sp_UpdateEmailQueueRetry",
@@ -145,7 +145,7 @@ namespace JobOnlineAPI.Services
                             // Mark failed ด้วย SP
                             var failedParams = new DynamicParameters();
                             failedParams.Add("@QueueID", item.QueueID);
-                            failedParams.Add("@ErrorMessage", ex.Message);
+                            failedParams.Add("@ErrorMessage", ex.Message.Length > 500 ? ex.Message[..500] : ex.Message);
 
                             await connection.ExecuteAsync(
                                 "sp_UpdateEmailQueueFailed",
@@ -164,7 +164,7 @@ namespace JobOnlineAPI.Services
             catch (Exception ex)
             {
                 status = "Error";
-                errorMessage = ex.Message;
+                errorMessage = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
                 _logger.LogError(ex, "Error processing email queue");
             }
             finally

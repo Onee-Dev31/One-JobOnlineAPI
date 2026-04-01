@@ -53,7 +53,7 @@ namespace JobOnlineAPI.Services
             catch (Exception ex)
             {
                 status = "Failed";
-                errorMessage = ex.Message;
+                errorMessage = ex.Message.Length > 500 ? ex.Message[..500] : ex.Message;
             }
 
             await LogEmailAsync(to, subject, body, status, errorMessage, typeMail, JobsId);

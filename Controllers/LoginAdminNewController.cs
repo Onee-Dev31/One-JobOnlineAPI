@@ -51,7 +51,7 @@ namespace JobOnlineAPI.Controllers
                 {
                     HttpOnly = true,
                     Secure = true,
-                    SameSite = SameSiteMode.Lax,
+                    SameSite = SameSiteMode.Strict,
                     Expires = DateTime.UtcNow.AddHours(2)
                 });
                 return Ok(user);

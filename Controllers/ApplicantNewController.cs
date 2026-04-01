@@ -225,9 +225,9 @@ namespace JobOnlineAPI.Controllers
                     param.Get<int>("OutJobID")
                 );
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception($"General Error: {ex.Message}", ex);
+                throw;
             }
         }
 
