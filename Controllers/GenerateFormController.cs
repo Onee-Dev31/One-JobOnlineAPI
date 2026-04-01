@@ -82,7 +82,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV2")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV2([FromBody] JsonElement request)
         {
             try
@@ -122,7 +122,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV3")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV3([FromBody] JsonElement request)
         {
             try
@@ -162,6 +162,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPart1")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPart1([FromBody] JsonElement request)
         {
             try
@@ -209,16 +210,9 @@ namespace JobOnlineAPI.Controllers
 
                 return File(pdf, "application/pdf", fileName);
             }
-            // catch
-            // {
-            //     return StatusCode(500, "Internal Server error");
-            // }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new {
-                    message = ex.Message,
-                    stack = ex.StackTrace
-                });
+                return StatusCode(500, "Internal Server error");
             }
         }
 

@@ -26,6 +26,7 @@ namespace JobOnlineAPI.Controllers
         };
 
         [HttpPost]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -301,6 +302,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> GetITRequestByReqNo(string? reqNo = null, int? applicantId = null)
         {
             try
@@ -360,6 +362,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("generate-form")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> GenerateForm(string? reqNo = null, int? applicantId = null)
         {
             try

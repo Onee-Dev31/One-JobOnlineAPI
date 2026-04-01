@@ -54,7 +54,6 @@ namespace JobOnlineAPI.Services
             {
                 status = "Failed";
                 errorMessage = ex.Message;
-                Console.WriteLine($"❌ Error sending email: {errorMessage}");
             }
 
             await LogEmailAsync(to, subject, body, status, errorMessage, typeMail, JobsId);

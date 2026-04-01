@@ -118,6 +118,7 @@ namespace JobOnlineAPI.Controllers
         /// เพิ่มตำแหน่งงานใหม่
         /// </summary>
         [HttpPost]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<ActionResult<Job>> AddJob([FromBody] Job job)
         {
             if (job == null || string.IsNullOrWhiteSpace(job.JobTitle))

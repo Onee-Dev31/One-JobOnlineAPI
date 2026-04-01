@@ -75,9 +75,8 @@ namespace JobOnlineAPI.Repositories
 
                 return id;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error adding job: {ex.Message}");
                 throw;
             }
         }
@@ -151,9 +150,8 @@ namespace JobOnlineAPI.Repositories
                 await Task.WhenAll(emailTasks);
 
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"❌ ERROR executing stored procedure: {ex.Message}");
                 throw;
             }
         }

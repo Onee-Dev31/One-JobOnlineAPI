@@ -2,8 +2,6 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -90,7 +88,10 @@ namespace JobOnlineAPI.Controllers
                 string username = request.Email.Split('@').FirstOrDefault() ?? "ผู้ใช้";
                 string actionDescription = request.Action.Equals("register", StringComparison.CurrentCultureIgnoreCase) ? "การสมัครสมาชิก" : "การรีเซ็ตรหัสผ่าน";
 
-                // สร้างโทเคนและ URL สำหรับคัดลอก
+                // cleanup expired tokens
+                var expired = _tokenStore.Where(kv => kv.Value.Expires < DateTime.UtcNow).Select(kv => kv.Key).ToList();
+                foreach (var key in expired) _tokenStore.Remove(key);
+
                 string token = Guid.NewGuid().ToString();
                 _tokenStore[token] = (otp, DateTime.UtcNow + _tokenExpiration);
                 string copyUrl = Url.Action("CopyOtp", "Auth", new { otp, token }, Request.Scheme) ?? "#";
@@ -376,8 +377,7 @@ namespace JobOnlineAPI.Controllers
 
         private static string HashPassword(string password)
         {
-            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
+            return BCrypt.Net.BCrypt.HashPassword(password);
         }
 
         private static bool IsValidEmail(string email)

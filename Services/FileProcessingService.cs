@@ -7,6 +7,28 @@
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly ILogger<FileProcessingService> _logger = logger;
 
+        private static readonly Dictionary<string, byte[][]> _magicBytes = new()
+        {
+            { ".pdf",  [[0x25, 0x50, 0x44, 0x46]] },
+            { ".png",  [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]] },
+            { ".jpg",  [[0xFF, 0xD8, 0xFF]] },
+            { ".doc",  [[0xD0, 0xCF, 0x11, 0xE0]] },
+            { ".docx", [[0x50, 0x4B, 0x03, 0x04]] },
+        };
+
+        private static async Task<bool> ValidateMagicBytesAsync(IFormFile file, string extension)
+        {
+            if (!_magicBytes.TryGetValue(extension, out var signatures))
+                return false;
+
+            var maxLen = signatures.Max(s => s.Length);
+            var buffer = new byte[maxLen];
+            using var stream = file.OpenReadStream();
+            var read = await stream.ReadAsync(buffer.AsMemory(0, maxLen));
+
+            return signatures.Any(sig => read >= sig.Length && buffer.Take(sig.Length).SequenceEqual(sig));
+        }
+
         public async Task<List<Dictionary<string, object>>> ProcessFilesAsync(IFormFileCollection files, string sectionFile = "Section1")
         {
             var fileMetadatas = new List<Dictionary<string, object>>();
@@ -24,9 +46,12 @@
 
                 var extension = Path.GetExtension(file.FileName).ToLower();
                 if (!allowedExtensions.Contains(extension))
-                    throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
+                    throw new InvalidOperationException($"Invalid file type. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
 
-                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                if (!await ValidateMagicBytesAsync(file, extension))
+                    throw new InvalidOperationException($"File content does not match its extension.");
+
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
                 // var fileName = $"{file.FileName}";
                 var filePath = Path.Combine(_networkShareService.GetBasePath(), fileName);
                 var directoryPath = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Invalid directory path for: {filePath}");
@@ -80,7 +105,10 @@
                 if (!allowedExtensions.Contains(extension))
                     throw new InvalidOperationException($"Invalid file type: {extension}");
 
-                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                if (!await ValidateMagicBytesAsync(file, extension))
+                    throw new InvalidOperationException($"File content does not match its extension.");
+
+                var fileName = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
                 var filePath = Path.Combine(tempPath, fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))

@@ -10,6 +10,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IConfiguration _configuration = configuration;
 
         [HttpGet("test-connection")]
+        [TypeFilter(typeof(JobOnlineAPI.Filters.JwtAuthorizeAttribute))]
         public async Task<IActionResult> TestConnection()
         {
             var connectionString = _configuration.GetConnectionString("DefaultConnection");

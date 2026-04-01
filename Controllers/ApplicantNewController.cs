@@ -227,10 +227,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("===== GENERAL ERROR =====");
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.ToString());
-                throw new Exception($"General Error: {ex.Message}");
+                throw new Exception($"General Error: {ex.Message}", ex);
             }
         }
 
@@ -444,6 +441,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("updateApplicantStatus")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> UpdateApplicantStatus([FromBody] ExpandoObject? request)
         {
             try
@@ -867,9 +865,8 @@ namespace JobOnlineAPI.Controllers
                     _logger.LogWarning("sp_UpdateJobApprovalStatus: No rows were affected for JobId = {JobId}", approvalData.JobId);
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error: {ex.Message}");
                 throw;
             }
         }
@@ -970,6 +967,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("UpdateConfirmConsent")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateConfirmConsent([FromBody] ExpandoObject? request)
@@ -1013,6 +1011,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("GetCheckData")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetCheckData([FromQuery] string? Email, int? JobID)
         {
@@ -1042,6 +1041,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("delete-multiple-files")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> DeleteMultipleFiles([FromBody] List<int> fileIds)
         {
             try

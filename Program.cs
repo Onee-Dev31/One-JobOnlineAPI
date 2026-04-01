@@ -52,6 +52,7 @@ builder.Configuration.Sources.Clear();
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddUserSecrets<Program>(optional: true)
     .AddEnvironmentVariables();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -101,22 +102,31 @@ builder.Services.AddCors(options =>
     //            .AllowAnyHeader()
     //            .AllowAnyMethod();
     // });
-    options.AddPolicy("Default", builder =>
+    var allowedOrigins = new List<string>
     {
-        builder.WithOrigins(
-            "https://oneejobs.oneeclick.co",
-            "https://oneejobs27.oneeclick.co:7191",
-            "https://10.2.0.11:7191",
-            "https://10.10.0.27:7191",
-            "https://127.0.0.1:7191",
-            "https://localhost:7191",
+        "https://oneejobs.oneeclick.co",
+        "https://oneejobs27.oneeclick.co:7191",
+        "https://10.2.0.11:7191",
+        "https://10.10.0.27:7191",
+        "https://127.0.0.1:7191",
+        "https://localhost:7191"
+    };
+
+    if (builder.Environment.IsDevelopment())
+    {
+        allowedOrigins.AddRange([
             "http://localhost:5236",
             "http://localhost:3000",
             "http://localhost:4200"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
+        ]);
+    }
+
+    options.AddPolicy("Default", corsBuilder =>
+    {
+        corsBuilder.WithOrigins([.. allowedOrigins])
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -352,23 +362,28 @@ else
         });
     });
 }
-// if (!app.Environment.IsDevelopment())
-// {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.DefaultModelsExpandDepth(-1);
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
     });
-// }
+}
 
 app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
     ctx.Response.Headers.TryAdd("X-Frame-Options", "DENY");
     ctx.Response.Headers.TryAdd("X-XSS-Protection", "1; mode=block");
     ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
+    ctx.Response.Headers.TryAdd("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
     await next();
 });
 // app.UseCors("AllowAllOrigins");

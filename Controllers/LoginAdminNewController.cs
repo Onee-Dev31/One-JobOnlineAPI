@@ -50,29 +50,25 @@ namespace JobOnlineAPI.Controllers
                 Response.Cookies.Append("token", accessToken, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,
+                    Secure = true,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddHours(2)
                 });
                 return Ok(user);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, new
-                {
-                    message = "Internal Server error",
-                    detail = ex.Message
-                });
+                return StatusCode(500, new { message = "Internal Server error" });
             }
         }
         private async Task<(string accessToken, string refreshToken)> LoginWithADAsync(string username, string password)
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            };
+            var skipSsl = _configuration.GetValue<bool>("HttpClientSettings:SkipSslValidation");
+            var handler = new HttpClientHandler();
+            if (skipSsl)
+                handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
-            using var httpClient = new HttpClient(handler);
+            using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(10) };
 
             var payload = new
             {
@@ -80,8 +76,11 @@ namespace JobOnlineAPI.Controllers
                 password
             };
 
+            var adAuthUrl = _configuration["HttpClientSettings:AdAuthUrl"]
+                ?? throw new InvalidOperationException("HttpClientSettings:AdAuthUrl is not configured.");
+
             var response = await httpClient.PostAsync(
-                "https://10.10.0.28:7054/api/auth/token",
+                adAuthUrl,
                 new StringContent(
                     JsonSerializer.Serialize(payload),
                     Encoding.UTF8,

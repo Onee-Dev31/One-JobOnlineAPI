@@ -15,15 +15,23 @@ namespace JobOnlineAPI.Services
             {
                 if (IsUserExistsInLdap(username))
                 {
-                    Console.WriteLine($"LDAP Authentication bypassed for user {username}");
                     return true;
                 }
-                Console.WriteLine($"LDAP Bypass failed: User {username} does not exist in LDAP");
                 return false;
             }
 
             var ldapServers = _configuration.GetSection("LdapServers").Get<List<LdapServer>>();
             return ldapServers != null && TryAuthenticateWithLdapServers(username, password, ldapServers);
+        }
+
+        private static string EscapeLdapFilter(string value)
+        {
+            return value
+                .Replace("\\", "\\5c")
+                .Replace("*", "\\2a")
+                .Replace("(", "\\28")
+                .Replace(")", "\\29")
+                .Replace("\0", "\\00");
         }
 
         private static bool TryAuthenticateWithLdapServers(string username, string password, List<LdapServer> ldapServers)
@@ -37,12 +45,10 @@ namespace JobOnlineAPI.Services
                     var host = uri.Host;
                     var port = uri.Port;
 
-                    Console.WriteLine($"Connecting to {host}:{port}");
                     connection.Connect(host, port);
                     connection.Bind(server.BindDn, server.BindPassword);
-                    Console.WriteLine("LDAP Connection and Bind successful.");
 
-                    var searchFilter = $"(&(sAMAccountName={username})(objectClass=person))";
+                    var searchFilter = $"(&(sAMAccountName={EscapeLdapFilter(username)})(objectClass=person))";
                     var searchResults = connection.Search(
                         server.BaseDn,
                         LdapConnection.ScopeSub,
@@ -58,13 +64,12 @@ namespace JobOnlineAPI.Services
                         using var userConnection = new LdapConnection();
                         userConnection.Connect(host, port);
                         userConnection.Bind(userDn, password);
-                        Console.WriteLine($"LDAP Authentication successful for user {username}");
+                        // auth successful
                         return true;
                     }
                 }
-                catch (LdapException ex)
+                catch (LdapException)
                 {
-                    Console.WriteLine($"LDAP Error for server {server.Url}: {ex.Message}");
                 }
             }
 
@@ -90,7 +95,7 @@ namespace JobOnlineAPI.Services
                         connection.Connect(host, port);
                         connection.Bind(server.BindDn, server.BindPassword);
 
-                        var searchFilter = $"(&(sAMAccountName={username})(objectClass=person))";
+                        var searchFilter = $"(&(sAMAccountName={EscapeLdapFilter(username)})(objectClass=person))";
                         var searchResults = connection.Search(
                             server.BaseDn,
                             LdapConnection.ScopeSub,
@@ -101,7 +106,6 @@ namespace JobOnlineAPI.Services
 
                         if (searchResults.HasMore())
                         {
-                            Console.WriteLine($"User {username} exists in LDAP.");
                             return true;
                         }
                     }
@@ -112,7 +116,6 @@ namespace JobOnlineAPI.Services
                 }
             }
 
-            Console.WriteLine($"User {username} does not exist in LDAP.");
             return false;
         }
 
@@ -143,9 +146,8 @@ namespace JobOnlineAPI.Services
 
                 return null;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error fetching LDAP bypass password: {ex.Message}");
                 return null;
             }
         }

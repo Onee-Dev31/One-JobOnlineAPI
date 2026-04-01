@@ -46,9 +46,8 @@ namespace JobOnlineAPI.Repositories
             {
                 return await db.QuerySingleOrDefaultAsync<AdminUser>(query, new { Username = username });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error in GetAdminUserByUsernameAsync: {ex.Message}");
                 return null;
             }
         }
@@ -67,9 +66,8 @@ namespace JobOnlineAPI.Repositories
                     commandType: CommandType.StoredProcedure
                 );
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine($"Error in GetUserByEmailAsync: {ex.Message}");
                 return null;
             }
         }

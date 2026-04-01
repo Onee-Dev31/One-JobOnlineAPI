@@ -64,7 +64,7 @@ namespace JobOnlineAPI.Controllers
                     Response.Cookies.Append("auth_token", token, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = false,
+                        Secure = true,
                         SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddHours(2)
                     });
@@ -94,6 +94,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("change-password")]
+        [TypeFilter(typeof(JobOnlineAPI.Filters.JwtAuthorizeAttribute))]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             try
