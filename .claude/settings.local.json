@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build:*)",
+      "Bash(ls /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI/Controllers/*.cs 2>/dev/null | wc -l)",
+      "Bash(ls /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI/obj/Debug/net8.0/*.rsp 2>/dev/null | head -5)",
+      "Bash(rm -rf /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI/obj /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI/bin && dotnet restore --force && dotnet build 2>&1 | tail -8)",
+      "Bash(env | grep -i \"msbuild\\\\|dotnet\\\\|NUGET\" | head -10)",
+      "Read(//private/tmp/test_build/TestApi/**)",
+      "Bash(dotnet restore:*)",
+      "Bash(cd /tmp/test_build/TestApi && dotnet add package Microsoft.NET.Test.Sdk --version 17.14.0 && dotnet add package xunit --version 2.9.3 && dotnet add package xunit.runner.visualstudio --version 3.1.0 && dotnet build 2>&1 | tail -5)",
+      "Bash(cd /tmp/test_build/TestApi && dotnet add package Swashbuckle.AspNetCore --version 6.5.0 && dotnet build 2>&1 | tail -5)",
+      "Bash(cd /tmp/test_build/TestApi && dotnet add package QuestPDF --version 2025.7.0 && dotnet build 2>&1 | tail -5)",
+      "Bash(grep -r \"AppFiles\\\\|C:/\" /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI --include=\"*.json\" --include=\"*.csproj\" --include=\"*.xml\" -l 2>/dev/null | grep -v \"/obj/\\\\|/bin/\")",
+      "Bash(grep -rn \"C:/\" /Users/nopporn/Job/FlukeInW/One-JobOnlineAPI --include=\"*.json\" --include=\"*.csproj\" --include=\"*.xml\" --include=\"*.props\" --include=\"*.targets\" 2>/dev/null | grep -v \"/obj/\\\\|/bin/\\\\|settings.local\")",
+      "Bash(git add:*)",
+      "Bash(chmod +x ~/test_insert.sh && ~/test_insert.sh)",
+      "Bash(~/test_insert.sh)",
+      "Bash(git push:*)",
+      "Bash(dotnet msbuild:*)",
+      "Bash(ls obj/Debug/net8.0/*.rsp)",
+      "Bash(dotnet tool:*)",
+      "Bash(msbuild-structured-log-viewer build.binlog)",
+      "Bash(dotnet --version)"
+    ]
+  }
+}
