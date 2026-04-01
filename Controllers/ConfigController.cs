@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using JobOnlineAPI.Services;
+using JobOnlineAPI.Filters;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -10,6 +11,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IUserService _userService = userService;
 
         [HttpGet("{key}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> GetConfigValue(string key)
         {
             var configValue = await _userService.GetConfigValueAsync(key);

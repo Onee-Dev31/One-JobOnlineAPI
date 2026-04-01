@@ -102,24 +102,9 @@ builder.Services.AddCors(options =>
     //            .AllowAnyHeader()
     //            .AllowAnyMethod();
     // });
-    var allowedOrigins = new List<string>
-    {
-        "https://oneejobs.oneeclick.co",
-        "https://oneejobs27.oneeclick.co:7191",
-        "https://10.2.0.11:7191",
-        "https://10.10.0.27:7191",
-        "https://127.0.0.1:7191",
-        "https://localhost:7191"
-    };
-
-    if (builder.Environment.IsDevelopment())
-    {
-        allowedOrigins.AddRange([
-            "http://localhost:5236",
-            "http://localhost:3000",
-            "http://localhost:4200"
-        ]);
-    }
+    var allowedOrigins = builder.Configuration
+        .GetSection("CorsOrigins")
+        .Get<List<string>>() ?? [];
 
     options.AddPolicy("Default", corsBuilder =>
     {

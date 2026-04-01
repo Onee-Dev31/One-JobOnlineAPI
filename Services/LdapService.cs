@@ -109,9 +109,8 @@ namespace JobOnlineAPI.Services
                             return true;
                         }
                     }
-                    catch (LdapException ex)
+                    catch (LdapException)
                     {
-                        Console.WriteLine($"LDAP Error for server {server.Url}: {ex.Message}");
                     }
                 }
             }

@@ -68,7 +68,7 @@ namespace JobOnlineAPI.Controllers
             catch (SqlException ex) when (ex.Message.Contains("จำนวนผู้สมัครที่ได้รับเลือก"))
             {
                 _logger.LogWarning("Quota exceeded for ApplicationID {ApplicationId}: {Message}", applicationId, ex.Message);
-                return BadRequest(new { Error = ex.Message });
+                return BadRequest(new { Error = "จำนวนผู้สมัครที่ได้รับเลือกครบแล้ว" });
             }
             catch (Exception ex)
             {
