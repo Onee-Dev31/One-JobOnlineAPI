@@ -9,6 +9,7 @@ using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
+using System.Security.Claims;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -416,6 +417,18 @@ namespace JobOnlineAPI.Controllers
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetApplicantData([FromQuery] int? id, int? JobId)
         {
+            var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role == "User")
+            {
+                var applicantIdClaim = HttpContext.User.FindFirst("applicant_id")?.Value;
+                int.TryParse(applicantIdClaim, out int tokenApplicantId);
+
+                if (id.HasValue && id.Value != tokenApplicantId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
+                }
+            }
+
             try
             {
                 using var connection = _context.CreateConnection();
