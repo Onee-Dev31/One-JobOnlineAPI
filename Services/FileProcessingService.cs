@@ -7,6 +7,28 @@
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly ILogger<FileProcessingService> _logger = logger;
 
+        private static readonly Dictionary<string, byte[][]> _magicBytes = new()
+        {
+            { ".pdf",  [[(byte)'%', (byte)'P', (byte)'D', (byte)'F']] },
+            { ".png",  [[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]] },
+            { ".jpg",  [[0xFF, 0xD8, 0xFF]] },
+            { ".doc",  [[0xD0, 0xCF, 0x11, 0xE0]] },
+            { ".docx", [[0x50, 0x4B, 0x03, 0x04]] },
+        };
+
+        private static async Task<bool> HasValidMagicBytesAsync(IFormFile file, string extension)
+        {
+            if (!_magicBytes.TryGetValue(extension, out var signatures))
+                return false;
+
+            var maxLen = signatures.Max(s => s.Length);
+            var header = new byte[maxLen];
+            using var stream = file.OpenReadStream();
+            var read = await stream.ReadAsync(header.AsMemory(0, maxLen));
+
+            return signatures.Any(sig => read >= sig.Length && header.Take(sig.Length).SequenceEqual(sig));
+        }
+
         public async Task<List<Dictionary<string, object>>> ProcessFilesAsync(IFormFileCollection files, string sectionFile = "Section1")
         {
             var fileMetadatas = new List<Dictionary<string, object>>();
@@ -25,6 +47,9 @@
                 var extension = Path.GetExtension(file.FileName).ToLower();
                 if (!allowedExtensions.Contains(extension))
                     throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
+
+                if (!await HasValidMagicBytesAsync(file, extension))
+                    throw new InvalidOperationException($"File content does not match its extension for {file.FileName}.");
 
                 var fileName = $"{Guid.NewGuid()}_{file.FileName}";
                 // var fileName = $"{file.FileName}";

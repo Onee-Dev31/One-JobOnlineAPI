@@ -91,6 +91,11 @@ namespace JobOnlineAPI.Controllers
                 string username = request.Email.Split('@').FirstOrDefault() ?? "ผู้ใช้";
                 string actionDescription = request.Action.Equals("register", StringComparison.CurrentCultureIgnoreCase) ? "การสมัครสมาชิก" : "การรีเซ็ตรหัสผ่าน";
 
+                // ลบ token ที่หมดอายุออกก่อนเพิ่มอันใหม่
+                var expiredKeys = _tokenStore.Where(kv => kv.Value.Expires < DateTime.UtcNow).Select(kv => kv.Key).ToList();
+                foreach (var key in expiredKeys)
+                    _tokenStore.TryRemove(key, out _);
+
                 // สร้างโทเคนและ URL สำหรับคัดลอก
                 string token = Guid.NewGuid().ToString();
                 _tokenStore.TryAdd(token, (otp, DateTime.UtcNow + _tokenExpiration));

@@ -60,7 +60,8 @@ if (string.IsNullOrEmpty(connectionString))
     logger.LogError("DefaultConnection string is missing or empty.");
     throw new InvalidOperationException("DefaultConnection string is missing or empty.");
 }
-// logger.LogInformation("DefaultConnection: {ConnectionString}", connectionString);
+if (!builder.Environment.IsDevelopment() && connectionString.Contains("TrustServerCertificate=True", StringComparison.OrdinalIgnoreCase))
+    logger.LogWarning("TrustServerCertificate=True is set in production. Ensure the SQL Server has a valid TLS certificate.");
 
 var fileStorageConfig = builder.Configuration.GetSection("FileStorage").Get<FileStorageConfig>();
 if (fileStorageConfig == null || string.IsNullOrEmpty(fileStorageConfig.BasePath))
@@ -117,8 +118,8 @@ builder.Services.AddCors(options =>
             "http://localhost:3000",
             "http://localhost:4200"
         )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
+        .WithHeaders("Content-Type", "Authorization", "X-Requested-With")
+        .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         .AllowCredentials();
     });
 });
