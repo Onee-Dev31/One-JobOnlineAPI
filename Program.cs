@@ -70,9 +70,12 @@ if (fileStorageConfig == null || string.IsNullOrEmpty(fileStorageConfig.BasePath
 }
 logger.LogInformation("FileStorage BasePath: {BasePath}", fileStorageConfig.BasePath);
 
-var fullPath = Path.Combine(builder.Environment.ContentRootPath, fileStorageConfig.BasePath);
+var isNetworkPath = fileStorageConfig.BasePath.StartsWith(@"\\") || fileStorageConfig.BasePath.StartsWith("//");
+var fullPath = isNetworkPath
+    ? fileStorageConfig.BasePath
+    : Path.Combine(builder.Environment.ContentRootPath, fileStorageConfig.BasePath);
 logger.LogInformation("Resolved FileStorage FullPath: {FullPath}", fullPath);
-if (!Directory.Exists(fullPath))
+if (!isNetworkPath && !Directory.Exists(fullPath))
 {
     Directory.CreateDirectory(fullPath);
     logger.LogInformation("Created FileStorage directory: {Path}", fullPath);
