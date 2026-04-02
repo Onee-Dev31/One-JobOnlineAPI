@@ -218,6 +218,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("cancel-pending-email")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -7,9 +7,10 @@ using System.Text;
 
 namespace JobOnlineAPI.Repositories
 {
-    public class AdminRepository(IConfiguration configuration) : IAdminRepository
+    public class AdminRepository(IConfiguration configuration, ILogger<AdminRepository> logger) : IAdminRepository
     {
         private readonly string? _connectionString = configuration.GetConnectionString("DefaultConnection");
+        private readonly ILogger<AdminRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public async Task<int> AddAdminUserAsync(AdminUser admin)
         {
@@ -48,7 +49,7 @@ namespace JobOnlineAPI.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetAdminUserByUsernameAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in GetAdminUserByUsernameAsync: {Message}", ex.Message);
                 return null;
             }
         }
@@ -69,7 +70,7 @@ namespace JobOnlineAPI.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in GetUserByEmailAsync: {ex.Message}");
+                _logger.LogError(ex, "Error in GetUserByEmailAsync: {Message}", ex.Message);
                 return null;
             }
         }

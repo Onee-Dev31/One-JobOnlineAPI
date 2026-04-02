@@ -442,6 +442,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("updateApplicantStatus")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> UpdateApplicantStatus([FromBody] ExpandoObject? request)
         {
             try
@@ -968,6 +969,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("UpdateConfirmConsent")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateConfirmConsent([FromBody] ExpandoObject? request)
@@ -1040,6 +1042,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("delete-multiple-files")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> DeleteMultipleFiles([FromBody] List<int> fileIds)
         {
             try

@@ -7,9 +7,10 @@ namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class EducationLevelsController(IConfiguration configuration) : ControllerBase
+    public class EducationLevelsController(IConfiguration configuration, ILogger<EducationLevelsController> logger) : ControllerBase
     {
         private readonly IConfiguration _configuration = configuration;
+        private readonly ILogger<EducationLevelsController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllEducationLevels()
@@ -27,7 +28,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                _logger.LogError(ex, "Error retrieving education levels: {Message}", ex.Message);
                 // return StatusCode(500, "An error occurred while retrieving education levels.");
                 return StatusCode(500, "Internal Server error");
             }
