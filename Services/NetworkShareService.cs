@@ -65,6 +65,13 @@ namespace JobOnlineAPI.Services
             if (!_currentStorageConfig.UseNetworkShare)
                 return CheckLocalStorage();
 
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _logger.LogWarning("Network share connections are not supported on this OS. Falling back to local path.");
+                FallbackToLocalPath();
+                return false;
+            }
+
             const int maxRetries = 3;
             const int retryDelayMs = 2000;
             string serverName = $"\\\\{new Uri(_currentStorageConfig.BasePath).Host}";
@@ -114,6 +121,12 @@ namespace JobOnlineAPI.Services
             if (!_currentStorageConfig.UseNetworkShare)
                 return;
 
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _logger.LogWarning("Network share disconnect is not supported on this OS.");
+                return;
+            }
+
             try
             {
                 string serverName = $"\\\\{new Uri(_currentStorageConfig.BasePath).Host}";
@@ -147,6 +160,11 @@ namespace JobOnlineAPI.Services
 
         private void DisconnectPath(string path)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                _logger.LogWarning("Network share disconnect is not supported on this OS.");
+                return;
+            }
             int result = WNetCancelConnection2(path, 0, true);
             if (result != 0 && result != 1219)
             {

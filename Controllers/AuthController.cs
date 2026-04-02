@@ -2,6 +2,7 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -27,7 +28,7 @@ namespace JobOnlineAPI.Controllers
         private readonly TimeSpan _tokenExpiration = TimeSpan.FromMinutes(10); // โทเคนหมดอายุใน 10 นาที
 
         // เก็บโทเคนชั่วคราว (ควรใช้ฐานข้อมูลในโปรดักชัน)
-        private static readonly Dictionary<string, (string Otp, DateTime Expires)> _tokenStore = [];
+        private static readonly ConcurrentDictionary<string, (string Otp, DateTime Expires)> _tokenStore = new();
 
         /// <summary>
         /// ขอ OTP สำหรับสมัครสมาชิกหรือรีเซ็ตรหัสผ่าน
@@ -92,7 +93,7 @@ namespace JobOnlineAPI.Controllers
 
                 // สร้างโทเคนและ URL สำหรับคัดลอก
                 string token = Guid.NewGuid().ToString();
-                _tokenStore[token] = (otp, DateTime.UtcNow + _tokenExpiration);
+                _tokenStore.TryAdd(token, (otp, DateTime.UtcNow + _tokenExpiration));
                 string copyUrl = Url.Action("CopyOtp", "Auth", new { otp, token }, Request.Scheme) ?? "#";
 
                 // โหลดและเติมข้อมูลในเทมเพลต

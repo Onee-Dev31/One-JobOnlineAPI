@@ -355,15 +355,15 @@ else
         });
     });
 }
-// if (!app.Environment.IsDevelopment())
-// {
+if (app.Environment.IsDevelopment())
+{
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.DefaultModelsExpandDepth(-1);
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "JobOnlineAPI v1");
     });
-// }
+}
 
 app.UseHttpsRedirection();
 app.Use(async (ctx, next) =>
