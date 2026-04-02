@@ -227,9 +227,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine("===== GENERAL ERROR =====");
-                Console.WriteLine(ex.Message);
-                Console.WriteLine(ex.ToString());
+                _logger.LogError(ex, "General Error: {Message}", ex.Message);
                 throw new Exception($"General Error: {ex.Message}");
             }
         }
@@ -869,7 +867,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                _logger.LogError(ex, "Error: {Message}", ex.Message);
                 throw;
             }
         }

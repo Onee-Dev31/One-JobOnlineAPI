@@ -13,10 +13,11 @@ namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class GenerateFormController(IWebHostEnvironment env, IConfiguration config) : ControllerBase
+    public class GenerateFormController(IWebHostEnvironment env, IConfiguration config, ILogger<GenerateFormController> logger) : ControllerBase
     {
         private readonly IWebHostEnvironment _env = env ?? throw new ArgumentNullException(nameof(env));
         private readonly IConfiguration _config = config;
+        private readonly ILogger<GenerateFormController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         // [HttpPost("GenerateRegisterFormPDF")]
         // [TypeFilter(typeof(JwtAuthorizeAttribute))]
@@ -82,7 +83,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV2")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV2([FromBody] JsonElement request)
         {
             try
@@ -122,7 +123,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV3")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV3([FromBody] JsonElement request)
         {
             try
@@ -215,10 +216,8 @@ namespace JobOnlineAPI.Controllers
             // }
             catch (Exception ex)
             {
-                return StatusCode(500, new {
-                    message = ex.Message,
-                    stack = ex.StackTrace
-                });
+                _logger.LogError(ex, "Error generating form PDF");
+                return StatusCode(500, "Internal Server error");
             }
         }
 

@@ -8,10 +8,11 @@ using System.Data;
 
 namespace JobOnlineAPI.Services
 {
-    public class EmailService(IConfiguration configuration, IOptions<EmailSettings> emailSettings) : IEmailService
+    public class EmailService(IConfiguration configuration, IOptions<EmailSettings> emailSettings, ILogger<EmailService> logger) : IEmailService
     {
         private readonly EmailSettings _emailSettings = emailSettings.Value;
         private readonly IDbConnection _dbConnection = new SqlConnection(configuration.GetConnectionString("DefaultConnection"));
+        private readonly ILogger<EmailService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public async Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId)
         {
@@ -54,7 +55,7 @@ namespace JobOnlineAPI.Services
             {
                 status = "Failed";
                 errorMessage = ex.Message;
-                Console.WriteLine($"❌ Error sending email: {errorMessage}");
+                _logger.LogError(ex, "Error sending email: {ErrorMessage}", errorMessage);
             }
 
             await LogEmailAsync(to, subject, body, status, errorMessage, typeMail, JobsId);

@@ -10,13 +10,14 @@ namespace JobOnlineAPI.Repositories
 {
     
 
-    public class JobRepository(IConfiguration configuration, IEmailService emailService, IEmailNotificationService emailNotificationService) : IJobRepository
+    public class JobRepository(IConfiguration configuration, IEmailService emailService, IEmailNotificationService emailNotificationService, ILogger<JobRepository> logger) : IJobRepository
     {
         private readonly string _connectionString = configuration?.GetConnectionString("DefaultConnection")
                 ?? throw new ArgumentNullException(nameof(configuration), "Connection string 'DefaultConnection' is not found.");
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly IEmailNotificationService _emailNotificationService = emailNotificationService ?? throw new ArgumentNullException(nameof(emailNotificationService));
         private readonly IConfiguration _config = configuration;
+        private readonly ILogger<JobRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         public async Task<IEnumerable<Job>> GetAllJobsAsync()
         {
             using var db = new SqlConnection(_connectionString);
@@ -77,7 +78,7 @@ namespace JobOnlineAPI.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error adding job: {ex.Message}");
+                _logger.LogError(ex, "Error adding job: {Message}", ex.Message);
                 throw;
             }
         }
@@ -153,7 +154,7 @@ namespace JobOnlineAPI.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ ERROR executing stored procedure: {ex.Message}");
+                _logger.LogError(ex, "ERROR executing stored procedure: {Message}", ex.Message);
                 throw;
             }
         }

@@ -50,7 +50,7 @@ namespace JobOnlineAPI.Controllers
                 Response.Cookies.Append("token", accessToken, new CookieOptions
                 {
                     HttpOnly = true,
-                    Secure = false,
+                    Secure = true,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddHours(2)
                 });
@@ -67,10 +67,10 @@ namespace JobOnlineAPI.Controllers
         }
         private async Task<(string accessToken, string refreshToken)> LoginWithADAsync(string username, string password)
         {
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            };
+            var env = HttpContext.RequestServices.GetRequiredService<IWebHostEnvironment>();
+            var handler = new HttpClientHandler();
+            if (env.IsDevelopment())
+                handler.ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 
             using var httpClient = new HttpClient(handler);
 
