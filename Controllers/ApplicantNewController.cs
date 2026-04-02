@@ -9,6 +9,7 @@ using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
+using System.Security.Claims;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -416,6 +417,17 @@ namespace JobOnlineAPI.Controllers
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetApplicantData([FromQuery] int? id, int? JobId)
         {
+            var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role == "User")
+            {
+                var applicantIdClaim = HttpContext.User.FindFirst("applicant_id")?.Value;
+                int.TryParse(applicantIdClaim, out int tokenApplicantId);
+
+                if (id.HasValue && id.Value != tokenApplicantId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
+                }
+            }
             try
             {
                 using var connection = _context.CreateConnection();
@@ -442,6 +454,7 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, "Internal Server error");
             }
         }
+
 
         [HttpPut("updateApplicantStatus")]
         public async Task<IActionResult> UpdateApplicantStatus([FromBody] ExpandoObject? request)
@@ -1203,6 +1216,64 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpPost("insertNewEmployeeITServiceLog")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> InsertNewEmployeeITServiceLog([FromBody] ExpandoObject? request)
+        {
+            try
+            {
+                if (request == null)
+                    return BadRequest("Request cannot be null.");
+
+                var data = (IDictionary<string, object?>)request;
+
+                if (!data.TryGetValue("JobID", out var jobObj) || jobObj == null ||
+                    !data.TryGetValue("ApplicantID", out var applicantObj) || applicantObj == null)
+                {
+                    return BadRequest("Missing JobID or ApplicantID");
+                }
+
+                int jobId = jobObj is JsonElement jobEl && jobEl.ValueKind == JsonValueKind.Number
+                    ? jobEl.GetInt32()
+                    : Convert.ToInt32(jobObj);
+
+                int applicantId = applicantObj is JsonElement applicantEl && applicantEl.ValueKind == JsonValueKind.Number
+                    ? applicantEl.GetInt32()
+                    : Convert.ToInt32(applicantObj);
+
+                string actionBy =
+                    data.TryGetValue("ActionBy", out var userObj)
+                        ? (userObj is JsonElement userEl && userEl.ValueKind == JsonValueKind.String
+                            ? userEl.GetString() ?? "-"
+                            : userObj?.ToString() ?? "-")
+                        : "-";
+
+                using var connection = _context.CreateConnection();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@JobID", jobId);
+                parameters.Add("@ApplicantID", applicantId);
+                parameters.Add("@ActionBy", actionBy);
+
+                int rowsAffected = await connection.ExecuteScalarAsync<int>(
+                    "sp_InsertNewEmployeeITServiceLog",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return Ok(new
+                {
+                    success = rowsAffected > 0,
+                    IsClicked = rowsAffected > 0 ? 1 : 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error inserting IT Service log");
+                return StatusCode(500, ex.Message);
+            }
+        }
+                
         private BadRequestObjectResult? ValidateConsentInput(IDictionary<string, object?> data)
         {
             if (!data.ContainsKey("UserId") || !data.ContainsKey("confirmConsent"))

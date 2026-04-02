@@ -6,6 +6,22 @@
     {
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly ILogger<FileProcessingService> _logger = logger;
+        private const long MaxFileSize = 40 * 1024 * 1024; // 40MB
+        private static readonly string[] AllowedExtensions =
+        { ".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx" };
+
+        private static readonly string[] AllowedMimeTypes =
+        {
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-powerpoint",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        };
 
         public async Task<List<Dictionary<string, object>>> ProcessFilesAsync(IFormFileCollection files, string sectionFile = "Section1")
         {
@@ -13,7 +29,8 @@
             if (files == null || files.Count == 0)
                 return fileMetadatas;
 
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+            // var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
+
             foreach (var file in files)
             {
                 if (file.Length == 0)
@@ -22,12 +39,30 @@
                     continue;
                 }
 
-                var extension = Path.GetExtension(file.FileName).ToLower();
-                if (!allowedExtensions.Contains(extension))
-                    throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
+                // var extension = Path.GetExtension(file.FileName).ToLower();
+                // if (!allowedExtensions.Contains(extension))
+                //     throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, PDF, DOC, and DOCX are allowed.");
+                if (file.Length > MaxFileSize)
+                {
+                    _logger.LogWarning(
+                        "Rejected file upload: {FileName}, Size: {Size}, Type: {Type}",
+                        file.FileName,
+                        file.Length,
+                        file.ContentType
+                    );
+                    throw new InvalidOperationException($"File too large: {file.FileName}. Maximum allowed size is 40MB.");
+                }
+
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!AllowedExtensions .Contains(extension))
+                    throw new InvalidOperationException($"Invalid file type for {file.FileName}. Only PNG, JPG, JPEG, PDF, DOC, and DOCX are allowed.");
+
+                if (!AllowedMimeTypes.Contains(file.ContentType))
+                    throw new InvalidOperationException($"Invalid MIME type for {file.FileName}: {file.ContentType}");
 
                 var fileName = $"{Guid.NewGuid()}_{file.FileName}";
-                // var fileName = $"{file.FileName}";
+                // var originalName = Path.GetFileName(file.FileName);
+                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(originalName)}";
                 var filePath = Path.Combine(_networkShareService.GetBasePath(), fileName);
                 var directoryPath = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Invalid directory path for: {filePath}");
 
@@ -69,17 +104,40 @@
             var tempPath = Path.Combine(_networkShareService.GetBasePath(), $"temp_applicant_{applicantId}");
             Directory.CreateDirectory(tempPath);
 
-            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".png", ".jpg" };
-
             foreach (var file in files)
             {
                 if (file.Length == 0)
                     continue;
 
-                var extension = Path.GetExtension(file.FileName).ToLower();
-                if (!allowedExtensions.Contains(extension))
+                // var extension = Path.GetExtension(file.FileName).ToLower();
+                // if (!allowedExtensions.Contains(extension))
+                //     throw new InvalidOperationException($"Invalid file type: {extension}");
+
+                // var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                // var filePath = Path.Combine(tempPath, fileName);
+                if (file.Length > MaxFileSize)
+                {
+                    {
+                        _logger.LogWarning(
+                            "Rejected file upload: {FileName}, Size: {Size}, Type: {Type}",
+                            file.FileName,
+                            file.Length,
+                            file.ContentType
+                        );
+                        throw new InvalidOperationException($"File too large: {file.FileName}. Maximum allowed size is 40MB.");
+                    }
+
+                }
+
+                var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!AllowedExtensions .Contains(extension))
                     throw new InvalidOperationException($"Invalid file type: {extension}");
 
+                if (!AllowedMimeTypes.Contains(file.ContentType))
+                    throw new InvalidOperationException($"Invalid MIME type for {file.FileName}: {file.ContentType}");
+
+                // var originalName = Path.GetFileName(file.FileName);
+                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(originalName)}";
                 var fileName = $"{Guid.NewGuid()}_{file.FileName}";
                 var filePath = Path.Combine(tempPath, fileName);
 

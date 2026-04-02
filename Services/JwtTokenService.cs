@@ -12,10 +12,10 @@ namespace JobOnlineAPI.Services
 
         public string GenerateJwtToken(UserModel user)
         {
-            return GenerateToken(user.Username, user.Role);
+            return GenerateToken(user.Username, user.Role, user.ApplicantID);
         }
 
-        private string GenerateToken(string username, string role)
+        private string GenerateToken(string username, string role, int? applicantId = null)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
             var issuer = jwtSettings["Issuer"] ?? throw new InvalidOperationException("JwtSettings:Issuer is not configured.");
@@ -25,11 +25,12 @@ namespace JobOnlineAPI.Services
             var key = new SymmetricSecurityKey(keyBytes);
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var claims = new[]
+            var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, username),
                 new Claim(ClaimTypes.Role, role),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("applicant_id", (applicantId ?? 0).ToString())
             };
 
             var token = new JwtSecurityToken(
