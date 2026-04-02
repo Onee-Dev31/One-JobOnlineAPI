@@ -688,7 +688,7 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve candidates for department {Department} and job ID {JobId}: {Message}", department, jobId, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -1273,7 +1273,7 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error: {ex.Message}");
+                _logger.LogError(ex, "Error in UpdateJobApprovalStatus: {Message}", ex.Message);
                 throw;
             }
         }
