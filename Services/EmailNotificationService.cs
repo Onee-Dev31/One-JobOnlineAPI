@@ -170,7 +170,7 @@ namespace JobOnlineAPI.Services
                 if (!string.IsNullOrEmpty(dbResult.ApplicantEmail))
                 {
                     string applicantBody = typeMail == "Part2"
-                    ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle)
+                    ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle, dbResult.CompanyName)
                     : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
                     ? $"ยืนยันการได้รับใบสมัครงาน รอบที่ 2 ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
@@ -696,14 +696,15 @@ namespace JobOnlineAPI.Services
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
         }
 
-        private static string GenerateApplicantPart2EmailBody(string fullNameThai, string jobTitle)
+        private static string GenerateApplicantPart2EmailBody(string fullNameThai, string jobTitle, string companyname)
         {
             var template = LoadEmailTemplate("ApplicantPart2.html");
 
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
             {
                 { "FullNameThai", fullNameThai },
-                { "JobTitle", jobTitle }
+                { "JobTitle", jobTitle },
+                { "CompanyName", companyname }
             });
         }
         private static string GenerateApplicantPart2ToHREmailBody(string fullNameThai, string jobTitle)
