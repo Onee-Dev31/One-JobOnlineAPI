@@ -39,15 +39,20 @@ namespace JobOnlineAPI.Views.Register
 
                     col.Item();
                     RenderPositionSection(col);
-                    
-                    col.Item().PaddingTop(18);
+
+                    col.Item().PaddingTop(10);
+                    RenderHiringManagerSection(col);
+
+                    col.Item().PaddingTop(10);
                     RenderPersonalSection(col);
+
+                    col.Item().PaddingTop(10);                  
+                    RenderReasonSection(col);
 
                     col.Item().PaddingTop(18);
                     RenderSignatureSection(col);
                 });
-
-
+                            
             });
         }
 
@@ -121,6 +126,69 @@ namespace JobOnlineAPI.Views.Register
                 });
         }
 
+        // ========================= HIRING MANAGER SECTION =========================
+        private void RenderHiringManagerSection(ColumnDescriptor col)
+        {
+            col.Item().Border(1).Column(inner =>
+            {
+                inner.Item()
+                    .Background(Colors.Grey.Lighten3)
+                    .Padding(6)
+                    .Text("ข้อมูลผู้ที่เปิดรับสมัคร (Recruitment Request Information)")
+                    .Bold();
+
+                inner.Item().Padding(12).Column(content =>
+                {
+                    content.Spacing(8);
+                    content.Item().Row(row =>
+                    {
+                        row.RelativeItem(3).Text(t =>
+                        {
+                            t.Span("ชื่อ-สกุล: ").Bold();
+                            t.Span(GetValue("NameRequesterTH"));
+                        });
+
+                        row.RelativeItem(2).Text(t =>
+                        {
+                            t.Span("ตำแหน่ง: ").Bold();
+                            t.Span(GetValue("RequesterManagerPosition"));
+                        });
+                    });
+
+                    content.Item().Row(row =>
+                    {
+                        row.RelativeItem(3).Text(t =>
+                        {
+                            t.Span("แผนก: ").Bold();
+                            t.Span(GetValue("RequesterManagerCostCenter"));
+                        });
+
+                        row.RelativeItem(2).Text(t =>
+                        {
+                            t.Span("บริษัท: ").Bold();
+                            t.Span(GetValue("RequesterManagerCompany"));
+                        });
+                    });
+
+                    content.Item().Row(row =>
+                    {
+                        row.RelativeItem(3).Text(t =>
+                        {
+                            t.Span("Email: ").Bold();
+                            t.Span(GetValue("RequesterManagerEMAIL"));
+                        });
+
+                        row.RelativeItem(2).Text(t =>
+                        {
+                            t.Span("เบอร์โทร: ").Bold();
+                            t.Span(GetValue("RequesterManagerTelOFF"));
+                        });
+                    });
+
+                });
+            });
+        }
+                
         // ========================= PERSONAL DETAILS =========================
         private void RenderPersonalSection(ColumnDescriptor col)
         {
@@ -129,7 +197,7 @@ namespace JobOnlineAPI.Views.Register
                 inner.Item()
                     .Background(Colors.Grey.Lighten3)
                     .Padding(6)
-                    .Text("ข้อมูลส่วนตัว (Personal Details)")
+                    .Text("ข้อมูลผู้สมัคร (Personal Details)")
                     .Bold();
 
                 inner.Item().Padding(12).Column(content =>
@@ -141,7 +209,7 @@ namespace JobOnlineAPI.Views.Register
                         row.RelativeItem(3).Text(t =>
                         {
                             t.Span("ชื่อ-สกุล: ").Bold();
-                            t.Span($"{GetValue("FirstNameThai")} {GetValue("LastNameThai")}");
+                            t.Span(GetValue("FullNameThai"));
                         });
 
                         row.RelativeItem(2).Text(t =>
@@ -178,22 +246,59 @@ namespace JobOnlineAPI.Views.Register
             });
         }
 
+        // ========================= PERSONAL DETAILS =========================
+            private void RenderReasonSection(ColumnDescriptor col)
+            {
+                col.Item().Border(1).Column(inner =>
+                {
+                    inner.Item()
+                        .Background(Colors.Grey.Lighten3)
+                        .Padding(6)
+                        .Text("หมายเหตุ / Reason ")
+                        .Bold();
+
+                    inner.Item().Padding(12).Column(content =>
+                    {
+                        content.Spacing(10);
+
+                        // แถวที่ 1
+                        content.Item().PaddingTop(10)
+                            .PaddingBottom(6)
+                            .LineHorizontal(1);
+
+                        // แถวที่ 2
+                        content.Item()
+                            .PaddingBottom(6)
+                            .LineHorizontal(1);
+
+                        // แถวที่ 3
+                        content.Item()
+                            .PaddingBottom(6)
+                            .LineHorizontal(1);
+
+                        // แถวที่ 4
+                        content.Item()
+                            .LineHorizontal(1);
+                    });
+                });
+            }
+
         // ========================= SIGNATURE SECTION =========================
         private void RenderSignatureSection(ColumnDescriptor col)
         {
-            col.Item().PaddingTop(10).LineHorizontal(1);
+            col.Item().PaddingTop(8).LineHorizontal(1);
 
-            col.Item().PaddingTop(30).Row(row =>
+            col.Item().PaddingTop(150).Row(row =>
             {
                 row.Spacing(14);
 
                 RenderSignatureBox(row,
                     GetValue("RequesterManagerNameTH"),
-                    "ผู้อำนวยการฝ่าย");
+                    GetValue("RequesterManagerPosition"));
 
                 RenderSignatureBox(row,
                     GetValue("HiringManagerNameTH"),
-                    "ผู้อำนวยการฝ่ายทรัพยากรบุคคล");
+                    GetValue("HiringManagerPosition"));
 
                 RenderSignatureBox(row,
                     GetValue("ChiefExecutiveOfficerNameTH"),
@@ -201,9 +306,7 @@ namespace JobOnlineAPI.Views.Register
             });
         }
 
-        private void RenderSignatureBox(RowDescriptor row,
-            string name,
-            string position)
+        private void RenderSignatureBox(RowDescriptor row, string name, string position)
         {
             row.RelativeItem().PaddingHorizontal(8).Column(col =>
             {
