@@ -134,11 +134,11 @@ namespace JobOnlineAPI.Repositories
                                                     <li><strong>อัตรา:</strong> {job.NumberOfPositions}</li>
                                                     {openForInfo}
                                                 </ul>
+                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='color: #ffffff; text-decoration: underline;'>{applicationFormUri}</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
                                             </td>
                                         </tr>
                                         <tr>
                                             <td style='background-color: #2E86C1; padding: 10px; text-align: center; color: #ffffff;'>
-                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='color: #ffffff; text-decoration: underline;'>oneejobs.oneeclick.co</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
                                             </td>
                                         </tr>
                                     </table>
