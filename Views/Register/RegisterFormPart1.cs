@@ -140,7 +140,7 @@ namespace JobOnlineAPI.Views.Register
                     {
                         row.RelativeItem(3).Text(t =>
                         {
-                            t.Span("ชื่อ-สกุล[TH]: ").Bold();
+                            t.Span("ชื่อ-สกุล: ").Bold();
                             t.Span($"{GetValue("FirstNameThai")} {GetValue("LastNameThai")}");
                         });
 
@@ -155,7 +155,7 @@ namespace JobOnlineAPI.Views.Register
                     {
                         row.RelativeItem(3).Text(t =>
                         {
-                            t.Span("Name-Surname[EN]: ").Bold();
+                            t.Span("Name-Surname: ").Bold();
                             t.Span($"{GetValue("FirstNameEng")} {GetValue("LastNameEng")}");
                         });
 
