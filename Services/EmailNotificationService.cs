@@ -437,20 +437,21 @@ namespace JobOnlineAPI.Services
                 var urlResult = urllist.FirstOrDefault();
                 string fromRegis = urlResult != null ? urlResult.LoginUrl?.ToString() ?? "ลิงก์ไม่พร้อมใช้งาน" : "ลิงก์ไม่พร้อมใช้งาน";
 
-                string reqBody = $@"
-                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{candidateName}</p>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรื่อง: ผลสัมภาษณ์ผู้สมัครตำแหน่ง {requestData?.JobTitle}</p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'>
-                        ตามที่ท่านได้สมัครในตำแหน่ง <strong>{requestData?.JobTitle}</strong> ทางบริษัทได้พิจารณาให้คุณผ่านการคัดเลือก กรุณาเข้าไปกรอกรายละเอียดของท่าน ตามลิงก์ด้านล่าง
-                    </p>
-                    <p style='margin: 0 0 10px 0;'>
-                        Click : <a href='{fromRegis}'>{fromRegis}</a>
-                    </p>
-                    <br>
-                    <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                </div>";
+                string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis);
+                //    $@"
+                //<div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
+                //    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{candidateName}</p>
+                //    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรื่อง: ผลสัมภาษณ์ผู้สมัครตำแหน่ง {requestData?.JobTitle}</p>
+                //    <br>
+                //    <p style='margin: 0 0 10px 0;'>
+                //        ตามที่ท่านได้สมัครในตำแหน่ง <strong>{requestData?.JobTitle}</strong> ทางบริษัทได้พิจารณาให้คุณผ่านการคัดเลือก กรุณาเข้าไปกรอกรายละเอียดของท่าน ตามลิงก์ด้านล่าง
+                //    </p>
+                //    <p style='margin: 0 0 10px 0;'>
+                //        Click : <a href='{fromRegis}'>{fromRegis}</a>
+                //    </p>
+                //    <br>
+                //    <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
+                //</div>";
 
                 // return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
                 var result = await SendEmailsAsync(candidateEmails, 
@@ -774,6 +775,17 @@ namespace JobOnlineAPI.Services
                 { "CreateDate", createDate },
                 { "FileList", fileHtml },
                 { "BaseUrl", baseUrlFront }
+            });
+        }
+        private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url)
+        {
+            var template = LoadEmailTemplate("WaittingCandidateInfo.html");
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "Url", url}
             });
         }
         private static string LoadEmailTemplate(string templateName)
