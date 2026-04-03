@@ -1289,7 +1289,64 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, ex.Message);
             }
         }
-                
+
+
+        [HttpGet("CheckApplicantCanFillForm")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        public async Task<IActionResult> CheckApplicantCanFillForm([FromQuery] int applicantId, [FromQuery] int jobId)
+        {
+            var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role == "User")
+            {
+                var applicantIdClaim = HttpContext.User.FindFirst("applicant_id")?.Value;
+                int.TryParse(applicantIdClaim, out int tokenApplicantId);
+
+                if (applicantId != tokenApplicantId)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
+                }
+            }
+
+            try
+            {
+                using var connection = _context.CreateConnection();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@ApplicantID", applicantId);
+                parameters.Add("@JobID", jobId);
+
+                var result = await connection.QueryFirstOrDefaultAsync(
+                    "sp_CheckApplicantCanFillForm",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                if (result == null)
+                {
+                    return Ok(new
+                    {
+                        CanFill = false,
+                        Message = "ไม่สามารถดำเนินการได้ เนื่องจากท่านได้ดำเนินการกรอกข้อมูลเรียบร้อยแล้ว หรือไม่มีสิทธิ์เข้าถึงขั้นตอนนี้"
+                    });
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to check applicant can fill form for ApplicantID {ApplicantID}, JobID {JobID}: {Message}",
+                    applicantId,
+                    jobId,
+                    ex.Message
+                );
+
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
         private BadRequestObjectResult? ValidateConsentInput(IDictionary<string, object?> data)
         {
             if (!data.ContainsKey("UserId") || !data.ContainsKey("confirmConsent"))
