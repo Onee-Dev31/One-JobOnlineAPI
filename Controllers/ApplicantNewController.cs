@@ -428,9 +428,26 @@ namespace JobOnlineAPI.Controllers
                     return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
                 }
             }
+
             try
             {
                 using var connection = _context.CreateConnection();
+
+                if (id.HasValue && id.Value > 0)
+                {
+                    var checkParams = new DynamicParameters();
+                    checkParams.Add("@ApplicantID", id.Value);
+                    var applicant = await connection.QueryFirstOrDefaultAsync(
+                        "sp_CheckApplicantCodeMPID",
+                        checkParams,
+                        commandType: CommandType.StoredProcedure
+                    );
+
+                    if (applicant != null && !string.IsNullOrEmpty(applicant.CodeMPID?.ToString()))
+                    {
+                        return StatusCode(StatusCodes.Status403Forbidden, new { message = "Application already submitted" });
+                    }
+                }
 
                 var parameters = new DynamicParameters();
                 parameters.Add($"@{ApplicantIdKey}", id);
@@ -454,7 +471,6 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, "Internal Server error");
             }
         }
-
 
         [HttpPut("updateApplicantStatus")]
         public async Task<IActionResult> UpdateApplicantStatus([FromBody] ExpandoObject? request)
