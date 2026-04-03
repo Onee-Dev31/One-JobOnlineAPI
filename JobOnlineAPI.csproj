@@ -76,6 +76,9 @@
 	  <Content Include="public\fonts\NotoSansThai_SemiCondensed-SemiBold.ttf" />
 	  <Content Include="public\fonts\NotoSansThai_SemiCondensed-Thin.ttf" />
 	  <Content Include="public\images\logo.png" />
+	  <Content Include="Templates\Email\ApplicantPart1ToHR.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	  <Content Include="Templates\Email\CopyOTP.html">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>

@@ -1,0 +1,27 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
+        <p style='margin: 0;'>เรียน ทีมสรรหาบุคลากร / คุณ {{ManagerName}}</p>
+        <p>
+            ขอแจ้งให้ทราบว่ามีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณาในตำแหน่ง <strong>{{JobTitle}}</strong> โดยมีรายละเอียดเบื้องต้น ดังนี้:<br>
+        </p>
+        <p><strong>ชื่อ-นามสกุล</strong>: {{FullNameThai}}</p>
+        <p><strong>ตำแหน่งที่สมัคร:</strong> {{JobTitle}}</p>
+        <p><strong>วันที่สมัคร:</strong> {{CreateDate}}</p>
+        <p><strong>Resume/Portfolio:</strong><br /> {{FileList}}</p>
+        <p><strong>เบอร์โทรศัพท์ติดต่อ:</strong> {{MobilePhone}}</p>
+        <p><strong>อีเมล:</strong> {{Email}}</p>
+
+        <p style='margin-top: 30px; margin:0'>
+            ท่านสามารถตรวจสอบรายละเอียดและดำเนินการขั้นตอนถัดไป ได้ที่ <a href='{{baseUrlFront}}' target='_blank'>{{BaseUrl}}</a>
+        </p>
+        <br>
+        <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
+    </div>
+</body>
+</html>
