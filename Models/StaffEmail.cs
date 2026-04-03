@@ -8,7 +8,7 @@
         public string? TELOFF { get; set; }
         public string? NAMETHAI { get; set; }
         public int? Role { get; set; }
-
+        public string? SourceType { get; set; }
     }
 
     public class StaffEmailNew

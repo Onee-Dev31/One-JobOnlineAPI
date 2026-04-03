@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using System.Globalization;
 using System.Text.Json;
 using Dapper;
 using JobOnlineAPI.DAL;
@@ -77,8 +78,13 @@ namespace JobOnlineAPI.Services
                 "EXEC sp_GetDataSendEmailByJobID_V2  @JobID",
                 parameters);
 
+            var resultsWithOpenFor = await connection.QueryAsync<StaffEmail>(
+                "sp_GetDataSendEmailRegisterWithOpenFor",
+                new { JobID = dbResult.OutJobID },
+                commandType: CommandType.StoredProcedure);
 
             var firstHr = results.FirstOrDefault(x => x.Role == 2 && !string.IsNullOrEmpty(x.NAMETHAI));
+            var OpenForName = resultsWithOpenFor.FirstOrDefault(x => x.SourceType == "OpenFor" && !string.IsNullOrEmpty(x.NAMETHAI));
 
             if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "Applicant")
             {
@@ -167,8 +173,8 @@ namespace JobOnlineAPI.Services
                     ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle)
                     : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
-                    ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
-                    : "Application Received";
+                    ? $"ยืนยันการได้รับใบสมัครงาน รอบที่ 2 ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
+                    : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
                         await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
@@ -181,22 +187,23 @@ namespace JobOnlineAPI.Services
                     }
                 }
 
-                foreach (var staff in results)
+                foreach (var staff in resultsWithOpenFor)
                 {
                     var emailStaff = staff.Email?.Trim();
-                    if (string.IsNullOrWhiteSpace(emailStaff))
+                    if (string.IsNullOrWhiteSpace(emailStaff) )
                         continue;
 
                     //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
                     string managerBody = typeMail == "Part2"
                    ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle)
-                   : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                   : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
+                   //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
                     ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
-                    : "Application Received";
+                    : $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
-                        await _emailService.SendEmailAsync(emailStaff, "ONEE Jobs - You've got the new candidate", managerBody, true, "Register", null);
+                        await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
                         successCount++;
                         _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
                     }
@@ -547,7 +554,8 @@ namespace JobOnlineAPI.Services
                         <p style='margin: 0;'>เรียน คุณ {fullNameThai}</p>
                         <p>
                             ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong>
-                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน<br>
+                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน
+                            และจะติดต่อกลับท่านอีกครั้ง หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br>
                         </p>
                         <p>หากคุณสมบัติของท่านตรงกับที่เรากำลังมองหา เราจะติดต่อกลับหาท่านอีกครั้ง</p>
                         <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
@@ -706,6 +714,65 @@ namespace JobOnlineAPI.Services
             {
                 { "FullNameThai", fullNameThai },
                 { "JobTitle", jobTitle }
+            });
+        }
+        private static async Task<string> GenerateApplicantPart1ToHREmailBody(
+            int applicantId,
+            string jobTitle,
+            IConfiguration config,
+            DapperContext context,
+            int JobId,
+            string managerName)
+        {
+            var baseUrl = config["UrlFile:BaseUrl"] ?? "";
+            var baseUrlFront = config["FrontEnd:BaseUrl"] ?? "";
+            var template = LoadEmailTemplate("ApplicantPart1ToHR.html");
+
+            using var connection = context.CreateConnection();
+
+            var data = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                "GetCandidateInfoToHr",
+                new { ApplicantId = applicantId, JobID = JobId }, 
+                // หรือ JobID = applicantId แล้วแต่ SP รับอะไร
+                commandType: CommandType.StoredProcedure
+            );
+
+            if (data == null)
+                throw new Exception("ไม่พบข้อมูลสำหรับสร้างอีเมล HR");
+
+            string firstName = data.FirstNameThai?.ToString() ?? "";
+            string lastName = data.LastNameThai?.ToString() ?? "";
+            string fullNameThai = $"{firstName} {lastName}".Trim();
+
+            string mobile = data.MobilePhone?.ToString() ?? "";
+            string email = data.Email?.ToString() ?? "";
+            var culture = new CultureInfo("th-TH");
+
+            string createDate = data.CreatedDate != null
+                ? Convert.ToDateTime(data.CreatedDate).ToString("d MMMM yyyy", culture)
+                : "";
+            string filePathsRaw = data.FilePaths?.ToString() ?? "";
+            var filePaths = filePathsRaw
+            .Split('|', StringSplitOptions.RemoveEmptyEntries);
+
+            string fileHtml = string.Join("<br/>", filePaths.Select(path =>
+            {
+                var cleanPath = path.Replace("\\", "/");
+                var fileName = Path.GetFileName(path);
+                return $"<a href='{baseUrl}/{cleanPath}' target='_blank'>📄 {fileName}</a>";
+            }));
+
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "ManagerName", managerName },
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "MobilePhone", mobile },
+                { "Email", email },
+                { "CreateDate", createDate },
+                { "FileList", fileHtml },
+                { "BaseUrl", baseUrlFront }
             });
         }
         private static string LoadEmailTemplate(string templateName)
