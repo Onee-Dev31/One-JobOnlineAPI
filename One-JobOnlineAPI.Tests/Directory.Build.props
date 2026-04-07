@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup>
+    <!-- แสดงชื่อ test แต่ละตัวโดยอัตโนมัติเมื่อรัน dotnet test -->
+    <VSTestLogger>console%3Bverbosity%3Ddetailed</VSTestLogger>
+  </PropertyGroup>
+</Project>

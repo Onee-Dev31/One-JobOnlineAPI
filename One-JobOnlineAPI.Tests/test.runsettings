@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <LoggerRunSettings>
+    <Loggers>
+      <Logger uri="logger://Microsoft/TestPlatform/ConsoleLogger/v1" enabled="True">
+        <Configuration>
+          <Verbosity>detailed</Verbosity>
+        </Configuration>
+      </Logger>
+    </Loggers>
+  </LoggerRunSettings>
+</RunSettings>

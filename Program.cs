@@ -37,7 +37,9 @@ using var loggerFactory = LoggerFactory.Create(logging =>
 {
     logging.AddConsole();
     logging.AddDebug();
-    logging.SetMinimumLevel(LogLevel.Debug);
+    // Development → Debug, ที่อื่น (Production/Testing) → Warning เพื่อไม่ให้รบกวน
+    var env = builder.Environment.EnvironmentName;
+    logging.SetMinimumLevel(env == "Development" ? LogLevel.Debug : LogLevel.Warning);
 });
 var logger = loggerFactory.CreateLogger<Program>();
 

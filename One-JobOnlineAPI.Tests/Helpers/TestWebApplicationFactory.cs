@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace JobOnlineAPI.Tests.Helpers;
 
@@ -32,6 +33,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.Replace(ServiceDescriptor.Scoped<IAdminRepository, FakeAdminRepository>());
             services.Replace(ServiceDescriptor.Scoped<IEmailService, FakeEmailService>());
             services.Replace(ServiceDescriptor.Scoped<IEmailNotificationService, FakeEmailNotificationService>());
+
+            // ปิด log ทั้งหมดที่รบกวน — เอา providers ออกเลย (log ไม่มีที่ไป = เงียบ)
+            services.AddLogging(logging => logging.ClearProviders());
         });
     }
 
