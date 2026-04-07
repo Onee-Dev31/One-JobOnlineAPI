@@ -56,6 +56,7 @@ namespace JobOnlineAPI.Models
         public string? NAMECOSTCENT { get; set; }
         public string? Remark { get; set; }
         public string? OpenFor { get; set; }
+        public string? ComCode { get; set; }
         public string? OpenForNameThai { get; set; }
         public string? OpenForNameENG { get; set; }
         public string? DepartmentName { get; set; }
