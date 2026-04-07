@@ -443,7 +443,7 @@ namespace JobOnlineAPI.Controllers
                         commandType: CommandType.StoredProcedure
                     );
 
-                    if (applicant != null && !string.IsNullOrEmpty(applicant.CodeMPID?.ToString()))
+                    if (applicant != null && !string.IsNullOrEmpty(applicant!.CodeMPID?.ToString()))
                     {
                         return StatusCode(StatusCodes.Status403Forbidden, new { message = "Application already submitted" });
                     }
@@ -1034,7 +1034,7 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, $"Internal server error: {ex.Message}");
                 return StatusCode(500, "Internal Server error");

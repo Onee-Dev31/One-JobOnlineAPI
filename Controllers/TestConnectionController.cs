@@ -20,7 +20,7 @@ namespace JobOnlineAPI.Controllers
                 await connection.OpenAsync();
                 return Ok("Database connection successful!");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, $"Database connection failed: {ex.Message}");
                 return StatusCode(500,  new { message = "Internal Server error" });

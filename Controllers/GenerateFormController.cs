@@ -74,7 +74,7 @@ namespace JobOnlineAPI.Controllers
 
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
                 return StatusCode(500, "Internal Server error");
@@ -114,7 +114,7 @@ namespace JobOnlineAPI.Controllers
 
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
                 return StatusCode(500, "Internal Server error");
@@ -154,7 +154,7 @@ namespace JobOnlineAPI.Controllers
 
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
                 return StatusCode(500, "Internal Server error");

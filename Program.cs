@@ -17,8 +17,7 @@ using Microsoft.AspNetCore.Http.Features;
 
 var options = new WebApplicationOptions
 {
-    WebRootPath = "public",
-    ContentRootPath = Directory.GetCurrentDirectory()
+    WebRootPath = "public"
 };
 var builder = WebApplication.CreateBuilder(options);
 
@@ -325,8 +324,7 @@ try
 }
 catch (Exception ex)
 {
-    logger.LogError("Rotativa configuration failed: {Message}", ex.Message);
-    throw;
+    logger.LogWarning("Rotativa configuration failed, PDF generation will not work: {Message}", ex.Message);
 }
 
 if (app.Environment.IsDevelopment())
@@ -383,3 +381,5 @@ app.UseAuthorization();
 app.MapControllers();
 
 await app.RunAsync();
+
+public partial class Program { }

@@ -65,7 +65,7 @@ namespace JobOnlineAPI.Views.Register
                 col.Item()
                     .AlignCenter()
                     .Height(50)
-                    .Image(imagePath, ImageScaling.FitHeight);
+                    .Image(imagePath).FitHeight();
 
                 col.Item().PaddingTop(4);
 

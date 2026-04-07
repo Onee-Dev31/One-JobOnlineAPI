@@ -1,0 +1,49 @@
+using JobOnlineAPI.Controllers;
+using JobOnlineAPI.Repositories;
+using JobOnlineAPI.Services;
+using JobOnlineAPI.Tests.Fakes;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+
+namespace JobOnlineAPI.Tests.Helpers;
+
+public class TestWebApplicationFactory : WebApplicationFactory<Program>
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(services =>
+        {
+            // เพิ่ม JobOnlineAPI assembly เข้า application parts (จำเป็นสำหรับ WebApplicationFactory)
+            services.AddControllersWithViews()
+                .AddApplicationPart(typeof(LoginController).Assembly);
+        });
+
+        builder.ConfigureTestServices(services =>
+        {
+            // ลบ background services ทั้งหมด (EmailQueueProcessorService)
+            services.RemoveAll<IHostedService>();
+
+            // แทนที่ services ที่แตะ DB/Email ด้วย fakes
+            services.Replace(ServiceDescriptor.Scoped<IUserService, FakeUserService>());
+            services.Replace(ServiceDescriptor.Scoped<IAdminRepository, FakeAdminRepository>());
+            services.Replace(ServiceDescriptor.Scoped<IEmailService, FakeEmailService>());
+            services.Replace(ServiceDescriptor.Scoped<IEmailNotificationService, FakeEmailNotificationService>());
+        });
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        try
+        {
+            return base.CreateHost(builder);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException($"App startup failed: {ex.GetType().Name}: {ex.Message}", ex);
+        }
+    }
+}

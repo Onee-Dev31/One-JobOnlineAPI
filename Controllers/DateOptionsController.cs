@@ -26,7 +26,7 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(dateOptions);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return BadRequest(new
                 {
