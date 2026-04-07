@@ -2,5 +2,7 @@
   <PropertyGroup>
     <!-- แสดงชื่อ test แต่ละตัวโดยอัตโนมัติเมื่อรัน dotnet test -->
     <VSTestLogger>console%3Bverbosity%3Ddetailed</VSTestLogger>
+    <!-- ปิด auto-glob content items ทั้งหมด — explicit items จาก .targets ยังทำงานได้ปกติ -->
+    <EnableDefaultContentItems>false</EnableDefaultContentItems>
   </PropertyGroup>
 </Project>

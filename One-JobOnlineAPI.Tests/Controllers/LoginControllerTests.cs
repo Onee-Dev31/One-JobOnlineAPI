@@ -15,7 +15,7 @@ public class LoginControllerTests : IClassFixture<TestWebApplicationFactory>
         _client = factory.CreateClient();
     }
 
-    [Fact]
+    [Fact(DisplayName = "Login: ไม่พบผู้ใช้ → 401")]
     public async Task Login_UserNotFound_Returns401()
     {
         var res = await _client.PostAsJsonAsync("/api/login", new
@@ -30,10 +30,9 @@ public class LoginControllerTests : IClassFixture<TestWebApplicationFactory>
         Assert.Contains("ไม่พบบัญชีผู้ใช้งาน", body.GetProperty("message").GetString());
     }
 
-    [Fact]
+    [Fact(DisplayName = "Login: รหัสผ่านผิด → 401")]
     public async Task Login_WrongPassword_Returns401()
     {
-        // user exists (test@test.com) แต่ password ผิด → FakeUserService คืน null
         var res = await _client.PostAsJsonAsync("/api/login", new
         {
             username = "test@test.com",
@@ -46,7 +45,7 @@ public class LoginControllerTests : IClassFixture<TestWebApplicationFactory>
         Assert.Contains("ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", body.GetProperty("message").GetString());
     }
 
-    [Fact]
+    [Fact(DisplayName = "Login: credentials ถูกต้อง → 200 + token")]
     public async Task Login_ValidCredentials_Returns200WithToken()
     {
         var res = await _client.PostAsJsonAsync("/api/login", new
@@ -63,7 +62,7 @@ public class LoginControllerTests : IClassFixture<TestWebApplicationFactory>
         Assert.Equal("test@test.com", body.GetProperty("username").GetString());
     }
 
-    [Fact]
+    [Fact(DisplayName = "Login: ไม่ส่ง body → 400")]
     public async Task Login_MissingBody_Returns400()
     {
         var res = await _client.PostAsJsonAsync("/api/login", new { });

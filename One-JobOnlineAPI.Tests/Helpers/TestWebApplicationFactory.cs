@@ -34,6 +34,11 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
             services.Replace(ServiceDescriptor.Scoped<IEmailService, FakeEmailService>());
             services.Replace(ServiceDescriptor.Scoped<IEmailNotificationService, FakeEmailNotificationService>());
 
+            // Job repository — singleton เพื่อให้ test access ได้ผ่าน factory.Services
+            services.RemoveAll<IJobRepository>();
+            services.AddSingleton<FakeJobRepository>();
+            services.AddScoped<IJobRepository>(sp => sp.GetRequiredService<FakeJobRepository>());
+
             // ปิด log ทั้งหมดที่รบกวน — เอา providers ออกเลย (log ไม่มีที่ไป = เงียบ)
             services.AddLogging(logging => logging.ClearProviders());
         });
