@@ -64,13 +64,12 @@ namespace JobOnlineAPI.Controllers
                     Response.Cookies.Append("auth_token", token, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = false,
+                        Secure = true,
                         SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddHours(2)
                     });
                     return Ok(new
                     {
-                        Token = token,
                         userModel.Username,
                         userModel.Role,
                         userModel.ConfirmConsent,

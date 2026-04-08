@@ -37,7 +37,7 @@ namespace JobOnlineAPI.Services
                 issuer: issuer,
                 audience: audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(24),
+                expires: DateTime.UtcNow.AddHours(2),
                 signingCredentials: credentials
             );
 

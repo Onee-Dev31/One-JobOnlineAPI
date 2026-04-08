@@ -325,6 +325,15 @@ namespace JobOnlineAPI.Controllers
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetApplicantsById([FromQuery] int? applicantId)
         {
+            var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
+            if (role == "User")
+            {
+                var applicantIdClaim = HttpContext.User.FindFirst("applicant_id")?.Value;
+                int.TryParse(applicantIdClaim, out int tokenApplicantId);
+                if (applicantId.HasValue && applicantId.Value != tokenApplicantId)
+                    return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
+            }
+
             try
             {
                 using var connection = _context.CreateConnection();
@@ -473,6 +482,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("updateApplicantStatus")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> UpdateApplicantStatus([FromBody] ExpandoObject? request)
         {
             try
