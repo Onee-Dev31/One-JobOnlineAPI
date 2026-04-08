@@ -785,7 +785,7 @@ namespace JobOnlineAPI.Services
                 { "FullNameThai", fullNameThai },
                 { "JobTitle", jobTitle },
                 { "Url", url},
-                { "ComapnyName", compantName}
+                { "CompanyName", compantName}
             });
         }
         private static string LoadEmailTemplate(string templateName)
