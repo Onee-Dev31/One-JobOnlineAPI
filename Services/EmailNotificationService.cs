@@ -436,8 +436,20 @@ namespace JobOnlineAPI.Services
 
                 var urlResult = urllist.FirstOrDefault();
                 string fromRegis = urlResult != null ? urlResult.LoginUrl?.ToString() ?? "ลิงก์ไม่พร้อมใช้งาน" : "ลิงก์ไม่พร้อมใช้งาน";
-                string companyName = urlResult != null ? urlResult.ComapnyName?.ToString()! : ""; ;
-                string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis, companyName);
+                string companyName = urlResult != null ? urlResult.CompanyName?.ToString()! : ""; ;
+                bool isThai = urlResult != null ? urlResult.Isthai! : true;
+
+                string candidateNameCustom = candidateName;
+
+                if (!isThai && urlResult != null)
+                {
+                    string titleName = urlResult!.TitleENG ?? "";
+                    string fName = urlResult.FNameEng ?? "";
+                    string lName = urlResult.LNameEng ?? "";
+
+                    candidateNameCustom = $"{titleName}{fName} {lName}".Trim();
+                }
+                string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateNameCustom, requestData?.JobTitle!, fromRegis, companyName);
                 //    $@"
                 //<div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 //    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{candidateName}</p>
