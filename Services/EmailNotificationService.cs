@@ -776,7 +776,7 @@ namespace JobOnlineAPI.Services
                 { "BaseUrl", baseUrlFront }
             });
         }
-        private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url, string compantName)
+        private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url, string companyName)
         {
             var template = LoadEmailTemplate("WaittingCandidateInfo.html");
 
@@ -785,7 +785,7 @@ namespace JobOnlineAPI.Services
                 { "FullNameThai", fullNameThai },
                 { "JobTitle", jobTitle },
                 { "Url", url},
-                { "CompanyName", compantName}
+                { "CompanyName", companyName}
             });
         }
         private static string LoadEmailTemplate(string templateName)
