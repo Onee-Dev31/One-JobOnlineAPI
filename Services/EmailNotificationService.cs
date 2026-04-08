@@ -436,8 +436,8 @@ namespace JobOnlineAPI.Services
 
                 var urlResult = urllist.FirstOrDefault();
                 string fromRegis = urlResult != null ? urlResult.LoginUrl?.ToString() ?? "ลิงก์ไม่พร้อมใช้งาน" : "ลิงก์ไม่พร้อมใช้งาน";
-
-                string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis);
+                string companyName = urlResult != null ? urlResult.ComapnyName?.ToString();
+                string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis, companyName);
                 //    $@"
                 //<div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 //    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{candidateName}</p>
@@ -776,7 +776,7 @@ namespace JobOnlineAPI.Services
                 { "BaseUrl", baseUrlFront }
             });
         }
-        private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url)
+        private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url, string compantName)
         {
             var template = LoadEmailTemplate("WaittingCandidateInfo.html");
 
@@ -784,7 +784,8 @@ namespace JobOnlineAPI.Services
             {
                 { "FullNameThai", fullNameThai },
                 { "JobTitle", jobTitle },
-                { "Url", url}
+                { "Url", url},
+                { "ComapnyName", compantName}
             });
         }
         private static string LoadEmailTemplate(string templateName)
