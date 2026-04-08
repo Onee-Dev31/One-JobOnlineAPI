@@ -436,7 +436,7 @@ namespace JobOnlineAPI.Services
 
                 var urlResult = urllist.FirstOrDefault();
                 string fromRegis = urlResult != null ? urlResult.LoginUrl?.ToString() ?? "ลิงก์ไม่พร้อมใช้งาน" : "ลิงก์ไม่พร้อมใช้งาน";
-                string companyName = urlResult != null ? urlResult.ComapnyName?.ToString();
+                string companyName = urlResult != null ? urlResult.ComapnyName?.ToString()! : ""; ;
                 string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis, companyName);
                 //    $@"
                 //<div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
