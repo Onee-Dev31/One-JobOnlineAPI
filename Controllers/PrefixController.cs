@@ -39,7 +39,7 @@ namespace JobOnlineAPI.Controllers
                 var resultList = ConvertDataTableToList(resultTable);
                 return Ok(resultList);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { message = "An error occurred while retrieving data.", error = ex.Message });
                 return StatusCode(500,  new { message = "Internal Server error" });

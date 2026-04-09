@@ -29,7 +29,7 @@ namespace JobOnlineAPI.Controllers
                     return NotFound("No jobs found.");
                 return Ok(jobs);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = "Failed to retrieve jobs.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");
@@ -107,7 +107,7 @@ namespace JobOnlineAPI.Controllers
                     return NotFound($"Job with ID {id} not found.");
                 return Ok(job);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = "Failed to retrieve job.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");
@@ -129,7 +129,7 @@ namespace JobOnlineAPI.Controllers
                 job.JobID = newId;
                 return CreatedAtAction(nameof(GetJobById), new { id = newId }, job);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");
@@ -160,7 +160,7 @@ namespace JobOnlineAPI.Controllers
                     return StatusCode(500, "Update failed.");
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = "Failed to update job.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");
@@ -188,7 +188,7 @@ namespace JobOnlineAPI.Controllers
                 await _jobRepository.DeleteJobAsync(id);
                 return NoContent();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = "Failed to delete job.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");

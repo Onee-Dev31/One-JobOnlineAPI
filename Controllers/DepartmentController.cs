@@ -28,7 +28,7 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(result);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new { Error = ex.Message });
                 return StatusCode(500, "Internal Server error");
