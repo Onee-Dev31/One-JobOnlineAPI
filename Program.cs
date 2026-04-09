@@ -70,9 +70,13 @@ if (fileStorageConfig == null || string.IsNullOrEmpty(fileStorageConfig.BasePath
 }
 logger.LogInformation("FileStorage BasePath: {BasePath}", fileStorageConfig.BasePath);
 
-var fullPath = Path.Combine(builder.Environment.ContentRootPath, fileStorageConfig.BasePath);
+// UNC paths (\\server\share) and absolute paths should not be combined with ContentRootPath
+var basePath = fileStorageConfig.BasePath;
+var fullPath = (Path.IsPathRooted(basePath) || basePath.StartsWith("\\\\"))
+    ? basePath
+    : Path.Combine(builder.Environment.ContentRootPath, basePath);
 logger.LogInformation("Resolved FileStorage FullPath: {FullPath}", fullPath);
-if (!Directory.Exists(fullPath))
+if (!fullPath.StartsWith("\\\\") && !Directory.Exists(fullPath))
 {
     Directory.CreateDirectory(fullPath);
     logger.LogInformation("Created FileStorage directory: {Path}", fullPath);
