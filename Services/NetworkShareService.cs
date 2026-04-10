@@ -39,18 +39,35 @@ namespace JobOnlineAPI.Services
             _logger = logger;
 
             bool isProduction = _fileStorageConfig.EnvironmentName?.Equals("Production", StringComparison.OrdinalIgnoreCase) ?? false;
-            string basePath = isProduction
-                ? _fileStorageConfig.ProductionPath ?? throw new InvalidOperationException("ProductionPath is not configured.")
-                : _fileStorageConfig.NetworkPath ?? throw new InvalidOperationException("NetworkPath is not configured.");
+            bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+
+            string basePath;
+            bool useNetworkShare;
+
+            if (isProduction)
+            {
+                basePath = _fileStorageConfig.ProductionPath ?? throw new InvalidOperationException("ProductionPath is not configured.");
+                useNetworkShare = false;
+            }
+            else if (isWindows && !string.IsNullOrEmpty(_fileStorageConfig.NetworkPath))
+            {
+                basePath = _fileStorageConfig.NetworkPath;
+                useNetworkShare = !string.IsNullOrEmpty(_fileStorageConfig.NetworkUsername) &&
+                                  !string.IsNullOrEmpty(_fileStorageConfig.NetworkPassword);
+            }
+            else
+            {
+                // macOS / Linux: ใช้ local BasePath แทน UNC network path
+                basePath = _fileStorageConfig.BasePath ?? throw new InvalidOperationException("BasePath is not configured.");
+                useNetworkShare = false;
+            }
 
             _currentStorageConfig = new StorageConfig
             {
                 BasePath = basePath,
-                UseNetworkShare = !isProduction && !string.IsNullOrEmpty(_fileStorageConfig.NetworkPath) &&
-                                  !string.IsNullOrEmpty(_fileStorageConfig.NetworkUsername) &&
-                                  !string.IsNullOrEmpty(_fileStorageConfig.NetworkPassword),
-                Username = isProduction ? null : _fileStorageConfig.NetworkUsername,
-                Password = isProduction ? null : _fileStorageConfig.NetworkPassword
+                UseNetworkShare = useNetworkShare,
+                Username = useNetworkShare ? _fileStorageConfig.NetworkUsername : null,
+                Password = useNetworkShare ? _fileStorageConfig.NetworkPassword : null
             };
 
             if (!_currentStorageConfig.UseNetworkShare && !Directory.Exists(_currentStorageConfig.BasePath))
