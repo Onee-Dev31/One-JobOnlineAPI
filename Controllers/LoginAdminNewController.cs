@@ -47,7 +47,29 @@ namespace JobOnlineAPI.Controllers
 
                 userDict["accessToken"] = accessToken;
                 userDict["refreshToken"] = refreshToken;
+                var roleName = userDict.TryGetValue("ROLE_NAME", out var roleObj) ? roleObj?.ToString() : "";
                 Response.Cookies.Append("token", accessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+                Response.Cookies.Append("admin_token", accessToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+                Response.Cookies.Append("admin_refresh", refreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = false,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(4)
+                });
+                Response.Cookies.Append("admin_role_srv", roleName ?? "", new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = false,
@@ -65,6 +87,7 @@ namespace JobOnlineAPI.Controllers
                 });
             }
         }
+        
         private async Task<(string accessToken, string refreshToken)> LoginWithADAsync(string username, string password)
         {
             var handler = new HttpClientHandler
