@@ -55,9 +55,15 @@ namespace JobOnlineAPI.Services
                 useNetworkShare = !string.IsNullOrEmpty(_fileStorageConfig.NetworkUsername) &&
                                   !string.IsNullOrEmpty(_fileStorageConfig.NetworkPassword);
             }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && !string.IsNullOrEmpty(_fileStorageConfig.MacPath))
+            {
+                // macOS: ใช้ MacPath ที่ mount SMB share ไว้แล้ว เช่น /Volumes/AppFiles/Applicants
+                basePath = _fileStorageConfig.MacPath;
+                useNetworkShare = false;
+            }
             else
             {
-                // macOS / Linux: ใช้ local BasePath แทน UNC network path
+                // macOS / Linux fallback: ใช้ local BasePath
                 basePath = _fileStorageConfig.BasePath ?? throw new InvalidOperationException("BasePath is not configured.");
                 useNetworkShare = false;
             }
