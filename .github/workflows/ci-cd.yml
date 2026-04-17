@@ -191,26 +191,22 @@ jobs:
       - name: Stop IIS site and App Pool
         shell: powershell
         run: |
-          Import-Module WebAdministration
-
+          $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
-          $appPool = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).applicationPool
 
-          $siteState = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).State
-          if ($siteState -eq "Started") {
-            Stop-Website -Name $siteName
-            Write-Host "Stopped IIS site: $siteName"
-          }
+          # Stop site
+          & $appcmd stop site /site.name:"$siteName"
+          Write-Host "Stopped IIS site: $siteName"
 
+          # Stop app pool
+          $appPool = (& $appcmd list site /site.name:"$siteName" /text:applicationPool)
           if ($appPool) {
-            $poolState = (Get-WebAppPoolState -Name $appPool -ErrorAction SilentlyContinue).Value
-            if ($poolState -eq "Started") {
-              Stop-WebAppPool -Name $appPool
-              Start-Sleep -Seconds 3
-              Write-Host "Stopped App Pool: $appPool"
-            }
+            & $appcmd stop apppool /apppool.name:"$appPool"
+            Start-Sleep -Seconds 3
+            Write-Host "Stopped App Pool: $appPool"
           }
 
+          # Kill dotnet process ที่ยังค้างอยู่
           Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | ForEach-Object {
             $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.Id)").CommandLine
             if ($cmdLine -like "*OneeJob-Backend*") {
@@ -234,28 +230,31 @@ jobs:
       - name: Start IIS site and App Pool
         shell: powershell
         run: |
-          Import-Module WebAdministration
-
+          $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
-          $appPool = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).applicationPool
 
+          # Start app pool ก่อน
+          $appPool = (& $appcmd list site /site.name:"$siteName" /text:applicationPool)
           if ($appPool) {
-            Start-WebAppPool -Name $appPool
+            & $appcmd start apppool /apppool.name:"$appPool"
             Start-Sleep -Seconds 2
             Write-Host "Started App Pool: $appPool"
           }
 
-          Start-Website -Name $siteName
+          # Start site
+          & $appcmd start site /site.name:"$siteName"
           Write-Host "Started IIS site: $siteName"
 
+          # ลบ app_offline.htm
           $offlineFile = "C:\ONEE-JOBS\OneeJob-Backend\app_offline.htm"
           if (Test-Path $offlineFile) {
             Remove-Item $offlineFile -Force
             Write-Host "Removed app_offline.htm - app is back online"
           }
 
+          # ตรวจสอบ state
           Start-Sleep -Seconds 2
-          $finalState = (Get-Website -Name $siteName).State
+          $finalState = (& $appcmd list site /site.name:"$siteName" /text:state)
           Write-Host "Site state: $finalState"
           if ($finalState -ne "Started") {
             throw "IIS site failed to start - state: $finalState"
