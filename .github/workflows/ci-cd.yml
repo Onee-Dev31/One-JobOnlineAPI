@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main, feature/security-audit]
 
+permissions:
+  contents: read
+
 jobs:
   # Stage 1: Build & Test  (parallel with 2, 3)
   build-and-test:
@@ -101,38 +104,31 @@ jobs:
     needs: [build-and-test, secret-scan, file-check]
     runs-on: self-hosted
 
+    env:
+      PROJECT_PATH: 'JobOnlineAPI.csproj'
+      PUBLISH_PATH: 'C:\ONEE-JOBS\publish\OneeJob-Backend'
+      DEPLOY_PATH: 'C:\ONEE-JOBS\OneeJob-Backend'
+      BACKUP_ROOT: 'C:\ONEE-JOBS\OneeJob-Backend_backup'
+      APP_POOL_NAME: 'OneeJob-Backend'
+      DOTNET_ROOT: 'C:\Program Files\dotnet'
+      DOTNET_INSTALL_DIR: 'C:\Program Files\dotnet'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Verify .NET on server
-        shell: powershell
-        run: |
-          $dotnetPaths = @(
-            "C:\Program Files\dotnet\dotnet.exe",
-            "C:\Program Files (x86)\dotnet\dotnet.exe"
-          )
-          $found = Get-Command dotnet -ErrorAction SilentlyContinue
-          if (-not $found) {
-            foreach ($p in $dotnetPaths) {
-              if (Test-Path $p) {
-                $env:PATH += ";$(Split-Path $p)"
-                break
-              }
-            }
-          }
-          dotnet --version
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: ${{ runner.os }}-nuget-
+          dotnet-version: '9.0.x'
+        env:
+          DOTNET_INSTALL_DIR: 'C:\Program Files\dotnet'
 
       - name: Restore dependencies
-        shell: powershell
-        run: dotnet restore JobOnlineAPI.sln
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build (Release)
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
 
       - name: Copy appsettings.Production.json from server
         shell: powershell
@@ -145,30 +141,26 @@ jobs:
           Write-Host "Copied appsettings.Production.json"
 
       - name: Publish application
-        shell: powershell
-        run: |
-          dotnet publish JobOnlineAPI.sln `
-            --configuration Release `
-            --no-restore `
-            --output ./publish
-          if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
-          Write-Host "Publish completed"
+        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ${{ env.PUBLISH_PATH }} --no-build
 
       - name: Backup old deployment (keep 5 latest)
         shell: powershell
         run: |
-          $deployPath = "C:\ONEE-JOBS\OneeJob-Backend"
-          $backupRoot = "C:\ONEE-JOBS\OneeJob-Backend_backup"
+          $backupRoot = "${{ env.BACKUP_ROOT }}"
+          $deployPath = "${{ env.DEPLOY_PATH }}"
 
           if (-not (Test-Path $backupRoot)) {
             New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
           }
 
           if (Test-Path $deployPath) {
-            $timestamp  = Get-Date -Format "yyyyMMdd_HHmmss"
+            $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
             $backupPath = "$backupRoot\backup_$timestamp"
-            Copy-Item -Path $deployPath -Destination $backupPath -Recurse -Force
-            Write-Host "Backed up to $backupPath"
+            New-Item -ItemType Directory -Path $backupPath | Out-Null
+            Get-ChildItem -Path $deployPath | ForEach-Object {
+              Copy-Item -Path $_.FullName -Destination $backupPath -Recurse -Force
+            }
+            Write-Host "Backup done: $backupPath"
 
             $old = Get-ChildItem $backupRoot | Sort-Object CreationTime -Descending | Select-Object -Skip 5
             foreach ($b in $old) {
@@ -177,125 +169,31 @@ jobs:
             }
           }
 
-      - name: Take app offline (release DLL locks)
+      - name: Stop App Pool
         shell: powershell
         run: |
-          $deployPath = "C:\ONEE-JOBS\OneeJob-Backend"
-          if (-not (Test-Path $deployPath)) {
-            New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
-          }
-          Set-Content -Path "$deployPath\app_offline.htm" -Value "Deploying new version, please wait..."
-          Write-Host "app_offline.htm created - app is offline"
+          $result = & "C:\Windows\System32\inetsrv\appcmd.exe" stop apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
+          Write-Host $result
           Start-Sleep -Seconds 3
-
-      - name: Stop IIS site and App Pool
-        shell: powershell
-        run: |
-          $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
-          $siteName = "OneeJob-Backend"
-
-          # Start WAS ก่อน (dependency ของ W3SVC)
-          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
-          if ($was -and $was.Status -ne "Running") {
-            Start-Service WAS
-            Start-Sleep -Seconds 2
-            Write-Host "Started WAS"
-          }
-
-          # Start W3SVC
-          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
-          if ($w3svc -and $w3svc.Status -ne "Running") {
-            Start-Service W3SVC
-            Start-Sleep -Seconds 3
-            Write-Host "Started W3SVC"
-          }
-
-          # ดึงชื่อ App Pool จาก site
-          $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
-          Write-Host "App Pool: $appPool"
-
-          # Stop site (ignore error ถ้า already stopped)
-          & $appcmd stop site /site.name:"$siteName" 2>&1 | Write-Host
-          Write-Host "Stopped IIS site: $siteName"
-
-          # Stop app pool (ignore error ถ้า already stopped)
-          if ($appPool) {
-            & $appcmd stop apppool /apppool.name:"$appPool" 2>&1 | Write-Host
-            Start-Sleep -Seconds 3
-            Write-Host "Stopped App Pool: $appPool"
-          }
-
-          # Kill dotnet process ที่ยังค้างอยู่
-          Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | ForEach-Object {
-            $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.Id)").CommandLine
-            if ($cmdLine -like "*OneeJob-Backend*") {
-              $_ | Stop-Process -Force
-              Write-Host "Killed dotnet process PID $($_.Id)"
-            }
-          }
-          Start-Sleep -Seconds 2
-
-          # Reset exit code — stop errors are not fatal
           exit 0
 
       - name: Deploy new files
         shell: powershell
         run: |
-          $deployPath = "C:\ONEE-JOBS\OneeJob-Backend"
+          $deployPath = "${{ env.DEPLOY_PATH }}"
+          $publishPath = "${{ env.PUBLISH_PATH }}"
 
-          Get-ChildItem $deployPath -Exclude "logs","app_offline.htm" |
-            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          if (-not (Test-Path $deployPath)) {
+            New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+          }
 
-          Copy-Item -Path ".\publish\*" -Destination $deployPath -Recurse -Force
+          Get-ChildItem -Path $deployPath -Exclude "logs","App_Data" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path "$publishPath\*" -Destination $deployPath -Recurse -Force
           Write-Host "Deployed to $deployPath"
 
-      - name: Start IIS site and App Pool
+      - name: Start App Pool
         shell: powershell
         run: |
-          $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
-          $siteName = "OneeJob-Backend"
-
-          # Start WAS ก่อน (dependency ของ W3SVC)
-          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
-          if ($was -and $was.Status -ne "Running") {
-            Start-Service WAS
-            Start-Sleep -Seconds 2
-            Write-Host "Started WAS"
-          }
-
-          # Start W3SVC
-          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
-          if ($w3svc -and $w3svc.Status -ne "Running") {
-            Start-Service W3SVC
-            Start-Sleep -Seconds 3
-            Write-Host "Started W3SVC"
-          }
-
-          # ดึงชื่อ App Pool
-          $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
-
-          # Start app pool ก่อน
-          if ($appPool) {
-            & $appcmd start apppool /apppool.name:"$appPool" 2>&1 | Write-Host
-            Start-Sleep -Seconds 2
-            Write-Host "Started App Pool: $appPool"
-          }
-
-          # Start site
-          & $appcmd start site /site.name:"$siteName" 2>&1 | Write-Host
-          Write-Host "Started IIS site: $siteName"
-
-          # ลบ app_offline.htm
-          $offlineFile = "C:\ONEE-JOBS\OneeJob-Backend\app_offline.htm"
-          if (Test-Path $offlineFile) {
-            Remove-Item $offlineFile -Force
-            Write-Host "Removed app_offline.htm - app is back online"
-          }
-
-          # ตรวจสอบ state
-          Start-Sleep -Seconds 2
-          $finalState = (& $appcmd list site /site.name:"$siteName" /text:state)
-          Write-Host "Site state: $finalState"
-          if ($finalState -ne "Started") {
-            throw "IIS site failed to start - state: $finalState"
-          }
+          $result = & "C:\Windows\System32\inetsrv\appcmd.exe" start apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
+          Write-Host $result
+          Write-Host "Deploy success"
