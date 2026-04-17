@@ -62,21 +62,5 @@ namespace JobOnlineAPI.Controllers
 
             return list;
         }
-                private static List<Dictionary<string, object>> TestConvertDataTableToList(DataTable dataTable)
-        {
-            var list = new List<Dictionary<string, object>>();
-
-            foreach (DataRow row in dataTable.Rows)
-            {
-                var dict = new Dictionary<string, object>();
-                foreach (DataColumn col in dataTable.Columns)
-                {
-                    dict[col.ColumnName] = row[col];
-                }
-                list.Add(dict);
-            }
-
-            return list;
-        }
     }
 }
