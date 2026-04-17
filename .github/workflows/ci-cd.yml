@@ -255,6 +255,22 @@ jobs:
           $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
 
+          # Start WAS ก่อน (dependency ของ W3SVC)
+          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
+          if ($was -and $was.Status -ne "Running") {
+            Start-Service WAS
+            Start-Sleep -Seconds 2
+            Write-Host "Started WAS"
+          }
+
+          # Start W3SVC
+          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
+          if ($w3svc -and $w3svc.Status -ne "Running") {
+            Start-Service W3SVC
+            Start-Sleep -Seconds 3
+            Write-Host "Started W3SVC"
+          }
+
           # ดึงชื่อ App Pool
           $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
 
