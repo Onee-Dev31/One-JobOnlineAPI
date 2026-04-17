@@ -2,9 +2,11 @@ name: CI/CD Pipeline — OneeJob Backend
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/security-audit]
+    # branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feature/security-audit]
+    # branches: [main]
 
 jobs:
   # ─────────────────────────────────────────────
@@ -105,7 +107,8 @@ jobs:
   # ─────────────────────────────────────────────
   deploy:
     name: Deploy to IIS
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/feature/security-audit' && github.event_name == 'push'
     needs: [build-and-test, secret-scan, file-check]
     runs-on: self-hosted
 
