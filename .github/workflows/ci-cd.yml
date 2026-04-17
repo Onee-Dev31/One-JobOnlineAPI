@@ -1,17 +1,13 @@
-name: CI/CD Pipeline — OneeJob Backend
+name: CI/CD Pipeline - OneeJob Backend
 
 on:
   push:
     branches: [main, feature/security-audit]
-    # branches: [main]
   pull_request:
     branches: [main, feature/security-audit]
-    # branches: [main]
 
 jobs:
-  # ─────────────────────────────────────────────
-  # Stage 1: Build & Test  (parallel กับ 2, 3)
-  # ─────────────────────────────────────────────
+  # Stage 1: Build & Test  (parallel with 2, 3)
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
@@ -44,12 +40,10 @@ jobs:
           if [ -n "$TEST_PROJECTS" ]; then
             dotnet test JobOnlineAPI.sln --no-build --configuration Release --verbosity normal
           else
-            echo "No test projects found — skipping"
+            echo "No test projects found - skipping"
           fi
 
-  # ─────────────────────────────────────────────
   # Stage 2: Secret Scan  (parallel)
-  # ─────────────────────────────────────────────
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -60,14 +54,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks — scan for leaked secrets
+      - name: Gitleaks scan for leaked secrets
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # ─────────────────────────────────────────────
   # Stage 3: File Check  (parallel)
-  # ─────────────────────────────────────────────
   file-check:
     name: File Check
     runs-on: ubuntu-latest
@@ -80,35 +72,32 @@ jobs:
         run: |
           FILES=$(find . -not -path "./.git/*" -type f \( -name "*.bak" -o -name "*.tmp" \))
           if [ -n "$FILES" ]; then
-            echo "❌ พบไฟล์ backup/temp ที่ไม่ควร commit:"
+            echo "FAIL: Found backup/temp files that should not be committed:"
             echo "$FILES"
             exit 1
           fi
-          echo "✅ ไม่พบไฟล์ backup/temp"
+          echo "PASS: No backup/temp files found"
 
       - name: Check appsettings.Production.json is NOT committed
         run: |
           if git ls-files | grep -q "appsettings.Production.json"; then
-            echo "❌ appsettings.Production.json ไม่ควรถูก commit (มี secrets)"
+            echo "FAIL: appsettings.Production.json must not be committed (contains secrets)"
             exit 1
           fi
-          echo "✅ appsettings.Production.json ไม่ถูก track"
+          echo "PASS: appsettings.Production.json is not tracked"
 
       - name: Check for .env files
         run: |
           if git ls-files | grep -qE "^\.env"; then
-            echo "❌ พบไฟล์ .env ถูก commit"
+            echo "FAIL: .env files must not be committed"
             exit 1
           fi
-          echo "✅ ไม่มีไฟล์ .env ถูก commit"
+          echo "PASS: No .env files committed"
 
-  # ─────────────────────────────────────────────
-  # Stage 4: Deploy to IIS  (push to main เท่านั้น)
-  # ─────────────────────────────────────────────
+  # Stage 4: Deploy to IIS  (push only)
   deploy:
     name: Deploy to IIS
-    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    if: github.ref == 'refs/heads/feature/security-audit' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/security-audit') && github.event_name == 'push'
     needs: [build-and-test, secret-scan, file-check]
     runs-on: self-hosted
 
@@ -150,10 +139,10 @@ jobs:
         run: |
           $src = "C:\ONEE-JOBS\env\appsettings.Production.json"
           if (-not (Test-Path $src)) {
-            throw "❌ ไม่พบ appsettings.Production.json ที่ $src"
+            throw "NOT FOUND: appsettings.Production.json at $src"
           }
           Copy-Item $src -Destination "appsettings.Production.json" -Force
-          Write-Host "✅ Copied appsettings.Production.json"
+          Write-Host "Copied appsettings.Production.json"
 
       - name: Publish application
         shell: powershell
@@ -162,14 +151,14 @@ jobs:
             --configuration Release `
             --no-restore `
             --output ./publish
-          if ($LASTEXITCODE -ne 0) { throw "❌ Publish failed" }
-          Write-Host "✅ Publish สำเร็จ"
+          if ($LASTEXITCODE -ne 0) { throw "Publish failed" }
+          Write-Host "Publish completed"
 
       - name: Backup old deployment (keep 5 latest)
         shell: powershell
         run: |
-          $deployPath  = "C:\ONEE-JOBS\OneeJob-Backend"
-          $backupRoot  = "C:\ONEE-JOBS\OneeJob-Backend_backup"
+          $deployPath = "C:\ONEE-JOBS\OneeJob-Backend"
+          $backupRoot = "C:\ONEE-JOBS\OneeJob-Backend_backup"
 
           if (-not (Test-Path $backupRoot)) {
             New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
@@ -179,13 +168,12 @@ jobs:
             $timestamp  = Get-Date -Format "yyyyMMdd_HHmmss"
             $backupPath = "$backupRoot\backup_$timestamp"
             Copy-Item -Path $deployPath -Destination $backupPath -Recurse -Force
-            Write-Host "✅ Backed up to $backupPath"
+            Write-Host "Backed up to $backupPath"
 
-            # เก็บแค่ 5 backup ล่าสุด
             $old = Get-ChildItem $backupRoot | Sort-Object CreationTime -Descending | Select-Object -Skip 5
             foreach ($b in $old) {
               Remove-Item $b.FullName -Recurse -Force
-              Write-Host "🗑️  Removed old backup: $($b.Name)"
+              Write-Host "Removed old backup: $($b.Name)"
             }
           }
 
@@ -196,9 +184,8 @@ jobs:
           if (-not (Test-Path $deployPath)) {
             New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
           }
-          # วาง app_offline.htm เพื่อให้ ANCM ปล่อย lock บน DLL
           Set-Content -Path "$deployPath\app_offline.htm" -Value "Deploying new version, please wait..."
-          Write-Host "✅ app_offline.htm created — app is offline"
+          Write-Host "app_offline.htm created - app is offline"
           Start-Sleep -Seconds 3
 
       - name: Stop IIS site and App Pool
@@ -207,33 +194,28 @@ jobs:
           Import-Module WebAdministration
 
           $siteName = "OneeJob-Backend"
-
-          # หาชื่อ App Pool จาก site
           $appPool = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).applicationPool
 
-          # Stop Site
           $siteState = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).State
           if ($siteState -eq "Started") {
             Stop-Website -Name $siteName
-            Write-Host "✅ Stopped IIS site: $siteName"
+            Write-Host "Stopped IIS site: $siteName"
           }
 
-          # Stop App Pool
           if ($appPool) {
             $poolState = (Get-WebAppPoolState -Name $appPool -ErrorAction SilentlyContinue).Value
             if ($poolState -eq "Started") {
               Stop-WebAppPool -Name $appPool
               Start-Sleep -Seconds 3
-              Write-Host "✅ Stopped App Pool: $appPool"
+              Write-Host "Stopped App Pool: $appPool"
             }
           }
 
-          # Kill dotnet process ที่ยังค้างอยู่ (กรณี Out-of-Process hosting)
           Get-Process -Name "dotnet" -ErrorAction SilentlyContinue | ForEach-Object {
             $cmdLine = (Get-WmiObject Win32_Process -Filter "ProcessId=$($_.Id)").CommandLine
             if ($cmdLine -like "*OneeJob-Backend*") {
               $_ | Stop-Process -Force
-              Write-Host "🔪 Killed dotnet process PID $($_.Id)"
+              Write-Host "Killed dotnet process PID $($_.Id)"
             }
           }
           Start-Sleep -Seconds 2
@@ -243,13 +225,11 @@ jobs:
         run: |
           $deployPath = "C:\ONEE-JOBS\OneeJob-Backend"
 
-          # ลบไฟล์เก่าทั้งหมด ยกเว้น logs และ app_offline.htm
           Get-ChildItem $deployPath -Exclude "logs","app_offline.htm" |
             Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 
-          # Copy ไฟล์ใหม่ทั้งหมด
           Copy-Item -Path ".\publish\*" -Destination $deployPath -Recurse -Force
-          Write-Host "✅ Deployed to $deployPath"
+          Write-Host "Deployed to $deployPath"
 
       - name: Start IIS site and App Pool
         shell: powershell
@@ -257,30 +237,26 @@ jobs:
           Import-Module WebAdministration
 
           $siteName = "OneeJob-Backend"
-          $appPool  = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).applicationPool
+          $appPool = (Get-Website -Name $siteName -ErrorAction SilentlyContinue).applicationPool
 
-          # Start App Pool ก่อน
           if ($appPool) {
             Start-WebAppPool -Name $appPool
             Start-Sleep -Seconds 2
-            Write-Host "✅ Started App Pool: $appPool"
+            Write-Host "Started App Pool: $appPool"
           }
 
-          # Start Site
           Start-Website -Name $siteName
-          Write-Host "✅ Started IIS site: $siteName"
+          Write-Host "Started IIS site: $siteName"
 
-          # ลบ app_offline.htm เพื่อให้ site กลับมา serve ได้
           $offlineFile = "C:\ONEE-JOBS\OneeJob-Backend\app_offline.htm"
           if (Test-Path $offlineFile) {
             Remove-Item $offlineFile -Force
-            Write-Host "✅ Removed app_offline.htm — app is back online"
+            Write-Host "Removed app_offline.htm - app is back online"
           }
 
-          # ตรวจสอบ state สุดท้าย
           Start-Sleep -Seconds 2
           $finalState = (Get-Website -Name $siteName).State
-          Write-Host "📊 Site state: $finalState"
+          Write-Host "Site state: $finalState"
           if ($finalState -ne "Started") {
-            throw "❌ IIS site ไม่ start — state: $finalState"
+            throw "IIS site failed to start - state: $finalState"
           }
