@@ -30,5 +30,25 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, "Internal Server error");
             }
         }
+            [HttpGet("GetCompanyInfoxx")]
+        public async Task<IActionResult> GetCompanyInfoxx()
+        {
+            try
+            {
+                using var connection = _context.CreateConnection();
+                var result = await connection.QueryAsync(
+                    "sp_GetCompanyInfo",
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return Ok(result);
+            }
+            catch (Exception)
+            {
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+    
     }
 }
