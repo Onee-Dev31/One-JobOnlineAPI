@@ -194,9 +194,17 @@ jobs:
           $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
 
-          # Start W3SVC ก่อนถ้ายังไม่รัน (appcmd ต้องการ W3SVC)
+          # Start WAS ก่อน (dependency ของ W3SVC)
+          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
+          if ($was -and $was.Status -ne "Running") {
+            Start-Service WAS
+            Start-Sleep -Seconds 2
+            Write-Host "Started WAS"
+          }
+
+          # Start W3SVC
           $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
-          if ($w3svc.Status -ne "Running") {
+          if ($w3svc -and $w3svc.Status -ne "Running") {
             Start-Service W3SVC
             Start-Sleep -Seconds 3
             Write-Host "Started W3SVC"
@@ -206,11 +214,11 @@ jobs:
           $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
           Write-Host "App Pool: $appPool"
 
-          # Stop site
+          # Stop site (ignore error ถ้า already stopped)
           & $appcmd stop site /site.name:"$siteName" 2>&1 | Write-Host
           Write-Host "Stopped IIS site: $siteName"
 
-          # Stop app pool
+          # Stop app pool (ignore error ถ้า already stopped)
           if ($appPool) {
             & $appcmd stop apppool /apppool.name:"$appPool" 2>&1 | Write-Host
             Start-Sleep -Seconds 3
@@ -226,6 +234,9 @@ jobs:
             }
           }
           Start-Sleep -Seconds 2
+
+          # Reset exit code — stop errors are not fatal
+          exit 0
 
       - name: Deploy new files
         shell: powershell
