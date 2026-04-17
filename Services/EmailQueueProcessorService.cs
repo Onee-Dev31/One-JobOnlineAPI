@@ -104,7 +104,7 @@ namespace JobOnlineAPI.Services
                         };
 
                         // เรียก SendNotificationEmailsAsync เพื่อส่งเมล (ใช้ logic เดิม)
-                        var sentThisTime = await emailNotificationService.SendNotificationEmailsAsync(requestData);
+                         var sentThisTime = await emailNotificationService.SendNotificationEmailsAsync(requestData);
                         sentCount += sentThisTime;
 
                         // Update status เป็น Sent ด้วย SP (หลังส่งสำเร็จ)

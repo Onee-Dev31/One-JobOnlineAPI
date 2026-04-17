@@ -50,7 +50,7 @@ namespace JobOnlineAPI.Controllers
                 catch (JsonException ex)
                 {
                     _logger.LogWarning("Invalid JSON format: {Message}", ex.Message);
-                    return BadRequest(new { Error = $"Invalid JSON format: {ex.Message}" });
+                    return BadRequest(new { Error = "Invalid or missing JSON data." });
                 }
 
                 if (request.RootElement.ValueKind != JsonValueKind.Object && request.RootElement.ValueKind != JsonValueKind.Array)
@@ -87,7 +87,7 @@ namespace JobOnlineAPI.Controllers
                     if (!request.RootElement.TryGetProperty("CreatedBy", out var createdByElement) || createdByElement.ValueKind == JsonValueKind.Null || string.IsNullOrWhiteSpace(createdByElement.GetString()))
                     {
                         _logger.LogWarning("CreatedBy is required and cannot be empty.");
-                        return BadRequest(new { Error = "CreatedBy is required and cannot be empty." });
+                        return BadRequest(new { Error = "Invalid or missing JSON data." });
                     }
 
                     createdBy = createdByElement.GetString()!;
@@ -121,13 +121,13 @@ namespace JobOnlineAPI.Controllers
                         if (item.ValueKind != JsonValueKind.Object)
                         {
                             _logger.LogWarning("Each item in the array must be a JSON object.");
-                            return BadRequest(new { Error = "Each item in the array must be a JSON object." });
+                            return BadRequest(new { Error = "Invalid or missing JSON data." });
                         }
 
                         if (!item.TryGetProperty("CreatedBy", out var createdByElement) || createdByElement.ValueKind == JsonValueKind.Null || string.IsNullOrWhiteSpace(createdByElement.GetString()))
                         {
                             _logger.LogWarning("CreatedBy is required and cannot be empty in each array item.");
-                            return BadRequest(new { Error = "CreatedBy is required and cannot be empty in each array item." });
+                            return BadRequest(new { Error = "Invalid or missing JSON data." });
                         }
 
                         createdBy ??= createdByElement.GetString()!;
@@ -145,7 +145,7 @@ namespace JobOnlineAPI.Controllers
                                     else if (jsonReqNo != currentReqNo)
                                     {
                                         _logger.LogWarning("All items in the array must have the same REQ_NO value.");
-                                        return BadRequest(new { Error = "All items in the array must have the same REQ_NO value." });
+                                        return BadRequest(new { Error = "Invalid or missing JSON data." });
                                     }
                                 }
                             }
@@ -222,13 +222,13 @@ namespace JobOnlineAPI.Controllers
                 if (!string.IsNullOrEmpty(errorMessage))
                 {
                     _logger.LogError("Error from stored procedure: {ErrorMessage}", errorMessage);
-                    return BadRequest(new { Error = errorMessage });
+                    return BadRequest(new { Error = "Invalid or missing JSON data."});
                 }
 
                 if (newId == null)
                 {
                     _logger.LogError("NewID is null after stored procedure execution.");
-                    return StatusCode(500, new { Error = "Failed to process IT request." });
+                    return StatusCode(500, new { Error = "Internal Server error" });
                 }
 
                 // Create response from result set with adjusted signatures
@@ -295,7 +295,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exception in SubmitITRequest: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "Internal Server Error", Details = ex.Message });
+                // return StatusCode(500, new { Error = "Internal Server Error", Details = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -339,7 +340,7 @@ namespace JobOnlineAPI.Controllers
 
                 if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    return BadRequest(new { Error = errorMessage });
+                    return BadRequest(new { Error = "Invalid or missing JSON data." });
                 }
 
                 return Ok(new
@@ -353,7 +354,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exception in GetITRequestByReqNo: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "Internal Server Error", Details = ex.Message });
+                // return StatusCode(500, new { Error = "Internal Server Error", Details = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -398,13 +400,13 @@ namespace JobOnlineAPI.Controllers
 
                 if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    return BadRequest(new { Error = errorMessage });
+                    return BadRequest(new { Error = "Invalid or missing JSON data." });
                 }
 
                 var firstResult = itRequests.FirstOrDefault();
                 if (firstResult == null)
                 {
-                    return NotFound(new { Message = $"No IT requests found for REQ_NO: {reqNo}, ApplicantID: {applicantId}" });
+                    return NotFound(new { Message = "Data not found" });
                 }
 
                 var firstSignature = signaturesList.FirstOrDefault();
@@ -460,7 +462,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Exception in GenerateForm: {Message}", ex.Message);
-                return StatusCode(500, new { Error = $"Error generating PDF: {ex.Message}" });
+                // return StatusCode(500, new { Error = $"Error generating PDF: {ex.Message}" });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -581,7 +584,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetDataUserAdmin");
-                return StatusCode(500, new { Error = "Internal server error", Details = ex.Message });
+                // return StatusCode(500, new { Error = "Internal server error", Details = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
         private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body)
@@ -623,7 +627,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetDataUserAdmin");
-                return StatusCode(500, new { Error = "Internal server error", Details = ex.Message });
+                // return StatusCode(500, new { Error = "Internal server error", Details = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
         private async Task<int> SendEmailsITAsync(int ApplicantID, string? TypeCondition, string? Name, string? CostCenter)
@@ -654,9 +659,9 @@ namespace JobOnlineAPI.Controllers
                             กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
                         </p>
                         <p style='margin: 0;'>กรุณาคลิก Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=FromMailIT'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=FromMailIT'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อพิจารณาอนุมัติคำขอ
                         </p>     
@@ -708,9 +713,9 @@ namespace JobOnlineAPI.Controllers
                             กรุณาพิจารณาและดำเนินการอนุมัติผ่านระบบตามความเหมาะสม
                         </p>
                         <p style='margin: 0;'>กรุณาคลิก Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITDIRECTOR'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=ITDIRECTOR'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อพิจารณาอนุมัติคำขอ
                         </p>  
@@ -733,9 +738,9 @@ namespace JobOnlineAPI.Controllers
                         <p style='padding-left: 20px;'>ทาง IT ได้รับเรื่องคำขอของท่านแล้ว และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ<br>
                             โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า</p>
                         <p style='margin: 0;'>ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์ Link:
-                            <a target='_blank' href='https://oneejobs27.oneeclick.co:7191/LoginAdmin?ApId={ApplicantID}&ITReq=ITACKNOWLEDGE'
+                            <a target='_blank' href='https://oneejobs.oneeclick.co/LoginAdmin?ApId={ApplicantID}&ITReq=ITACKNOWLEDGE'
                                 style='color: #007bff; text-decoration: underline;'>
-                                https://oneejobs27.oneeclick.co
+                                https://oneejobs.oneeclick.co
                             </a>
                             เพื่อตรวจสอบความคืบหน้าของคำขอ
                         </p>

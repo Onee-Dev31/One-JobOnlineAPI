@@ -481,7 +481,8 @@ namespace JobOnlineAPI.Views.Register
                 page.Footer().AlignRight().Column(col =>
                 {
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(10);
-                    col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
+                    col.Item().Padding(5).Text("(..........................................)").FontSize(10);
+                    // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
                     col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
                 });
             });
@@ -737,7 +738,8 @@ namespace JobOnlineAPI.Views.Register
                 page.Footer().AlignRight().Column(col =>
                 {
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(10);
-                    col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
+                    // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
+                    col.Item().Padding(5).Text("(..........................................)").FontSize(10);
                     col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
                 });
             });

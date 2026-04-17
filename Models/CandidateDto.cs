@@ -34,7 +34,7 @@ namespace JobOnlineAPI.Models
 
         [JsonPropertyName("department")]
         public string? Department { get; set; }
-
+        public int? ApplicationID { get; set; } 
         public string? Email { get; set; }
         public int? RankOfSelect { get; set; }
         public string? Remark { get; set; }

@@ -22,7 +22,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Database connection failed: {ex.Message}");
+                // return StatusCode(500, $"Database connection failed: {ex.Message}");
+                return StatusCode(500,  new { message = "Internal Server error" });
             }
         }
     }

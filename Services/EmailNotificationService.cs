@@ -26,19 +26,26 @@ namespace JobOnlineAPI.Services
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly ILogger<EmailNotificationService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int role, string? department = null)
+        private async Task<IEnumerable<string>> GetEmailRecipientsAsync(int? role = null, int? jobId = null)
         {
             using var connection = _context.CreateConnection();
             var parameters = new DynamicParameters();
-            parameters.Add("@Role", role);
-            parameters.Add("@Department", department);
-            //sp_GetDateSendEmail 
+
+            if (role.HasValue)
+                parameters.Add("@Role", role.Value);
+
+            if (jobId.HasValue)
+                parameters.Add("@JobID", jobId.Value);
+
             var staffList = await connection.QueryAsync<StaffEmail>(
-                "EXEC sp_GetDataSendEmailRecipients  @Role, @Department",
-                parameters);
-            return staffList.Select(staff => staff.Email?.Trim() ?? string.Empty)
-                           .Where(email => !string.IsNullOrWhiteSpace(email));
+                "sp_GetDataSendEmailRecipients",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+            return staffList
+                .Select(staff => staff.Email?.Trim() ?? string.Empty)
+                .Where(email => !string.IsNullOrWhiteSpace(email));
         }
+
 
         public async Task<int> SendApplicationEmailsAsync(IDictionary<string, object?> req, (int ApplicantId, string ApplicantEmail, string HrManagerEmails, string JobManagerEmails, string JobTitle, string CompanyName, int OutJobID) dbResult, string applicationFormUri)
         {
@@ -129,7 +136,7 @@ namespace JobOnlineAPI.Services
                                 <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
                                 <p>โดยมีรายละเอียด ดังนี้</p>
                                 <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
-                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs27.oneeclick.co:7191/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
+                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ https://oneejobs.oneeclick.co/LoginAdmin <span style='color: red; font-weight: bold;'>*</span></p>
                                 <br>
                                 <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
                                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
@@ -200,7 +207,7 @@ namespace JobOnlineAPI.Services
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายสารรหาบุคคลากร<br>
+                    เรียน ฝ่ายสรรหาบุคคลากร<br>
                     ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
                     มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
                 </p>
@@ -209,7 +216,7 @@ namespace JobOnlineAPI.Services
                 </p>
                 <br>
                 <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> โดยให้ทำการติดต่อ ผู้มัครลำดับที่ 1 ก่อน หากเจรจาไม่สำเร็จ ให้ทำการติดต่อกับผู้มัครลำดับต่อไป <span style='color: red; font-weight: bold;'>*</span></p>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs27.oneeclick.co:7191/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
+                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ https://oneejobs.oneeclick.co/LoginAdmin และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
                 <br>
                 <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
             </div>";
@@ -222,7 +229,7 @@ namespace JobOnlineAPI.Services
         {
             var candidateNames = requestData.Candidates?
                 .Where(candidate =>
-                    candidate.Status is "Success" or "Unsuccess" or "Cancel")
+                    candidate.Status is "Success" or "Unsuccess" or "Cancel" or "Waiting to confirm" or "Reject")
                 .Select((candidate, index) =>
                 {
                     string statusText = candidate.Status switch
@@ -230,6 +237,8 @@ namespace JobOnlineAPI.Services
                         "Success" => "สำเร็จ",
                         "Unsuccess" => "ต่อรองไม่สำเร็จ",
                         "Cancel" => "ยกเลิก",
+                        "Waiting to confirm" => "กำลังดำเนินการ",
+                        "Reject" => "ยกเลิก",
                         _ => ""
                     };
 
@@ -257,7 +266,10 @@ namespace JobOnlineAPI.Services
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
 
-            var recipients = await GetEmailRecipientsAsync(3, requestData.Department);
+            // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
+            var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
             return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
         }
 
@@ -359,7 +371,15 @@ namespace JobOnlineAPI.Services
                     <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
                 </div>";
 
-                return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
+                // return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
+                var result = await SendEmailsAsync(candidateEmails, 
+                    "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", 
+                    reqBody, 
+                    jobIds.FirstOrDefault()
+                );
+
+                await InsertEmailSendQueueAsync( connection, requestData!, reqBody, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน" );
+                return result;
             }
             catch (Exception ex)
             {
@@ -367,6 +387,40 @@ namespace JobOnlineAPI.Services
                 throw;
             }
         }
+
+       private async Task InsertEmailSendQueueAsync( IDbConnection connection, ApplicantRequestData requestData, string emailBody, string emailSubject)
+        {
+            if (requestData?.Candidates == null || !requestData.Candidates.Any())
+                return;
+
+            foreach (var c in requestData.Candidates)
+            {
+                try
+                {
+                    var p = new DynamicParameters();
+                    p.Add("@ApplicationID", c.ApplicationID);
+                    p.Add("@ApplicantID", c.ApplicantID);
+                    p.Add("@JobID", c.JobID);
+                    p.Add("@EmailBody", emailBody);
+                    p.Add("@EmailSubject", emailSubject);
+                    p.Add("@RecipientEmail", c.Email);
+
+                    await connection.ExecuteAsync(
+                        "sp_InsertEmailSendQueue",
+                        p,
+                        commandType: CommandType.StoredProcedure
+                    );
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, 
+                        "Error inserting EmailSendQueue for ApplicationID {ApplicationID}, ApplicantID {ApplicantID}, JobID {JobID}. Error: {Message}",
+                        c.ApplicationID, c.ApplicantID, c.JobID, ex.Message);
+                }
+            }
+        }
+
+
 
         private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body, int? jobIds)
         {
@@ -500,7 +554,7 @@ namespace JobOnlineAPI.Services
                 <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                 <br>
-                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs27.oneeclick.co:7191/Careers เข้าดูประกาศของท่าน **</p>
+                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs.oneeclick.co/Careers เข้าดูประกาศของท่าน **</p>
                 <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
             SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
@@ -546,7 +600,7 @@ namespace JobOnlineAPI.Services
                     <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
                     <br>           
                     <p>
-                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs27.oneeclick.co:7191/LoginAdmin
+                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> https://oneejobs.oneeclick.co/LoginAdmin
                     </p>
                     <p style='color: red; font-weight: bold;'>
                         **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**

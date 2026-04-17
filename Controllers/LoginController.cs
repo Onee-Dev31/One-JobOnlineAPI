@@ -91,12 +91,14 @@ namespace JobOnlineAPI.Controllers
                 }
                 else
                 {
-                    return StatusCode(500, new { message });
+                    // return StatusCode(500, new { message });
+                    return StatusCode(500, "Internal Server error");
                 }
             }
             catch (Exception)
             {
-                return StatusCode(500, "An unexpected error occurred. Please try again later.");
+                // return StatusCode(500, "An unexpected error occurred. Please try again later.");
+                return StatusCode(500, "Internal Server error");
             }
         }
     }

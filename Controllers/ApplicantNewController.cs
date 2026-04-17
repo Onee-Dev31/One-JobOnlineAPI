@@ -102,7 +102,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing application: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "Server error", ex.Message });
+                // return StatusCode(500, new { Error = "Server error", ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -160,7 +161,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing application: {Message}", ex.Message);
-                return StatusCode(500, new { Error = "Server error", ex.Message });
+                // return StatusCode(500, new { Error = "Server error", ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -267,7 +269,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicants: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -291,7 +294,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicants: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
 
@@ -315,7 +319,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant by ID {ApplicantId}: {Message}", applicantId, ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -351,7 +356,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to insert applicant: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -368,9 +374,9 @@ namespace JobOnlineAPI.Controllers
                 parameters.Add("@Department", department);
                 parameters.Add("@JobID", jobId);
                 
-                //sp_GetCandidateAllV2
+                // sp_GetCandidateAllForJobs
                 var result = await connection.QueryAsync(
-                    "sp_GetCandidateAllForJobs",
+                    "sp_GetCandidateAllForJobsV2",
                     parameters,
                     commandType: CommandType.StoredProcedure
                 );
@@ -380,11 +386,13 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve candidates for department {Department} and job ID {JobId}: {Message}", department, jobId, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
         [HttpGet("GetApplicantDataForForm")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetApplicantData([FromQuery] int? id, int? JobId)
         {
@@ -410,7 +418,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant data for ID {ApplicantId}: {Message}", id, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -435,12 +444,13 @@ namespace JobOnlineAPI.Controllers
                     return BadRequest("Invalid ApplicantID or Status format.");
 
                 var typeMail = requestData.TypeMail;
+                bool isBatch = data.ContainsKey("IsBatch") && data["IsBatch"]?.ToString()?.Trim().ToLower() == "true";
 
                 if (typeMail == "Hire")
                 {
                     await _emailNotificationService.SendHireToHrEmailsAsync(requestData);
                 }
-                else if (typeMail == "Selected")
+                else if (typeMail == "Selected" && isBatch)
                 {
                     await _emailNotificationService.SendHrEmailsAsync(requestData);
                 }
@@ -462,16 +472,47 @@ namespace JobOnlineAPI.Controllers
                 {
                     var hasRank = requestData.Candidates?.Any(c => c.RankOfSelect.HasValue) == true;
 
-                    var updates = hasRank
-                        ? requestData.Candidates!.Select(c => new ApplicantRequestData
+                    // var updates = hasRank
+                    //     ? requestData.Candidates!.Select(c => new ApplicantRequestData
+                    //     {
+                    //         ApplicantID = c.ApplicantID,
+                    //         Status = typeMail == "Hire" ? requestData.Status : c.Status,
+                    //         Remark = c.Remark,
+                    //         RankOfSelect = c.RankOfSelect,
+                    //         JobID = c.JobID
+                    //     })
+                    //     : [requestData];
+
+                    // foreach (var update in updates)
+                    // {
+                    //     await UpdateStatusInDatabaseV2(update);
+                    // }
+                    IEnumerable<ApplicantRequestData> updates;
+
+                    if (isBatch)
+                    {
+                        updates = requestData.Candidates!.Select(c => new ApplicantRequestData
+                        {
+                            ApplicantID = c.ApplicantID,
+                            Status = requestData.Status,
+                            JobID = requestData.JobID
+                        });
+                    }
+                    else if (hasRank)
+                    {
+                        updates = requestData.Candidates!.Select(c => new ApplicantRequestData
                         {
                             ApplicantID = c.ApplicantID,
                             Status = typeMail == "Hire" ? requestData.Status : c.Status,
                             Remark = c.Remark,
                             RankOfSelect = c.RankOfSelect,
                             JobID = c.JobID
-                        })
-                        : [requestData];
+                        });
+                    }
+                    else
+                    {
+                        updates = new[] { requestData };
+                    }
 
                     foreach (var update in updates)
                     {
@@ -484,7 +525,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating applicant status: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -731,7 +773,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating job approval status: {Message}", ex.Message);
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -875,7 +918,7 @@ namespace JobOnlineAPI.Controllers
                 <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
                 <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
                 <br>
-                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs27.oneeclick.co:7191/Careers เข้าดูประกาศของท่าน **</p>
+                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs.oneeclick.co/Careers เข้าดูประกาศของท่าน **</p>
                 <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
             SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
@@ -901,7 +944,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving PDPA content: {Message}", ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -943,7 +987,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal server error: {ex.Message}");
+                // return StatusCode(500, $"Internal server error: {ex.Message}");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -971,7 +1016,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to retrieve applicant data for ID {ApplicantId}: {Message}", JobID, ex.Message);
-                return StatusCode(500, new { Error = ex.Message });
+                // return StatusCode(500, new { Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
@@ -1016,10 +1062,74 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "ลบไฟล์ไม่สำเร็จ");
-                return StatusCode(500, "เกิดข้อผิดพลาดในการลบไฟล์");
+                // return StatusCode(500, "เกิดข้อผิดพลาดในการลบไฟล์");
+                return StatusCode(500, "Internal Server error");
             }
         }
 
+
+        // [HttpPost("insertApplicant")]
+        // [Consumes("multipart/form-data")]
+        // public async Task<IActionResult> InsertApplicant([FromForm] IFormCollection formData)
+        // {
+        //     try
+        //     {
+        //         IDictionary<string, object?> req = new ExpandoObject();
+        //         foreach (var key in formData.Keys)
+        //             req[key] = formData[key].ToString();
+
+        //         string jsonInput = JsonSerializer.Serialize(req);
+        //         string educationList = req.TryGetValue("EducationList", out var ed) ? ed?.ToString() ?? "[]" : "[]";
+        //         string workList = req.TryGetValue("WorkExperienceList", out var wk) ? wk?.ToString() ?? "[]" : "[]";
+        //         string skillsList = req.TryGetValue("SkillsList", out var sk) ? sk?.ToString() ?? "[]" : "[]";
+
+        //         using var conn = _context.CreateConnection();
+        //         var param = new DynamicParameters();
+        //         param.Add("@JsonInput", jsonInput);
+        //         param.Add("@EducationList", educationList);
+        //         param.Add("@WorkExperienceList", workList);
+        //         param.Add("@SkillsList", skillsList);
+        //         param.Add("@FilesList", "[]");  // ยังไม่ต้องส่งจริง
+        //         param.Add("@ApplicantID", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+        //         await conn.ExecuteAsync("InsertApplicantDataRegister", param, commandType: CommandType.StoredProcedure);
+
+        //         int applicantId = param.Get<int>("@ApplicantID");
+
+        //         // --------------------- STEP 3 : Process Files (now applicantId exists!) ---------------------
+        //         var files = formData.Files;
+        //         var fileMetadatas = await _fileProcessingService.ProcessFilesForApplicantAsync(files, applicantId); 
+        //         // ↑ ต้องแก้ signature ให้รับ applicantId ด้วย
+
+        //         // --------------------- STEP 4 : Move files into applicant folder ---------------------
+        //         _fileProcessingService.MoveFilesToApplicantDirectory(applicantId, fileMetadatas);
+
+        //         // --------------------- STEP 5 : Update database with real filesList ---------------------
+        //         var fileParam = new DynamicParameters();
+        //         fileParam.Add("@ApplicantID", applicantId);
+        //         fileParam.Add("@FilesList", JsonSerializer.Serialize(fileMetadatas));
+
+        //         await conn.ExecuteAsync("UpdateApplicantFilesList", fileParam, commandType: CommandType.StoredProcedure);
+
+        //         // --------------------- STEP 6 : email ---------------------
+        //         await _emailNotificationService.SendApplicationEmailsAsync(
+        //             req,
+        //             (applicantId, req["Email"]?.ToString() ?? "", "", "", 
+        //                 req["JobTitle"]?.ToString() ?? "",
+        //                 req["CompanyName"]?.ToString() ?? "",
+        //                 req.TryGetValue("JobID", out object? value) ? Convert.ToInt32(value) : 0
+        //             ),
+        //             _applicationFormUri
+        //         );
+
+        //         return Ok(new { Success = true, ApplicantID = applicantId, Message = "สมัครงานสำเร็จ" });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         _logger.LogError(ex, "❌ Error inserting applicant");
+        //         return StatusCode(500, new { Success = false, Error = ex.Message });
+        //     }
+        // }
 
         [HttpPost("insertApplicant")]
         [Consumes("multipart/form-data")]
@@ -1080,7 +1190,8 @@ namespace JobOnlineAPI.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error inserting applicant");
-                return StatusCode(500, new { Success = false, Error = ex.Message });
+                // return StatusCode(500, new { Success = false, Error = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
