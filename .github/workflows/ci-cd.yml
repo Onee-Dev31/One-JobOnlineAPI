@@ -194,14 +194,25 @@ jobs:
           $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
 
+          # Start W3SVC ก่อนถ้ายังไม่รัน (appcmd ต้องการ W3SVC)
+          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
+          if ($w3svc.Status -ne "Running") {
+            Start-Service W3SVC
+            Start-Sleep -Seconds 3
+            Write-Host "Started W3SVC"
+          }
+
+          # ดึงชื่อ App Pool จาก site
+          $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
+          Write-Host "App Pool: $appPool"
+
           # Stop site
-          & $appcmd stop site /site.name:"$siteName"
+          & $appcmd stop site /site.name:"$siteName" 2>&1 | Write-Host
           Write-Host "Stopped IIS site: $siteName"
 
           # Stop app pool
-          $appPool = (& $appcmd list site /site.name:"$siteName" /text:applicationPool)
           if ($appPool) {
-            & $appcmd stop apppool /apppool.name:"$appPool"
+            & $appcmd stop apppool /apppool.name:"$appPool" 2>&1 | Write-Host
             Start-Sleep -Seconds 3
             Write-Host "Stopped App Pool: $appPool"
           }
@@ -233,16 +244,18 @@ jobs:
           $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
           $siteName = "OneeJob-Backend"
 
+          # ดึงชื่อ App Pool
+          $appPool = (& $appcmd list app "$siteName/" /text:applicationPool)
+
           # Start app pool ก่อน
-          $appPool = (& $appcmd list site /site.name:"$siteName" /text:applicationPool)
           if ($appPool) {
-            & $appcmd start apppool /apppool.name:"$appPool"
+            & $appcmd start apppool /apppool.name:"$appPool" 2>&1 | Write-Host
             Start-Sleep -Seconds 2
             Write-Host "Started App Pool: $appPool"
           }
 
           # Start site
-          & $appcmd start site /site.name:"$siteName"
+          & $appcmd start site /site.name:"$siteName" 2>&1 | Write-Host
           Write-Host "Started IIS site: $siteName"
 
           # ลบ app_offline.htm
