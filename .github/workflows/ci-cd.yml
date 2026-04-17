@@ -185,6 +185,21 @@ jobs:
       - name: Start App Pool
         shell: powershell
         run: |
+          # Start WAS และ W3SVC ก่อน (IIS dependencies)
+          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
+          if ($was -and $was.Status -ne "Running") {
+            Start-Service WAS
+            Start-Sleep -Seconds 2
+            Write-Host "Started WAS"
+          }
+          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
+          if ($w3svc -and $w3svc.Status -ne "Running") {
+            Start-Service W3SVC
+            Start-Sleep -Seconds 3
+            Write-Host "Started W3SVC"
+          }
+
           $result = & "C:\Windows\System32\inetsrv\appcmd.exe" start apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
           Write-Host $result
           Write-Host "Deploy success"
+          exit 0
