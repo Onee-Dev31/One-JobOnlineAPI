@@ -1171,11 +1171,18 @@ namespace JobOnlineAPI.Controllers
                         return BadRequest("ไฟล์ต้องมีขนาดไม่เกิน 50MB ต่อไฟล์");
                 }
 
-                List<Dictionary<string, object>> fileMetadatas =
-                    files.Count > 0
+                List<Dictionary<string, object>> fileMetadatas;
+                try
+                {
+                    fileMetadatas = files.Count > 0
                         ? await _fileProcessingService.ProcessFilesAsync(files, "Section1")
                         : new List<Dictionary<string, object>>();
-
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "ProcessFilesAsync failed");
+                    return StatusCode(500, $"ProcessFilesAsync failed: {ex.Message}");
+                }
                 string filesList = JsonSerializer.Serialize(fileMetadatas);
 
                 using var conn = _context.CreateConnection();
