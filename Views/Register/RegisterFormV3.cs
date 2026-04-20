@@ -1042,12 +1042,12 @@ namespace JobOnlineAPI.Views.Register
                     page.Footer().PaddingTop(4).Row(row =>
                     {
                         row.RelativeItem();
-                        row.ConstantItem(220).Column(col =>
+                        row.ConstantItem(240).Column(col =>
                         {
                             var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
-                            col.Item().AlignCenter().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                            col.Item().AlignCenter().PaddingTop(2).Text("(..........................................)").FontSize(12);
-                            col.Item().AlignCenter().PaddingTop(2).Text($"วันที่ / Date: {DateNow}").FontSize(12);
+                            col.Item().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(45).Text("(..........................................)").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(45).Text($"วันที่ / Date: {DateNow}").FontSize(12);
                         });
                     });
                 }); // Close container Page 2
