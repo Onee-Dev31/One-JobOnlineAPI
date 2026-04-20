@@ -165,7 +165,20 @@ jobs:
         run: |
           $result = & "C:\Windows\System32\inetsrv\appcmd.exe" stop apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
           Write-Host $result
-          Start-Sleep -Seconds 3
+          $timeout = 30
+          $elapsed = 0
+          do {
+            Start-Sleep -Seconds 1
+            $elapsed++
+            $state = (& "C:\Windows\System32\inetsrv\appcmd.exe" list apppool "${{ env.APP_POOL_NAME }}" /processModel.userName 2>&1)
+            $running = Get-Process -Name "w3wp" -ErrorAction SilentlyContinue
+          } while ($running -and $elapsed -lt $timeout)
+          if ($elapsed -ge $timeout) {
+            Write-Host "Timeout waiting for app pool to stop, force killing w3wp..."
+            Get-Process -Name "w3wp" -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Seconds 2
+          }
+          Write-Host "App pool stopped after $elapsed seconds"
           exit 0
 
       - name: Deploy new files
