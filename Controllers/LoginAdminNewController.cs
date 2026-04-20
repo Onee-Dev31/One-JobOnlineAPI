@@ -1,6 +1,7 @@
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using JobOnlineAPI.DAL;
+using JobOnlineAPI.Services;
 using System.Text.Json;
 using System.Text;
 using System.Net.Http;
@@ -9,10 +10,11 @@ namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class LoginAdminNewController(DapperContext context, IConfiguration configuration) : ControllerBase
+    public class LoginAdminNewController(DapperContext context, IConfiguration configuration, IJwtTokenService jwtTokenService) : ControllerBase
     {
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
 
         public class LoginRequestAdmin
         {
@@ -45,17 +47,24 @@ namespace JobOnlineAPI.Controllers
 
                 var userDict = (IDictionary<string, object>)user;
 
-                userDict["accessToken"] = accessToken;
+                var roleName = userDict.TryGetValue("ROLE_NAME", out var roleObj) ? roleObj?.ToString() ?? "" : "";
+                var localToken = _jwtTokenService.GenerateJwtToken(new UserModel
+                {
+                    Username = request.Username,
+                    Role = roleName,
+                    UserId = 0
+                });
+
+                userDict["accessToken"] = localToken;
                 userDict["refreshToken"] = refreshToken;
-                var roleName = userDict.TryGetValue("ROLE_NAME", out var roleObj) ? roleObj?.ToString() : "";
-                Response.Cookies.Append("token", accessToken, new CookieOptions
+                Response.Cookies.Append("token", localToken, new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = false,
                     SameSite = SameSiteMode.Lax,
                     Expires = DateTime.UtcNow.AddHours(2)
                 });
-                Response.Cookies.Append("admin_token", accessToken, new CookieOptions
+                Response.Cookies.Append("admin_token", localToken, new CookieOptions
                 {
                     HttpOnly = true,
                     Secure = false,
