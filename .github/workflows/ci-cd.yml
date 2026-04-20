@@ -163,22 +163,15 @@ jobs:
       - name: Stop App Pool
         shell: powershell
         run: |
-          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
-          if (-not $was -or $was.Status -ne "Running") {
-            Write-Host "WAS is not running - IIS already stopped, skipping app pool stop"
-            exit 0
+          Write-Host "Stopping IIS..."
+          & iisreset /stop /noforce 2>&1 | Write-Host
+          Start-Sleep -Seconds 5
+          $remaining = Get-Process -Name "w3wp" -ErrorAction SilentlyContinue
+          if ($remaining) {
+            Write-Host "w3wp still running after iisreset, waiting 10 more seconds..."
+            Start-Sleep -Seconds 10
           }
-          $result = & "C:\Windows\System32\inetsrv\appcmd.exe" stop apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
-          Write-Host $result
-          $timeout = 30
-          $elapsed = 0
-          do {
-            Start-Sleep -Seconds 1
-            $elapsed++
-            $status = & "C:\Windows\System32\inetsrv\appcmd.exe" list apppool "${{ env.APP_POOL_NAME }}" 2>&1
-            if ($status -match "Stopped") { break }
-          } while ($elapsed -lt $timeout)
-          Write-Host "App pool stopped after $elapsed seconds"
+          Write-Host "IIS stopped"
           exit 0
 
       - name: Deploy new files
@@ -198,21 +191,8 @@ jobs:
       - name: Start App Pool
         shell: powershell
         run: |
-          # Start WAS และ W3SVC ก่อน (IIS dependencies)
-          $was = Get-Service -Name WAS -ErrorAction SilentlyContinue
-          if ($was -and $was.Status -ne "Running") {
-            Start-Service WAS
-            Start-Sleep -Seconds 2
-            Write-Host "Started WAS"
-          }
-          $w3svc = Get-Service -Name W3SVC -ErrorAction SilentlyContinue
-          if ($w3svc -and $w3svc.Status -ne "Running") {
-            Start-Service W3SVC
-            Start-Sleep -Seconds 3
-            Write-Host "Started W3SVC"
-          }
-
-          $result = & "C:\Windows\System32\inetsrv\appcmd.exe" start apppool /apppool.name:"${{ env.APP_POOL_NAME }}" 2>&1
-          Write-Host $result
+          Write-Host "Starting IIS..."
+          & iisreset /start 2>&1 | Write-Host
+          Start-Sleep -Seconds 3
           Write-Host "Deploy success"
           exit 0
