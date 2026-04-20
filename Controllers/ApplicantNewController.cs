@@ -296,7 +296,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("GetDataOpenFor")]
-        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetDataOpenFor([FromQuery] string? Department = null)
         {
