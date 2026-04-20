@@ -163,15 +163,24 @@ jobs:
       - name: Stop App Pool
         shell: powershell
         run: |
-          Write-Host "Stopping IIS..."
-          & iisreset /stop /noforce 2>&1 | Write-Host
-          Start-Sleep -Seconds 5
-          $remaining = Get-Process -Name "w3wp" -ErrorAction SilentlyContinue
-          if ($remaining) {
-            Write-Host "w3wp still running after iisreset, waiting 10 more seconds..."
-            Start-Sleep -Seconds 10
-          }
-          Write-Host "IIS stopped"
+          $deployPath = "${{ env.DEPLOY_PATH }}"
+          $offlineFile = "$deployPath\app_offline.htm"
+          Write-Host "Placing app_offline.htm to gracefully shut down ASP.NET app..."
+          Set-Content -Path $offlineFile -Value "<html><body>Deploying... please wait.</body></html>" -Force
+          $timeout = 30
+          $elapsed = 0
+          do {
+            Start-Sleep -Seconds 2
+            $elapsed += 2
+            $locked = $false
+            try {
+              $stream = [System.IO.File]::Open("$deployPath\JobOnlineAPI.dll", 'Open', 'Read', 'None')
+              $stream.Close()
+            } catch {
+              $locked = $true
+            }
+          } while ($locked -and $elapsed -lt $timeout)
+          Write-Host "App offline after $elapsed seconds"
           exit 0
 
       - name: Deploy new files
@@ -191,8 +200,10 @@ jobs:
       - name: Start App Pool
         shell: powershell
         run: |
-          Write-Host "Starting IIS..."
-          & iisreset /start 2>&1 | Write-Host
-          Start-Sleep -Seconds 3
+          $offlineFile = "${{ env.DEPLOY_PATH }}\app_offline.htm"
+          if (Test-Path $offlineFile) {
+            Remove-Item $offlineFile -Force
+            Write-Host "Removed app_offline.htm - app is back online"
+          }
           Write-Host "Deploy success"
           exit 0
