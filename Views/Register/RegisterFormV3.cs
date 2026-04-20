@@ -1039,12 +1039,16 @@ namespace JobOnlineAPI.Views.Register
                             });
                         });
                     });
-                    page.Footer().AlignCenter().PaddingTop(4).Column(col =>
+                    page.Footer().PaddingTop(4).Row(row =>
                     {
-                        var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
-                        col.Item().AlignCenter().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                        col.Item().AlignCenter().PaddingTop(2).Text("(..........................................)").FontSize(12);
-                        col.Item().AlignCenter().PaddingTop(2).Text($"วันที่ / Date: {DateNow}").FontSize(12);
+                        row.RelativeItem();
+                        row.ConstantItem(220).Column(col =>
+                        {
+                            var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
+                            col.Item().AlignCenter().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
+                            col.Item().AlignCenter().PaddingTop(2).Text("(..........................................)").FontSize(12);
+                            col.Item().AlignCenter().PaddingTop(2).Text($"วันที่ / Date: {DateNow}").FontSize(12);
+                        });
                     });
                 }); // Close container Page 2
             });
