@@ -300,11 +300,6 @@ namespace JobOnlineAPI.Views.Register
                                     text.Span($"{_form["SpouseFullName"] ?? ""}").FontSize(12);
                                 }
                             );
-                            col.RelativeItem(3).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["SpouseAliveStatus"]?.ToString() ?? "", "alive", "มีชีวิต", "");
-                                RenderCheckBox(row, _form["SpouseAliveStatus"]?.ToString() ?? "", "deceased", "ถึงแก่กรรม", "");
-                            });
                             col.RelativeItem(5).Padding(4).Text(
                                 text =>
                                 {
@@ -897,38 +892,6 @@ namespace JobOnlineAPI.Views.Register
                         {
                             col.RelativeItem(6).Padding(3).Column(col =>
                             {
-                                col.Item().Text("ท่านเคยถูกจับหรือเคยต้องคดีอาญาหรือไม่").FontSize(12).Bold();
-                                col.Item().Text("Have you ever been arrested or convicted of a criminal case ?").FontSize(12).Bold();
-                            });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireConvicted"]?.ToString() ?? "", "no", "ไม่เคย[No]", "");
-                            });
-                            col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireConvicted"]?.ToString() ?? "", "yes", "เคย[Yes]", "");
-                            });
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem(6).Padding(3).Column(col =>
-                            {
-                                col.Item().Text("ท่านเคยถูกไล่ออกจากงาน เนื่องจากความประพฤติ หรืองานไม่ดีพอ หรือไม่").FontSize(12).Bold();
-                                col.Item().Text("Have you ever been discharged from employment because of your conduct or unperformed ?").FontSize(12).Bold();
-                            });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireFiredjob"]?.ToString() ?? "", "no", "ไม่เคย[No]", "");
-                            });
-                            col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireFiredjob"]?.ToString() ?? "", "yes", "เคย[Yes]", "");
-                            });
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem(6).Padding(3).Column(col =>
-                            {
                                 col.Item().Text("ท่านสามารถจัดหาผู้ค้ำประกันการเข้าทำงานของท่านได้หรือไม่").FontSize(12).Bold();
                                 col.Item().Text("Do you mind to provide guarantor for applying this job ?").FontSize(12).Bold();
                             });
@@ -1003,7 +966,6 @@ namespace JobOnlineAPI.Views.Register
                         });
                     });
                     var ReferenceList = new List<RelationshipDto>();
-                    RelationshipDto? Reference = null;
                     if (_form["RelationshipList"] != null && _form["RelationshipList"] != DBNull.Value)
                     {
                         var options = new JsonSerializerOptions
@@ -1013,10 +975,9 @@ namespace JobOnlineAPI.Views.Register
                         var relationships = JsonSerializer.Deserialize<List<RelationshipDto>>(
                             _form["RelationshipList"]?.ToString() ?? "[]", options
                         ) ?? new List<RelationshipDto>();
-                        Reference = relationships.FirstOrDefault(r => r.RELATION_TYPE == "Reference");
+                        ReferenceList = relationships.Where(r => r.RELATION_TYPE == "Refer").ToList();
                     }
-                    // ถ้า Reference เป็น null → สร้าง object เปล่าให้ 1 ตัว
-                    if (Reference == null)
+                    if (ReferenceList.Count == 0)
                     {
                         ReferenceList.Add(new RelationshipDto());
                     }
@@ -1049,19 +1010,22 @@ namespace JobOnlineAPI.Views.Register
                             table.Cell().Border(1).BorderColor(Colors.Black)
                                 .Background(Colors.Grey.Lighten2).AlignCenter().AlignMiddle()
                                 .Text("เบอร์โทรศัพท์").FontSize(12).Bold();
-                            // Data Row
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.NAMESURNAME ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.RELATION_DESCRIPTION ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.CAREER ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.COMPANY ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.MOBILE ?? "")
-                                .FontSize(12)
-                                .WrapAnywhere();
+                            // Data Rows
+                            foreach (var refer in ReferenceList)
+                            {
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.NAMESURNAME ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.RELATION_DESCRIPTION ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.CAREER ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.COMPANY ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.MOBILE ?? "")
+                                    .FontSize(12)
+                                    .WrapAnywhere();
+                            }
                         });
                         innerRow.Item().PaddingLeft(5).PaddingTop(5).Row(col =>
                         {
@@ -1075,13 +1039,12 @@ namespace JobOnlineAPI.Views.Register
                             });
                         });
                     });
-                    page.Footer().AlignRight().Column(col =>
+                    page.Footer().AlignCenter().PaddingTop(4).Column(col =>
                     {
                         var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
-                        col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                        col.Item().Padding(5).Text("(..........................................)").FontSize(12);
-                        // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(12);
-                        col.Item().AlignCenter().Padding(5).Text($"Date: {DateNow}").FontSize(12);
+                        col.Item().AlignCenter().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
+                        col.Item().AlignCenter().PaddingTop(2).Text("(..........................................)").FontSize(12);
+                        col.Item().AlignCenter().PaddingTop(2).Text($"วันที่ / Date: {DateNow}").FontSize(12);
                     });
                 }); // Close container Page 2
             });
