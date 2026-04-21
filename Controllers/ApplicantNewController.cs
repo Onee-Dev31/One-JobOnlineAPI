@@ -424,7 +424,7 @@ namespace JobOnlineAPI.Controllers
         [HttpGet("GetApplicantDataForForm")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> GetApplicantData([FromQuery] int? id, int? JobId)
+        public async Task<IActionResult> GetApplicantData([FromQuery] int? id, int? JobId, string? source)
         {
             var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value;
             if (role == "User")
@@ -452,7 +452,7 @@ namespace JobOnlineAPI.Controllers
                         commandType: CommandType.StoredProcedure
                     );
 
-                    if (applicant != null && !string.IsNullOrEmpty(applicant!.CodeMPID?.ToString()))
+                    if (applicant != null && !string.IsNullOrEmpty(applicant!.CodeMPID?.ToString()) && string.IsNullOrEmpty(source))
                     {
                         return StatusCode(StatusCodes.Status403Forbidden, new { message = "Application already submitted" });
                     }
