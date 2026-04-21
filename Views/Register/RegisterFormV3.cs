@@ -623,7 +623,7 @@ namespace JobOnlineAPI.Views.Register
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.EducationLevel ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.Major ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.InstitutionName ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.Province ?? "").FontSize(12);
+                            table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.ProvinceEducation ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.StartYear?.ToString() ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.EndYear?.ToString() ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.GPA == null || edu.GPA == 0 ? "" : edu.GPA.ToString()).FontSize(12);
@@ -1039,15 +1039,15 @@ namespace JobOnlineAPI.Views.Register
                             });
                         });
                     });
-                    page.Footer().PaddingTop(4).Row(row =>
+                    page.Footer().PaddingBottom(10).PaddingTop(1).Row(row =>
                     {
                         row.RelativeItem();
                         row.ConstantItem(240).Column(col =>
                         {
                             var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
-                            col.Item().Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                            col.Item().PaddingTop(2).PaddingLeft(45).Text("(..........................................)").FontSize(12);
-                            col.Item().PaddingTop(2).PaddingLeft(45).Text($"วันที่ / Date: {DateNow}").FontSize(12);
+                            col.Item().PaddingLeft(60).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(90).Text("(..........................................)").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(95).Text($"วันที่ / Date: {DateNow}").FontSize(12);
                         });
                     });
                 }); // Close container Page 2
@@ -1177,6 +1177,7 @@ namespace JobOnlineAPI.Views.Register
         public int? EndYear { get; set; }
         public string? Major { get; set; }
         public string? Faculty { get; set; }
+        public string? ProvinceEducation { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesV3Dto
