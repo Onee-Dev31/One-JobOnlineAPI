@@ -274,10 +274,6 @@ namespace JobOnlineAPI.Views.Register
                             {
                                 RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "divorced", "หย่า", "Divorced");
                             });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "widowed", "หม้าย", "Widowed");
-                            });
                             col.RelativeItem(4).PaddingLeft(10).PaddingTop(4).Row(row =>
                             {
                                 row.RelativeItem().PaddingLeft(5)
