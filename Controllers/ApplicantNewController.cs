@@ -330,7 +330,7 @@ namespace JobOnlineAPI.Controllers
             {
                 var applicantIdClaim = HttpContext.User.FindFirst("applicant_id")?.Value;
                 int.TryParse(applicantIdClaim, out int tokenApplicantId);
-                if (applicantId.HasValue && applicantId.Value != tokenApplicantId)
+                if (tokenApplicantId > 0 && applicantId.HasValue && applicantId.Value != tokenApplicantId)
                     return StatusCode(StatusCodes.Status403Forbidden, new { message = "Access denied" });
                 if (!applicantId.HasValue || applicantId.Value == 0)
                     applicantId = tokenApplicantId;
