@@ -57,6 +57,10 @@ namespace JobOnlineAPI.Controllers
 
             try
             {
+                var existing = await _adminRepository.GetAdminUserByUsernameAsync(request.Username);
+                if (existing != null)
+                    return Conflict($"Username '{request.Username}' already exists.");
+
                 var newId = await _adminRepository.CreateAdminUserAsync(request);
                 return CreatedAtAction(nameof(GetAdminUserById), new { id = newId }, new { AdminID = newId });
             }
