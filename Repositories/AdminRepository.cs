@@ -132,14 +132,14 @@ namespace JobOnlineAPI.Repositories
             using IDbConnection db = new SqlConnection(_connectionString);
             var parameters = new DynamicParameters();
             parameters.Add("@Username", request.Username);
-            parameters.Add("@HRID", request.HRID);
-            parameters.Add("@EMAIL", request.EMAIL);
-            parameters.Add("@Department", request.Department);
-            parameters.Add("@EmpNo", request.EmpNo);
-            parameters.Add("@NameThai", request.NameThai);
-            parameters.Add("@Mobile", request.Mobile);
-            parameters.Add("@Position", request.Position);
-            parameters.Add("@CompanyName", request.CompanyName);
+            parameters.Add("@HRID", request.HRID == 0 ? null : request.HRID);
+            parameters.Add("@EMAIL", string.IsNullOrEmpty(request.EMAIL) ? null : request.EMAIL);
+            parameters.Add("@Department", string.IsNullOrEmpty(request.Department) ? null : request.Department);
+            parameters.Add("@EmpNo", string.IsNullOrEmpty(request.EmpNo) ? null : request.EmpNo);
+            parameters.Add("@NameThai", string.IsNullOrEmpty(request.NameThai) ? null : request.NameThai);
+            parameters.Add("@Mobile", string.IsNullOrEmpty(request.Mobile) ? null : request.Mobile);
+            parameters.Add("@Position", string.IsNullOrEmpty(request.Position) ? null : request.Position);
+            parameters.Add("@CompanyName", string.IsNullOrEmpty(request.CompanyName) ? null : request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
             return await db.QuerySingleAsync<int>("sp_CreateAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
