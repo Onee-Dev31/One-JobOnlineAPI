@@ -13,6 +13,7 @@ namespace JobOnlineAPI.Repositories
         bool VerifySHA256Hash(string input, string storedHash);
 
         Task<IEnumerable<AdminUserDetail>> GetAllAdminUsersAsync();
+        Task<IEnumerable<AdminRole>> GetAllRolesAsync();
         Task<AdminUserDetail?> GetAdminUserByIdAsync(int id);
         Task<int> CreateAdminUserAsync(AdminUserCreateRequest request);
         Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request);

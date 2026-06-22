@@ -44,4 +44,10 @@ namespace JobOnlineAPI.Models
         public int? RoleID { get; set; }
         public bool? IsActive { get; set; }
     }
+
+    public class AdminRole
+    {
+        public int RoleID { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+    }
 }

@@ -113,6 +113,12 @@ namespace JobOnlineAPI.Repositories
             return await db.QueryAsync<AdminUserDetail>("sp_GetAllAdminUsers", commandType: CommandType.StoredProcedure);
         }
 
+        public async Task<IEnumerable<AdminRole>> GetAllRolesAsync()
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            return await db.QueryAsync<AdminRole>("sp_GetAllRoles", commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<AdminUserDetail?> GetAdminUserByIdAsync(int id)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
