@@ -11,5 +11,12 @@ namespace JobOnlineAPI.Repositories
         Task<string?> GetConfigValueAsync(string key);
         Task<string?> GetStyleValueAsync(string key);
         bool VerifySHA256Hash(string input, string storedHash);
+
+        Task<IEnumerable<AdminUserDetail>> GetAllAdminUsersAsync();
+        Task<AdminUserDetail?> GetAdminUserByIdAsync(int id);
+        Task<int> CreateAdminUserAsync(AdminUserCreateRequest request);
+        Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request);
+        Task<bool> DeleteAdminUserAsync(int id);
+        Task<bool> SetAdminUserActiveAsync(int id, bool isActive);
     }
 }

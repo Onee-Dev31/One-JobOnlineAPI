@@ -105,5 +105,72 @@ namespace JobOnlineAPI.Repositories
             string hash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
             return hash == storedHash;
         }
+
+        public async Task<IEnumerable<AdminUserDetail>> GetAllAdminUsersAsync()
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            return await db.QueryAsync<AdminUserDetail>("sp_GetAllAdminUsers", commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<AdminUserDetail?> GetAdminUserByIdAsync(int id)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@AdminID", id);
+            return await db.QuerySingleOrDefaultAsync<AdminUserDetail>("sp_GetAdminUserById", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<int> CreateAdminUserAsync(AdminUserCreateRequest request)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", request.Username);
+            parameters.Add("@HRID", request.HRID);
+            parameters.Add("@EMAIL", request.EMAIL);
+            parameters.Add("@Department", request.Department);
+            parameters.Add("@EmpNo", request.EmpNo);
+            parameters.Add("@NameThai", request.NameThai);
+            parameters.Add("@Mobile", request.Mobile);
+            parameters.Add("@Position", request.Position);
+            parameters.Add("@CompanyName", request.CompanyName);
+            parameters.Add("@RoleID", request.RoleID);
+            return await db.QuerySingleAsync<int>("sp_CreateAdminUser", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@AdminID", id);
+            parameters.Add("@EMAIL", request.EMAIL);
+            parameters.Add("@Department", request.Department);
+            parameters.Add("@NameThai", request.NameThai);
+            parameters.Add("@Mobile", request.Mobile);
+            parameters.Add("@Position", request.Position);
+            parameters.Add("@CompanyName", request.CompanyName);
+            parameters.Add("@RoleID", request.RoleID);
+            parameters.Add("@IsActive", request.IsActive);
+            var rows = await db.QuerySingleAsync<int>("sp_UpdateAdminUser", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
+
+        public async Task<bool> DeleteAdminUserAsync(int id)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@AdminID", id);
+            var rows = await db.QuerySingleAsync<int>("sp_DeleteAdminUser", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
+
+        public async Task<bool> SetAdminUserActiveAsync(int id, bool isActive)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@AdminID", id);
+            parameters.Add("@IsActive", isActive);
+            var rows = await db.QuerySingleAsync<int>("sp_SetAdminUserActive", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
     }
 }
