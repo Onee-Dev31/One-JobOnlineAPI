@@ -17,19 +17,19 @@ namespace JobOnlineAPI.Repositories
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(admin.Password);
             admin.Password = hashedPassword;
 
-            string sql = @"
-                    INSERT INTO AdminUsers (Username, Password, Role)
-                    VALUES (@Username, @Password, @Role);
-                    SELECT CAST(SCOPE_IDENTITY() as int)";
-            var id = await db.QuerySingleAsync<int>(sql, admin);
-            return id;
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", admin.Username);
+            parameters.Add("@Password", admin.Password);
+            parameters.Add("@Role", admin.Role);
+            return await db.QuerySingleAsync<int>("sp_AddAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
 
         public async Task<bool> VerifyPasswordAsync(string username, string password)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
-            string sql = "SELECT Password FROM AdminUsers WHERE Username = @Username";
-            var storedHashedPassword = await db.QueryFirstOrDefaultAsync<string>(sql, new { Username = username });
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", username);
+            var storedHashedPassword = await db.QueryFirstOrDefaultAsync<string>("sp_GetAdminPasswordByUsername", parameters, commandType: CommandType.StoredProcedure);
 
             if (storedHashedPassword == null)
                 return false;
@@ -40,11 +40,12 @@ namespace JobOnlineAPI.Repositories
         public async Task<AdminUser?> GetAdminUserByUsernameAsync(string username)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
-            var query = "SELECT * FROM AdminUsers WHERE Username = @Username";
+            var parameters = new DynamicParameters();
+            parameters.Add("@Username", username);
 
             try
             {
-                return await db.QuerySingleOrDefaultAsync<AdminUser>(query, new { Username = username });
+                return await db.QuerySingleOrDefaultAsync<AdminUser>("sp_GetAdminUserByUsername", parameters, commandType: CommandType.StoredProcedure);
             }
             catch (Exception ex)
             {
