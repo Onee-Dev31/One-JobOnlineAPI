@@ -93,6 +93,7 @@ namespace JobOnlineAPI.Repositories
                     ? (object)DBNull.Value
                     : job.OpenFor,
                 DbType.String);
+            emailParameters.Add("@CreatorUsername", job.CreatedByRole);
             var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             try
             {
