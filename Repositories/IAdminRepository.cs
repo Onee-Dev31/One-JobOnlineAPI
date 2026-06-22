@@ -14,6 +14,8 @@ namespace JobOnlineAPI.Repositories
 
         Task<IEnumerable<AdminUserDetail>> GetAllAdminUsersAsync();
         Task<IEnumerable<AdminRole>> GetAllRolesAsync();
+        Task<IEnumerable<RolePermissionFlat>> GetAllRolePermissionsAsync();
+        Task<IEnumerable<string>> GetRoutesByRoleNameAsync(string roleName);
         Task<AdminUserDetail?> GetAdminUserByIdAsync(int id);
         Task<int> CreateAdminUserAsync(AdminUserCreateRequest request);
         Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request);
