@@ -12,6 +12,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IAdminRepository _adminRepository = adminRepository ?? throw new ArgumentNullException(nameof(adminRepository));
 
         [HttpGet]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<ActionResult<IEnumerable<AdminUserDetail>>> GetAllAdminUsers()
         {
             try
@@ -29,6 +30,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<ActionResult<AdminUserDetail>> GetAdminUserById(int id)
         {
             if (id <= 0)
