@@ -40,7 +40,41 @@ WHERE p.RoutePath = '/admin/admin-users';
 GO
 
 -- ============================================================
--- 3. Alter sp_GetRoutesByRoleName to ORDER BY SortOrder
+-- 3. Add sp_GetRoutesByRoleNameWithDetail (returns ID + SortOrder)
+-- ============================================================
+CREATE OR ALTER PROCEDURE [dbo].[sp_GetRoutesByRoleNameWithDetail]
+    @RoleName NVARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT p.ID, p.RoutePath, p.SortOrder
+    FROM T_ROLE r
+    INNER JOIN T_ROLE_PERMISSION p ON r.ID = p.RoleID
+    WHERE r.ROLE_NAME = @RoleName
+    ORDER BY p.SortOrder;
+END
+GO
+
+-- ============================================================
+-- 4. Add sp_UpdateRoutesSortOrder (bulk update via JSON)
+-- ============================================================
+CREATE OR ALTER PROCEDURE [dbo].[sp_UpdateRoutesSortOrder]
+    @payload NVARCHAR(MAX)  -- JSON: [{"ID":10,"SortOrder":1}, ...]
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE p
+    SET p.SortOrder = j.SortOrder
+    FROM T_ROLE_PERMISSION p
+    JOIN OPENJSON(@payload)
+        WITH (ID INT, SortOrder INT) j ON p.ID = j.ID;
+END
+GO
+
+-- ============================================================
+-- 5. Alter sp_GetRoutesByRoleName to ORDER BY SortOrder
 -- ============================================================
 SET ANSI_NULLS ON
 GO

@@ -55,5 +55,38 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, "Internal Server error");
             }
         }
+
+        [HttpGet("by-role/{roleName}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> GetRoutesByRole(string roleName)
+        {
+            try
+            {
+                var routes = await _adminRepository.GetRoutesByRoleNameWithDetailAsync(roleName);
+                return Ok(routes);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPut("reorder")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> ReorderRoutes([FromBody] List<RoutesSortOrderItem> items)
+        {
+            if (items == null || items.Count == 0)
+                return BadRequest("Items are required.");
+
+            try
+            {
+                await _adminRepository.UpdateRoutesSortOrderAsync(items);
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
     }
 }
