@@ -133,6 +133,23 @@ namespace JobOnlineAPI.Repositories
             return await db.QueryAsync<string>("sp_GetRoutesByRoleName", parameters, commandType: CommandType.StoredProcedure);
         }
 
+        public async Task<IEnumerable<RouteDetail>> GetRoutesByRoleNameWithDetailAsync(string roleName)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@RoleName", roleName);
+            return await db.QueryAsync<RouteDetail>("sp_GetRoutesByRoleNameWithDetail", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task UpdateRoutesSortOrderAsync(List<RoutesSortOrderItem> items)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var json = System.Text.Json.JsonSerializer.Serialize(items);
+            var parameters = new DynamicParameters();
+            parameters.Add("@payload", json);
+            await db.ExecuteAsync("sp_UpdateRoutesSortOrder", parameters, commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<AdminUserDetail?> GetAdminUserByIdAsync(int id)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
