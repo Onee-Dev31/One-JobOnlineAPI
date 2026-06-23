@@ -23,6 +23,7 @@ namespace JobOnlineAPI.Controllers
         private readonly INetworkShareService _networkShareService;
         private readonly ILogger<ApplicantNewController> _logger;
         private readonly IEmailNotificationService _emailNotificationService;
+        private readonly IJwtTokenService _jwtTokenService;
         private readonly string _applicationFormUri;
         private const string JobTitleKey = "JobTitle";
         private const string JobIdKey = "JobID";
@@ -46,7 +47,8 @@ namespace JobOnlineAPI.Controllers
             INetworkShareService networkShareService,
             ILogger<ApplicantNewController> logger,
             IEmailNotificationService emailNotificationService,
-            IOptions<FileStorageConfig> config)
+            IOptions<FileStorageConfig> config,
+            IJwtTokenService jwtTokenService)
         {
             _context = context;
             _emailService = emailService;
@@ -54,6 +56,7 @@ namespace JobOnlineAPI.Controllers
             _networkShareService = networkShareService;
             _logger = logger;
             _emailNotificationService = emailNotificationService;
+            _jwtTokenService = jwtTokenService;
             var fileStorageConfig = config.Value ?? throw new ArgumentNullException(nameof(config));
             _applicationFormUri = fileStorageConfig.ApplicationFormUri ?? throw new InvalidOperationException("Application form URI is not configured.");
         }
@@ -1203,6 +1206,22 @@ namespace JobOnlineAPI.Controllers
                 );
 
                 int applicantId = param.Get<int>("@ApplicantID");
+
+                var username = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+                var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+                var newToken = _jwtTokenService.GenerateJwtToken(new UserModel
+                {
+                    Username = username,
+                    Role = role,
+                    ApplicantID = applicantId
+                });
+                Response.Cookies.Append("auth_token", newToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
 
                 try
                 {
