@@ -135,7 +135,7 @@ namespace JobOnlineAPI.Repositories
                                                     <li><strong>อัตรา:</strong> {job.NumberOfPositions}</li>
                                                     {openForInfo}
                                                 </ul>
-                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='color: #ffffff; text-decoration: underline;'>{applicationFormUri}</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
+                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='text-decoration: underline;'>{applicationFormUri}</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
                                             </td>
                                         </tr>
                                         <tr>
