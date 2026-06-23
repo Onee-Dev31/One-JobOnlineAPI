@@ -29,8 +29,8 @@ namespace JobOnlineAPI.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> LoginAdminAD([FromBody] LoginRequestAdmin request)
         {
-            if (string.IsNullOrWhiteSpace(request.Username) && string.IsNullOrWhiteSpace(request.Password))
-                return BadRequest("Username or Password is incorrect and cannot be empty or whitespace.");
+            if (string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+                return BadRequest("Username and Password are required.");
 
             try
             {
