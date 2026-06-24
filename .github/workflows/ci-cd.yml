@@ -2,9 +2,9 @@ name: CI/CD Pipeline - OneeJob Backend
 
 on:
   push:
-    branches: [main, feature/security-audit]
+    branches: [main, feature/security-audit, develop]
   pull_request:
-    branches: [main, feature/security-audit]
+    branches: [main, feature/security-audit, develop]
 
 permissions:
   contents: read
@@ -97,7 +97,117 @@ jobs:
           fi
           echo "PASS: No .env files committed"
 
-  # Stage 4: Deploy to IIS  (push only)
+  # Stage 4: Deploy to IIS Dev  (push develop only)
+  deploy-dev:
+    name: Deploy to IIS Dev
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: [build-and-test, secret-scan, file-check]
+    runs-on: self-hosted
+
+    env:
+      PROJECT_PATH: 'JobOnlineAPI.csproj'
+      PUBLISH_PATH: 'C:\ONEE-JOBS-Dev\publish\OneeJob-Backend-Dev'
+      DEPLOY_PATH: 'C:\ONEE-JOBS-Dev\OneeJobsBackend'
+      BACKUP_ROOT: 'C:\ONEE-JOBS-Dev\OneeJobsBackend_backup'
+      APP_POOL_NAME: 'OneeJob-Backend-Dev'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Build (Release)
+        run: dotnet build ${{ env.PROJECT_PATH }} --configuration Release --no-restore
+
+      - name: Copy appsettings.Production.json from server
+        shell: powershell
+        run: |
+          $src = "C:\ONEE-JOBS-Dev\env\appsettings.Production.json"
+          if (-not (Test-Path $src)) {
+            throw "NOT FOUND: appsettings.Production.json at $src"
+          }
+          Copy-Item $src -Destination "appsettings.Production.json" -Force
+          Write-Host "Copied appsettings.Production.json"
+
+      - name: Publish application
+        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ${{ env.PUBLISH_PATH }} --no-build
+
+      - name: Backup old deployment (keep 5 latest)
+        shell: powershell
+        run: |
+          $backupRoot = "${{ env.BACKUP_ROOT }}"
+          $deployPath = "${{ env.DEPLOY_PATH }}"
+
+          if (-not (Test-Path $backupRoot)) {
+            New-Item -ItemType Directory -Path $backupRoot -Force | Out-Null
+          }
+
+          if (Test-Path $deployPath) {
+            $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+            $backupPath = "$backupRoot\backup_$timestamp"
+            New-Item -ItemType Directory -Path $backupPath | Out-Null
+            Get-ChildItem -Path $deployPath | ForEach-Object {
+              Copy-Item -Path $_.FullName -Destination $backupPath -Recurse -Force
+            }
+            Write-Host "Backup done: $backupPath"
+
+            $old = Get-ChildItem $backupRoot | Sort-Object CreationTime -Descending | Select-Object -Skip 5
+            foreach ($b in $old) {
+              Remove-Item $b.FullName -Recurse -Force
+              Write-Host "Removed old backup: $($b.Name)"
+            }
+          }
+
+      - name: Stop App Pool
+        shell: powershell
+        run: |
+          $deployPath = "${{ env.DEPLOY_PATH }}"
+          $offlineFile = "$deployPath\app_offline.htm"
+          Set-Content -Path $offlineFile -Value "<html><body>Deploying... please wait.</body></html>" -Force
+          $timeout = 30
+          $elapsed = 0
+          do {
+            Start-Sleep -Seconds 2
+            $elapsed += 2
+            $locked = $false
+            try {
+              $stream = [System.IO.File]::Open("$deployPath\JobOnlineAPI.dll", 'Open', 'Read', 'None')
+              $stream.Close()
+            } catch {
+              $locked = $true
+            }
+          } while ($locked -and $elapsed -lt $timeout)
+          Write-Host "App offline after $elapsed seconds"
+          exit 0
+
+      - name: Deploy new files
+        shell: powershell
+        run: |
+          $deployPath = "${{ env.DEPLOY_PATH }}"
+          $publishPath = "${{ env.PUBLISH_PATH }}"
+
+          if (-not (Test-Path $deployPath)) {
+            New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
+          }
+
+          Get-ChildItem -Path $deployPath -Exclude "logs","App_Data" | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item -Path "$publishPath\*" -Destination $deployPath -Recurse -Force
+          Write-Host "Deployed to $deployPath"
+
+      - name: Start App Pool
+        shell: powershell
+        run: |
+          $offlineFile = "${{ env.DEPLOY_PATH }}\app_offline.htm"
+          if (Test-Path $offlineFile) {
+            Remove-Item $offlineFile -Force
+            Write-Host "Removed app_offline.htm - app is back online"
+          }
+          Write-Host "Deploy Dev success"
+          exit 0
+
+  # Stage 5: Deploy to IIS Prod  (push main / feature/security-audit only)
   deploy:
     name: Deploy to IIS
     if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/security-audit') && github.event_name == 'push'
