@@ -24,6 +24,16 @@ namespace JobOnlineAPI.Controllers
             return Ok(result);
         }
 
+        [HttpGet("fonts")]
+        public async Task<IActionResult> GetFontOptions()
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var fonts = await conn.QueryAsync(
+                "sp_GetFontOptions",
+                commandType: CommandType.StoredProcedure);
+            return Ok(fonts);
+        }
+
         [HttpPut]
         public async Task<IActionResult> Upsert([FromBody] Dictionary<string, string> settings)
         {
