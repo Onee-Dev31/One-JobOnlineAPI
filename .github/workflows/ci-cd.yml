@@ -117,7 +117,7 @@ jobs:
         run: dotnet restore JobOnlineAPI.csproj
 
       - name: Publish application
-        run: dotnet publish JobOnlineAPI.csproj --configuration Release --output ./publish --no-restore
+        run: dotnet publish JobOnlineAPI.csproj --configuration Release --output ./publish --no-restore --no-self-contained
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -125,6 +125,7 @@ jobs:
           name: dev-publish
           path: ./publish
           retention-days: 1
+          compression-level: 9
 
   # Stage 4b: Deploy to IIS Dev (self-hosted — แค่ copy + restart เท่านั้น)
   deploy-dev:
