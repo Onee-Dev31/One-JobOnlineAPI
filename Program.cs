@@ -370,6 +370,9 @@ else
     });
 // }
 
+// app.UseCors("AllowAllOrigins");
+app.UseCors("Default");
+
 app.UseHttpsRedirection();
 app.Use(async (ctx, next) =>
 {
@@ -379,8 +382,6 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
     await next();
 });
-// app.UseCors("AllowAllOrigins");
-app.UseCors("Default");
 
 app.UseAuthentication();
 app.UseAuthorization();
