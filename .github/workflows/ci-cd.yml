@@ -97,53 +97,29 @@ jobs:
           fi
           echo "PASS: No .env files committed"
 
-  # Stage 4a: Publish Dev (GitHub-hosted — ไม่กระทบ production server)
-  publish-dev:
-    name: Publish Dev Artifact
-    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
-    needs: [build-and-test, secret-scan, file-check]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup .NET 8.0
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Restore dependencies
-        run: dotnet restore JobOnlineAPI.csproj
-
-      - name: Publish application
-        run: dotnet publish JobOnlineAPI.csproj --configuration Release --output ./publish --no-restore --no-self-contained
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dev-publish
-          path: ./publish
-          retention-days: 1
-          compression-level: 9
-
-  # Stage 4b: Deploy to IIS Dev (self-hosted — แค่ copy + restart เท่านั้น)
+  # Stage 4: Deploy to IIS Dev (self-hosted — build + deploy บนเครื่องเดียวกัน ไม่ผ่าน artifact)
   deploy-dev:
     name: Deploy to IIS Dev
-    needs: [publish-dev]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    needs: [build-and-test, secret-scan, file-check]
     runs-on: self-hosted
 
     env:
+      PROJECT_PATH: 'JobOnlineAPI.csproj'
+      PUBLISH_PATH: 'C:\ONEE-JOBS-Dev\publish\OneeJob-Backend-Dev'
       DEPLOY_PATH: 'C:\ONEE-JOBS-Dev\OneeJobsBackend'
       BACKUP_ROOT: 'C:\ONEE-JOBS-Dev\OneeJobsBackend_backup'
       APP_POOL_NAME: 'OneeJob-Backend-Dev'
 
     steps:
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: dev-publish
-          path: C:\ONEE-JOBS-Dev\publish\OneeJob-Backend-Dev
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.PROJECT_PATH }}
+
+      - name: Publish application
+        run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ${{ env.PUBLISH_PATH }} --no-restore --no-self-contained
 
       - name: Copy appsettings.Production.json from server
         shell: powershell
@@ -152,7 +128,7 @@ jobs:
           if (-not (Test-Path $src)) {
             throw "NOT FOUND: appsettings.Production.json at $src"
           }
-          Copy-Item $src -Destination "C:\ONEE-JOBS-Dev\publish\OneeJob-Backend-Dev\appsettings.Production.json" -Force
+          Copy-Item $src -Destination "${{ env.PUBLISH_PATH }}\appsettings.Production.json" -Force
           Write-Host "Copied appsettings.Production.json"
 
       - name: Backup old deployment (keep 5 latest)
@@ -207,7 +183,7 @@ jobs:
         shell: powershell
         run: |
           $deployPath = "${{ env.DEPLOY_PATH }}"
-          $publishPath = "C:\ONEE-JOBS-Dev\publish\OneeJob-Backend-Dev"
+          $publishPath = "${{ env.PUBLISH_PATH }}"
 
           if (-not (Test-Path $deployPath)) {
             New-Item -ItemType Directory -Path $deployPath -Force | Out-Null
