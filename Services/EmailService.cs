@@ -15,16 +15,20 @@ namespace JobOnlineAPI.Services
 
         public async Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId)
         {
+            var (isTestMode, testRecipients) = await GetEmailConfigAsync();
+
+            var recipients = isTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
+            var finalSubject = isTestMode ? $"[TEST] {subject}" : subject;
+
             var emailMessage = new MimeMessage();
             emailMessage.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.FromEmail));
-            
-            // ✅ รองรับหลาย recipients
-            foreach (var address in to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries))
+
+            foreach (var address in recipients)
             {
-                emailMessage.To.Add(new MailboxAddress("", address.Trim()));
+                emailMessage.To.Add(new MailboxAddress("", address));
             }
 
-            emailMessage.Subject = subject;
+            emailMessage.Subject = finalSubject;
 
             var bodyBuilder = new BodyBuilder
             {
@@ -57,7 +61,16 @@ namespace JobOnlineAPI.Services
                 Console.WriteLine($"❌ Error sending email: {errorMessage}");
             }
 
-            await LogEmailAsync(to, subject, body, status, errorMessage, typeMail, JobsId);
+            await LogEmailAsync(to, finalSubject, body, status, errorMessage, typeMail, JobsId);
+        }
+
+        private async Task<(bool isTestMode, List<string> testRecipients)> GetEmailConfigAsync()
+        {
+            using var connection = new SqlConnection(_dbConnection.ConnectionString);
+            using var multi = await connection.QueryMultipleAsync("sp_GetEmailConfig", commandType: CommandType.StoredProcedure);
+            var isTestMode = await multi.ReadFirstOrDefaultAsync<bool>();
+            var testRecipients = (await multi.ReadAsync<string>()).ToList();
+            return (isTestMode, testRecipients);
         }
 
         private async Task LogEmailAsync(string recipient, string subject, string body, string status, string? errorMessage, string? mailType, int? JobsId)
