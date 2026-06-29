@@ -2,6 +2,7 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,11 +16,13 @@ namespace JobOnlineAPI.Controllers
     /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger, IOtpService otpService, IJwtTokenService jwtTokenService) : ControllerBase
     {
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly ILogger<AuthController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly IOtpService _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         private readonly string _templatePathOTP = Path.Combine("Templates", "Email", "OTP.html");
         private readonly string _templatePathREGIS = Path.Combine("Templates", "Email", "Registration.html");
         private readonly string _templatePathResetPassword = Path.Combine("Templates", "Email", "ResetPassword.html");
@@ -202,6 +205,91 @@ namespace JobOnlineAPI.Controllers
         }
 
         
+        [HttpPost("request-otp-login")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> RequestOtpLogin([FromBody] OTPRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "กรุณาระบุอีเมล" });
+
+            try
+            {
+                var otpResult = await _otpService.RequestOtpAsync(request.Email, request.Email, "LOGIN");
+                if (!otpResult.Item1)
+                    return BadRequest(new { message = otpResult.Item2 });
+
+                return Ok(new { message = otpResult.Item2 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RequestOtpLogin failed for {Email}", request.Email);
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost("verify-otp-login")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> VerifyOtpLogin([FromBody] OTPVerifyRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.OTP))
+                return BadRequest(new { message = "กรุณาระบุ Email และ OTP" });
+
+            try
+            {
+                var isValid = await _otpService.VerifyOtpAsync(request.Email, request.OTP, "LOGIN");
+                if (!isValid)
+                    return Unauthorized(new { message = "OTP ไม่ถูกต้องหรือหมดอายุแล้ว" });
+
+                using var conn = _context.CreateConnection();
+                var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_GetUserByEmailOnly",
+                    new { Email = request.Email },
+                    commandType: CommandType.StoredProcedure);
+
+                if (user == null)
+                    return Unauthorized(new { message = "ไม่พบบัญชีผู้ใช้งาน" });
+
+                var userModel = new UserModel
+                {
+                    Username = request.Email,
+                    Role = user.Role?.ToString() ?? "1",
+                    UserId = (int)(user.UserId ?? 0),
+                    ConfirmConsent = user.ConfirmConsent?.ToString() ?? "",
+                    ApplicantID = (int?)user.ApplicantID,
+                    JobID = (int?)user.JobID,
+                    Status = user.Status?.ToString()
+                };
+
+                var token = _jwtTokenService.GenerateJwtToken(userModel);
+                Response.Cookies.Append("auth_token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+
+                return Ok(new
+                {
+                    token,
+                    userModel.Username,
+                    role = userModel.Role,
+                    userId = userModel.UserId,
+                    applicantID = userModel.ApplicantID,
+                    confirmConsent = userModel.ConfirmConsent,
+                    status = userModel.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "VerifyOtpLogin failed for {Email}", request.Email);
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
         [HttpGet("check-otp")]
         public async Task<IActionResult> CheckOtp(string email)
         {
