@@ -255,10 +255,10 @@ namespace JobOnlineAPI.Controllers
                 var userModel = new UserModel
                 {
                     Username = request.Email,
-                    Role = user.Role?.ToString() ?? "1",
+                    Role = "User",
                     UserId = (int)(user.UserId ?? 0),
                     ConfirmConsent = user.ConfirmConsent?.ToString() ?? "",
-                    ApplicantID = (int?)user.ApplicantID,
+                    ApplicantID = user.ApplicantID != null ? (int?)user.ApplicantID : 0,
                     JobID = (int?)user.JobID,
                     Status = user.Status?.ToString()
                 };
@@ -274,13 +274,13 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(new
                 {
-                    token,
                     userModel.Username,
-                    role = userModel.Role,
-                    userId = userModel.UserId,
-                    applicantID = userModel.ApplicantID,
-                    confirmConsent = userModel.ConfirmConsent,
-                    status = userModel.Status
+                    userModel.Role,
+                    userModel.ConfirmConsent,
+                    userModel.UserId,
+                    userModel.ApplicantID,
+                    userModel.JobID,
+                    userModel.Status
                 });
             }
             catch (Exception ex)

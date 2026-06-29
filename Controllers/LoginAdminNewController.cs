@@ -136,8 +136,8 @@ namespace JobOnlineAPI.Controllers
                 // mask email: abc***@domain.com
                 var atIndex = adminEmail.IndexOf('@');
                 var maskedEmail = atIndex > 2
-                    ? adminEmail[..2] + "***" + adminEmail[atIndex..]
-                    : "***" + adminEmail[atIndex..];
+                    ? adminEmail.Substring(0, 2) + "***" + adminEmail.Substring(atIndex)
+                    : "***" + adminEmail.Substring(atIndex);
 
                 return Ok(new { message = $"ส่ง OTP ไปที่ {maskedEmail} แล้ว" });
             }
@@ -200,6 +200,7 @@ namespace JobOnlineAPI.Controllers
 
                 userDict["accessToken"] = localToken;
                 userDict["refreshToken"] = "";
+                userDict["roleName"] = roleName;
                 return Ok(user);
             }
             catch (Exception ex)
