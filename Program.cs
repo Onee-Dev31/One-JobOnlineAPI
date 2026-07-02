@@ -372,7 +372,13 @@ else
     });
 // }
 
-app.UseHttpsRedirection();
+// app.UseCors("AllowAllOrigins");
+app.UseCors("Default");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
@@ -381,8 +387,6 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
     await next();
 });
-// app.UseCors("AllowAllOrigins");
-app.UseCors("Default");
 
 app.UseAuthentication();
 app.UseAuthorization();
