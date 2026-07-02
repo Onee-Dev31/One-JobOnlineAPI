@@ -6,7 +6,7 @@ BEGIN
         SettingKey   NVARCHAR(100) NOT NULL UNIQUE,
         SettingValue NVARCHAR(50)  NOT NULL,
         Description  NVARCHAR(255) NULL,
-        UpdatedAt    DATETIME2     NOT NULL DEFAULT GETUTCDATE()
+        UpdatedAt    DATETIME2     NOT NULL DEFAULT GETDATE()
     )
     PRINT 'Created UiSettings'
 END
@@ -44,8 +44,8 @@ BEGIN
     USING (SELECT @SettingKey AS SettingKey, @SettingValue AS SettingValue) AS source
     ON target.SettingKey = source.SettingKey
     WHEN MATCHED THEN
-        UPDATE SET SettingValue = source.SettingValue, UpdatedAt = GETUTCDATE()
+        UPDATE SET SettingValue = source.SettingValue, UpdatedAt = GETDATE()
     WHEN NOT MATCHED THEN
         INSERT (SettingKey, SettingValue, UpdatedAt)
-        VALUES (source.SettingKey, source.SettingValue, GETUTCDATE());
+        VALUES (source.SettingKey, source.SettingValue, GETDATE());
 END

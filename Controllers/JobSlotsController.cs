@@ -13,13 +13,13 @@ namespace JobOnlineAPI.Controllers
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
-        [HttpGet("job/{jobId}")]
-        public async Task<IActionResult> GetSlotsByJob(int jobId)
+        [HttpGet("department/{department}")]
+        public async Task<IActionResult> GetSlotsByDepartment(string department)
         {
             using var conn = new SqlConnection(_connectionString);
             var slots = await conn.QueryAsync<JobSlot>(
-                "sp_GetJobSlotsByJobID",
-                new { JobID = jobId },
+                "sp_GetJobSlotsByDepartment",
+                new { Department = department },
                 commandType: CommandType.StoredProcedure);
 
             return Ok(slots);
@@ -34,7 +34,7 @@ namespace JobOnlineAPI.Controllers
             using var conn = new SqlConnection(_connectionString);
             var slotId = await conn.ExecuteScalarAsync<int>(
                 "sp_AddJobSlot",
-                new { slot.JobID, slot.SlotNumber, slot.StartDate, slot.EndDate },
+                new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate },
                 commandType: CommandType.StoredProcedure);
 
             return Ok(new { SlotID = slotId });
@@ -74,10 +74,12 @@ namespace JobOnlineAPI.Controllers
                 new { Department = department, JobID = jobId },
                 commandType: CommandType.StoredProcedure);
 
-            var slots = await conn.QueryAsync<JobSlot>(
-                "sp_GetJobSlotsByJobID",
-                new { JobID = jobId },
-                commandType: CommandType.StoredProcedure);
+            var slots = string.IsNullOrEmpty(department)
+                ? Enumerable.Empty<JobSlot>()
+                : await conn.QueryAsync<JobSlot>(
+                    "sp_GetJobSlotsByDepartment",
+                    new { Department = department },
+                    commandType: CommandType.StoredProcedure);
 
             return Ok(new { Candidates = candidates, Slots = slots });
         }
@@ -111,11 +113,11 @@ namespace JobOnlineAPI.Controllers
 
             var result = jobs.Select(job =>
             {
-                int jobId = (int)job.JobID;
+                string jobDepartment = (string)job.Department;
                 return new
                 {
                     Job = job,
-                    Slots = slots.Where(s => s.JobID == jobId)
+                    Slots = slots.Where(s => s.Department == jobDepartment)
                 };
             });
 
