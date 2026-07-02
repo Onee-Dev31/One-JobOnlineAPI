@@ -19,7 +19,7 @@ namespace JobOnlineAPI.Services
                 new { Identifier = identifier, OTPCode = otp, Action = action },
                 commandType: CommandType.StoredProcedure);
 
-            if (result == null || result.Status != 1)
+            if (result == null || result!.Status != 1)
                 return (false, (string)(result?.Message ?? "มี OTP ที่ใช้งานอยู่สำหรับ user นี้"));
 
             var body = $@"
@@ -43,7 +43,7 @@ namespace JobOnlineAPI.Services
                 new { Identifier = identifier, OTPCode = otp, Action = action },
                 commandType: CommandType.StoredProcedure);
 
-            return result != null && result.IsValid == 1;
+            return result != null && result!.IsValid == 1;
         }
 
         private static string GenerateOtp() =>
