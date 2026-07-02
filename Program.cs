@@ -121,7 +121,8 @@ builder.Services.AddCors(options =>
             "http://10.2.0.11:3001",
             "https://10.2.0.11:8111",
             "https://ess.oneeclick.co",
-            "https://localhost:5173"
+            "https://localhost:5173",
+            "http://localhost:5175"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -372,7 +373,13 @@ else
     });
 // }
 
-app.UseHttpsRedirection();
+// app.UseCors("AllowAllOrigins");
+app.UseCors("Default");
+
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
@@ -381,8 +388,6 @@ app.Use(async (ctx, next) =>
     ctx.Response.Headers.TryAdd("Referrer-Policy", "no-referrer");
     await next();
 });
-// app.UseCors("AllowAllOrigins");
-app.UseCors("Default");
 
 app.UseAuthentication();
 app.UseAuthorization();

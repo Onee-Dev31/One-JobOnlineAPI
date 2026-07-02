@@ -1,45 +1,49 @@
 -- Table: JobSlots
--- Each row is one open seat ("อัตรา") for a Job, with its own application period.
+-- Each row is one open seat ("อัตรา") for a Department, with its own application period.
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlots')
 BEGIN
     CREATE TABLE JobSlots (
         SlotID               INT IDENTITY(1,1) PRIMARY KEY,
-        JobID                INT NOT NULL FOREIGN KEY REFERENCES Jobs(JobID),
+        Department           NVARCHAR(200) NOT NULL,
         SlotNumber           INT NOT NULL,
         StartDate            DATETIME2 NULL,
         EndDate              DATETIME2 NULL,
         Status               NVARCHAR(50) NOT NULL DEFAULT 'Open', -- Open / Filled / Closed
         AssignedApplicantID  INT NULL,
         AssignedDate         DATETIME2 NULL,
-        CreatedAt            DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        CreatedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID), -- who logged in and created it
+        RequestedByName      NVARCHAR(200) NULL, -- who asked for it (may not have a system login)
+        CreatedAt            DATETIME2 NOT NULL DEFAULT GETDATE(),
         ModifiedAt           DATETIME2 NULL,
-        CONSTRAINT UQ_JobSlots_Job_SlotNumber UNIQUE (JobID, SlotNumber)
+        CONSTRAINT UQ_JobSlots_Department_SlotNumber UNIQUE (Department, SlotNumber)
     )
     PRINT 'Created JobSlots'
 END
 
 GO
-CREATE OR ALTER PROCEDURE sp_GetJobSlotsByJobID
-    @JobID INT
+CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
+    @Department NVARCHAR(200)
 AS
 BEGIN
-    SELECT SlotID, JobID, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate, CreatedAt, ModifiedAt
+    SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt
     FROM JobSlots
-    WHERE JobID = @JobID
+    WHERE Department = @Department
     ORDER BY SlotNumber
 END
 
 GO
 CREATE OR ALTER PROCEDURE sp_AddJobSlot
-    @JobID      INT,
-    @SlotNumber INT,
-    @StartDate  DATETIME2 = NULL,
-    @EndDate    DATETIME2 = NULL
+    @Department       NVARCHAR(200),
+    @SlotNumber       INT,
+    @StartDate        DATETIME2 = NULL,
+    @EndDate          DATETIME2 = NULL,
+    @CreatedByAdminID INT = NULL,
+    @RequestedByName  NVARCHAR(200) = NULL
 AS
 BEGIN
-    INSERT INTO JobSlots (JobID, SlotNumber, StartDate, EndDate)
-    VALUES (@JobID, @SlotNumber, @StartDate, @EndDate)
+    INSERT INTO JobSlots (Department, SlotNumber, StartDate, EndDate, CreatedByAdminID, RequestedByName)
+    VALUES (@Department, @SlotNumber, @StartDate, @EndDate, @CreatedByAdminID, @RequestedByName)
 
     SELECT CAST(SCOPE_IDENTITY() AS INT)
 END
@@ -56,7 +60,7 @@ BEGIN
     SET StartDate  = @StartDate,
         EndDate    = @EndDate,
         Status     = COALESCE(@Status, Status),
-        ModifiedAt = GETUTCDATE()
+        ModifiedAt = GETDATE()
     WHERE SlotID = @SlotID
 END
 
@@ -76,9 +80,9 @@ AS
 BEGIN
     UPDATE JobSlots
     SET AssignedApplicantID = @ApplicantID,
-        AssignedDate        = GETUTCDATE(),
+        AssignedDate        = GETDATE(),
         Status               = 'Filled',
-        ModifiedAt           = GETUTCDATE()
+        ModifiedAt           = GETDATE()
     WHERE SlotID = @SlotID
 END
 
@@ -92,11 +96,10 @@ BEGIN
     FROM Jobs
     WHERE (@Department IS NULL OR Department = @Department)
 
-    -- Result set 2: slots for those jobs
-    SELECT s.SlotID, s.JobID, s.SlotNumber, s.StartDate, s.EndDate, s.Status,
-           s.AssignedApplicantID, s.AssignedDate
-    FROM JobSlots s
-    INNER JOIN Jobs j ON j.JobID = s.JobID
-    WHERE (@Department IS NULL OR j.Department = @Department)
-    ORDER BY s.JobID, s.SlotNumber
+    -- Result set 2: slots for that department
+    SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName
+    FROM JobSlots
+    WHERE (@Department IS NULL OR Department = @Department)
+    ORDER BY Department, SlotNumber
 END
