@@ -1,0 +1,32 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace JobOnlineAPI.Models
+{
+    public class JobSlot
+    {
+        public int? SlotID { get; set; }
+
+        [Required(ErrorMessage = "JobID is required.")]
+        public int JobID { get; set; }
+
+        [Required(ErrorMessage = "SlotNumber is required.")]
+        public int SlotNumber { get; set; }
+
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+
+        public string Status { get; set; } = "Open";
+
+        public int? AssignedApplicantID { get; set; }
+        public DateTime? AssignedDate { get; set; }
+
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+    }
+
+    public class AssignApplicantRequest
+    {
+        [Required(ErrorMessage = "ApplicantID is required.")]
+        public int ApplicantID { get; set; }
+    }
+}

@@ -559,7 +559,8 @@ namespace JobOnlineAPI.Controllers
                         {
                             ApplicantID = c.ApplicantID,
                             Status = requestData.Status,
-                            JobID = requestData.JobID
+                            JobID = requestData.JobID,
+                            Remark = c.Remark
                         });
                     }
                     else if (hasRank)

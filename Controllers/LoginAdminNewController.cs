@@ -125,7 +125,7 @@ namespace JobOnlineAPI.Controllers
                     "SELECT TOP 1 e.EMAIL FROM [HRMS_LINKED_SERVER].HRMS.Dbo.T_EMPLOYEE_SSO e WHERE LOWER(e.AD_USER) = LOWER(@Username)",
                     new { Username = request.Username });
 
-                var adminEmail = emailResult?.EMAIL?.ToString();
+                string? adminEmail = emailResult?.EMAIL?.ToString();
                 if (string.IsNullOrWhiteSpace(adminEmail))
                     return BadRequest(new { message = "ไม่พบอีเมลของ user นี้ในระบบ" });
 

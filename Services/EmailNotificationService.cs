@@ -221,7 +221,12 @@ namespace JobOnlineAPI.Services
         {
             var candidateNames = requestData.Candidates?
                 .Select((candidate, index) =>
-                    $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+                {
+                    var remarkText = !string.IsNullOrWhiteSpace(candidate.Remark)
+                        ? $" <span style='color: #555;'>(หมายเหตุ: {candidate.Remark})</span>"
+                        : "";
+                    return $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai}{remarkText}".Trim();
+                })
                 .ToList() ?? [];
             var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             string candidateNamesString = string.Join("<br>", candidateNames);
