@@ -34,7 +34,7 @@ namespace JobOnlineAPI.Controllers
             using var conn = new SqlConnection(_connectionString);
             var slotId = await conn.ExecuteScalarAsync<int>(
                 "sp_AddJobSlot",
-                new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate },
+                new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.CreatedByAdminID, slot.RequestedByName },
                 commandType: CommandType.StoredProcedure);
 
             return Ok(new { SlotID = slotId });

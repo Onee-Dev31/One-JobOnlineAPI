@@ -11,6 +11,8 @@ BEGIN
         Status               NVARCHAR(50) NOT NULL DEFAULT 'Open', -- Open / Filled / Closed
         AssignedApplicantID  INT NULL,
         AssignedDate         DATETIME2 NULL,
+        CreatedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID), -- who logged in and created it
+        RequestedByName      NVARCHAR(200) NULL, -- who asked for it (may not have a system login)
         CreatedAt            DATETIME2 NOT NULL DEFAULT GETDATE(),
         ModifiedAt           DATETIME2 NULL,
         CONSTRAINT UQ_JobSlots_Department_SlotNumber UNIQUE (Department, SlotNumber)
@@ -24,7 +26,7 @@ CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
 AS
 BEGIN
     SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate, CreatedAt, ModifiedAt
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt
     FROM JobSlots
     WHERE Department = @Department
     ORDER BY SlotNumber
@@ -32,14 +34,16 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_AddJobSlot
-    @Department NVARCHAR(200),
-    @SlotNumber INT,
-    @StartDate  DATETIME2 = NULL,
-    @EndDate    DATETIME2 = NULL
+    @Department       NVARCHAR(200),
+    @SlotNumber       INT,
+    @StartDate        DATETIME2 = NULL,
+    @EndDate          DATETIME2 = NULL,
+    @CreatedByAdminID INT = NULL,
+    @RequestedByName  NVARCHAR(200) = NULL
 AS
 BEGIN
-    INSERT INTO JobSlots (Department, SlotNumber, StartDate, EndDate)
-    VALUES (@Department, @SlotNumber, @StartDate, @EndDate)
+    INSERT INTO JobSlots (Department, SlotNumber, StartDate, EndDate, CreatedByAdminID, RequestedByName)
+    VALUES (@Department, @SlotNumber, @StartDate, @EndDate, @CreatedByAdminID, @RequestedByName)
 
     SELECT CAST(SCOPE_IDENTITY() AS INT)
 END
@@ -94,7 +98,7 @@ BEGIN
 
     -- Result set 2: slots for that department
     SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName
     FROM JobSlots
     WHERE (@Department IS NULL OR Department = @Department)
     ORDER BY Department, SlotNumber

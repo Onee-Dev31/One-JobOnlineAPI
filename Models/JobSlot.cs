@@ -20,6 +20,9 @@ namespace JobOnlineAPI.Models
         public int? AssignedApplicantID { get; set; }
         public DateTime? AssignedDate { get; set; }
 
+        public int? CreatedByAdminID { get; set; }
+        public string? RequestedByName { get; set; }
+
         public DateTime? CreatedAt { get; set; }
         public DateTime? ModifiedAt { get; set; }
     }
