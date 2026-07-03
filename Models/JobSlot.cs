@@ -8,9 +8,10 @@ namespace JobOnlineAPI.Models
 
         [Required(ErrorMessage = "Department is required.")]
         public string Department { get; set; } = string.Empty;
+        public string CompanyCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "SlotNumber is required.")]
-        public int SlotNumber { get; set; }
+        public int? SlotNumber { get; set; }
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -25,6 +26,7 @@ namespace JobOnlineAPI.Models
 
         public DateTime? CreatedAt { get; set; }
         public DateTime? ModifiedAt { get; set; }
+        public int? ModifiedByAdminID { get; set; }
     }
 
     public class AssignApplicantRequest

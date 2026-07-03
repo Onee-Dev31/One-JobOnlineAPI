@@ -53,12 +53,15 @@ namespace JobOnlineAPI.Controllers
             using var conn = new SqlConnection(_connectionString);
             try
             {
-                await conn.ExecuteAsync(
+                var updated = await conn.QueryFirstOrDefaultAsync<JobSlot>(
                     "sp_UpdateJobSlot",
-                    new { SlotID = id, slot.StartDate, slot.EndDate, slot.Status },
+                    new { SlotID = id, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.Status, slot.RequestedByName, slot.ModifiedByAdminID },
                     commandType: CommandType.StoredProcedure);
 
-                return Ok();
+                if (updated == null)
+                    return NotFound();
+
+                return Ok(updated);
             }
             catch (SqlException ex)
             {
