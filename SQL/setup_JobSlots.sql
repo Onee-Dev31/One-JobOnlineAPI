@@ -14,9 +14,16 @@ BEGIN
         CreatedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID), -- who logged in and created it
         RequestedByName      NVARCHAR(200) NULL, -- who asked for it (may not have a system login)
         CreatedAt            DATETIME2 NOT NULL DEFAULT GETDATE(),
-        ModifiedAt           DATETIME2 NULL
+        ModifiedAt           DATETIME2 NULL,
+        ModifiedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID) -- who logged in and last edited it
     )
     PRINT 'Created JobSlots'
+END
+
+-- Add ModifiedByAdminID if it doesn't exist yet (from a previous version of this script).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlots') AND name = 'ModifiedByAdminID')
+BEGIN
+    ALTER TABLE JobSlots ADD ModifiedByAdminID INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
 END
 
 -- Drop the old exact-match unique constraint if it exists (from a previous version of this script).
@@ -38,7 +45,7 @@ CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
 AS
 BEGIN
     SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt, ModifiedByAdminID
     FROM JobSlots
     WHERE Department = @Department
     ORDER BY SlotNumber
@@ -62,17 +69,23 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_UpdateJobSlot
-    @SlotID     INT,
-    @StartDate  DATETIME2 = NULL,
-    @EndDate    DATETIME2 = NULL,
-    @Status     NVARCHAR(50) = NULL
+    @SlotID            INT,
+    @SlotNumber        INT = NULL,
+    @StartDate         DATETIME2 = NULL,
+    @EndDate           DATETIME2 = NULL,
+    @Status            NVARCHAR(50) = NULL,
+    @RequestedByName   NVARCHAR(200) = NULL,
+    @ModifiedByAdminID INT = NULL
 AS
 BEGIN
     UPDATE JobSlots
-    SET StartDate  = @StartDate,
-        EndDate    = @EndDate,
-        Status     = COALESCE(@Status, Status),
-        ModifiedAt = GETDATE()
+    SET SlotNumber        = COALESCE(@SlotNumber, SlotNumber),
+        StartDate         = @StartDate,
+        EndDate           = @EndDate,
+        Status            = COALESCE(@Status, Status),
+        RequestedByName   = COALESCE(@RequestedByName, RequestedByName),
+        ModifiedAt        = GETDATE(),
+        ModifiedByAdminID = COALESCE(@ModifiedByAdminID, ModifiedByAdminID)
     WHERE SlotID = @SlotID
 END
 
@@ -110,7 +123,7 @@ BEGIN
 
     -- Result set 2: slots for that department
     SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, ModifiedByAdminID
     FROM JobSlots
     WHERE (@Department IS NULL OR Department = @Department)
     ORDER BY Department, SlotNumber

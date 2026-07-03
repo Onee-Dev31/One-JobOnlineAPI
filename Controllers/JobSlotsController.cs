@@ -55,7 +55,7 @@ namespace JobOnlineAPI.Controllers
             {
                 await conn.ExecuteAsync(
                     "sp_UpdateJobSlot",
-                    new { SlotID = id, slot.StartDate, slot.EndDate, slot.Status },
+                    new { SlotID = id, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.Status, slot.RequestedByName, slot.ModifiedByAdminID },
                     commandType: CommandType.StoredProcedure);
 
                 return Ok();
