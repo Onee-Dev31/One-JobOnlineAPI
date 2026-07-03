@@ -3,17 +3,29 @@ namespace JobOnlineAPI.Models
     public class TraineeApplication
     {
         public int TraineeApplicationID { get; set; }
-        public DateOnly? StartDate { get; set; }
-        public DateOnly? EndDate { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
         public string? DesiredField1 { get; set; }
         public string? DesiredField2 { get; set; }
         public string? DesiredField3 { get; set; }
         public string? Reason { get; set; }
         public string? ReasonOther { get; set; }
-        public required string Name { get; set; }
-        public required string Surname { get; set; }
-        public string? Nickname { get; set; }
-        public DateOnly? DateOfBirth { get; set; }
+
+        // Thai name
+        public string? PrefixT { get; set; }
+        public required string NameFirstT { get; set; }
+        public required string NameLastT { get; set; }
+        public string? NicknameT { get; set; }
+
+        // English name
+        public string? PrefixE { get; set; }
+        public string? NameFirstE { get; set; }
+        public string? NameLastE { get; set; }
+        public string? NicknameE { get; set; }
+
+        public string? Gender { get; set; }
+
+        public DateTime? DateOfBirth { get; set; }
         public int? Age { get; set; }
         public string? PlaceOfBirth { get; set; }
         public string? Nationality { get; set; }
@@ -23,7 +35,7 @@ namespace JobOnlineAPI.Models
         public decimal? Weight { get; set; }
         public string? IDCardNo { get; set; }
         public string? IDIssuedBy { get; set; }
-        public DateOnly? IDExpiredDate { get; set; }
+        public DateTime? IDExpiredDate { get; set; }
         public string? Address { get; set; }
         public int? ProvinceID { get; set; }
         public int? DistrictID { get; set; }
