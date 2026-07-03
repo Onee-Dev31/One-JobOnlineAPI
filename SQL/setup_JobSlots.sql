@@ -14,10 +14,43 @@ BEGIN
         CreatedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID), -- who logged in and created it
         RequestedByName      NVARCHAR(200) NULL, -- who asked for it (may not have a system login)
         CreatedAt            DATETIME2 NOT NULL DEFAULT GETDATE(),
-        ModifiedAt           DATETIME2 NULL,
-        CONSTRAINT UQ_JobSlots_Department_SlotNumber UNIQUE (Department, SlotNumber)
+        ModifiedAt           DATETIME2 NULL
     )
     PRINT 'Created JobSlots'
+END
+
+-- Drop the old exact-match unique constraint if it exists (from a previous version of this script).
+-- Replaced by trg_JobSlots_PreventOverlap below, which allows the same Department/SlotNumber
+-- to be reused as long as the date ranges don't overlap.
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_JobSlots_Department_SlotNumber')
+BEGIN
+    ALTER TABLE JobSlots DROP CONSTRAINT UQ_JobSlots_Department_SlotNumber
+END
+
+GO
+-- NULL StartDate/EndDate is treated as unbounded (open-ended), so it is coalesced to the
+-- min/max DATETIME2 value for the overlap comparison, meaning it overlaps everything.
+CREATE OR ALTER TRIGGER trg_JobSlots_PreventOverlap
+ON JobSlots
+AFTER INSERT, UPDATE
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    IF EXISTS (
+        SELECT 1
+        FROM inserted i
+        JOIN JobSlots j
+            ON j.Department = i.Department
+           AND j.SlotNumber = i.SlotNumber
+           AND j.SlotID <> i.SlotID
+           AND COALESCE(i.StartDate, '00010101') <= COALESCE(j.EndDate, '99991231')
+           AND COALESCE(j.StartDate, '00010101') <= COALESCE(i.EndDate, '99991231')
+    )
+    BEGIN
+        RAISERROR('JobSlots: date range overlaps an existing slot with the same Department and SlotNumber.', 16, 1)
+        ROLLBACK TRANSACTION
+    END
 END
 
 GO
