@@ -170,6 +170,21 @@ namespace JobOnlineAPI.Controllers
         /// <summary>
         /// ลบตำแหน่งงาน
         /// </summary>
+        [HttpGet("job-groups")]
+        public async Task<IActionResult> GetJobGroups([FromQuery] int? jobGroupId)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            var result = await connection.QueryAsync(
+                "sp_GetJobGroups",
+                new { JobGroupID = jobGroupId },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(result);
+        }
+
         [HttpDelete("{id}")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> DeleteJob(int id)
