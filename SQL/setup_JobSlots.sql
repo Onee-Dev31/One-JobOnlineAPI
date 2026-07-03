@@ -44,9 +44,29 @@ CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
     @Department NVARCHAR(200)
 AS
 BEGIN
-    SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
-           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt, ModifiedByAdminID
-    FROM JobSlots
+     SELECT
+        JS.SlotID,
+        JS.Department,
+        EMP.COMPANY_CODE AS CompanyCode,
+        JS.SlotNumber,
+        JS.StartDate,
+        JS.EndDate,
+        JS.Status,
+        JS.AssignedApplicantID,
+        JS.AssignedDate,
+        JS.CreatedByAdminID,
+        JS.RequestedByName,
+        JS.CreatedAt,
+        JS.ModifiedAt
+    FROM JobSlots JS
+
+    LEFT JOIN (
+        SELECT DISTINCT
+            COSTCENT,
+            COMPANY_CODE
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+    ) EMP
+        ON JS.Department = EMP.COSTCENT
     WHERE Department = @Department
     ORDER BY SlotNumber
 END
