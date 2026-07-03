@@ -87,6 +87,11 @@ BEGIN
         ModifiedAt        = GETDATE(),
         ModifiedByAdminID = COALESCE(@ModifiedByAdminID, ModifiedByAdminID)
     WHERE SlotID = @SlotID
+
+    SELECT SlotID, Department, SlotNumber, StartDate, EndDate, Status,
+           AssignedApplicantID, AssignedDate, CreatedByAdminID, RequestedByName, CreatedAt, ModifiedAt, ModifiedByAdminID
+    FROM JobSlots
+    WHERE SlotID = @SlotID
 END
 
 GO
