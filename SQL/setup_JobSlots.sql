@@ -14,10 +14,22 @@ BEGIN
         CreatedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID), -- who logged in and created it
         RequestedByName      NVARCHAR(200) NULL, -- who asked for it (may not have a system login)
         CreatedAt            DATETIME2 NOT NULL DEFAULT GETDATE(),
-        ModifiedAt           DATETIME2 NULL,
-        CONSTRAINT UQ_JobSlots_Department_SlotNumber UNIQUE (Department, SlotNumber)
+        ModifiedAt           DATETIME2 NULL
     )
     PRINT 'Created JobSlots'
+END
+
+-- Drop the old exact-match unique constraint if it exists (from a previous version of this script).
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'UQ_JobSlots_Department_SlotNumber')
+BEGIN
+    ALTER TABLE JobSlots DROP CONSTRAINT UQ_JobSlots_Department_SlotNumber
+END
+
+-- Drop the overlap-prevention trigger if it exists (from a previous version of this script).
+-- Department/SlotNumber and date ranges are no longer restricted at the DB level.
+IF EXISTS (SELECT 1 FROM sys.triggers WHERE name = 'trg_JobSlots_PreventOverlap')
+BEGIN
+    DROP TRIGGER trg_JobSlots_PreventOverlap
 END
 
 GO

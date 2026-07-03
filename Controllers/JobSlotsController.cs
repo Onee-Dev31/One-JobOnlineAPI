@@ -32,24 +32,38 @@ namespace JobOnlineAPI.Controllers
                 return BadRequest(ModelState);
 
             using var conn = new SqlConnection(_connectionString);
-            var slotId = await conn.ExecuteScalarAsync<int>(
-                "sp_AddJobSlot",
-                new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.CreatedByAdminID, slot.RequestedByName },
-                commandType: CommandType.StoredProcedure);
+            try
+            {
+                var slotId = await conn.ExecuteScalarAsync<int>(
+                    "sp_AddJobSlot",
+                    new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.CreatedByAdminID, slot.RequestedByName },
+                    commandType: CommandType.StoredProcedure);
 
-            return Ok(new { SlotID = slotId });
+                return Ok(new { SlotID = slotId });
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateSlot(int id, [FromBody] JobSlot slot)
         {
             using var conn = new SqlConnection(_connectionString);
-            await conn.ExecuteAsync(
-                "sp_UpdateJobSlot",
-                new { SlotID = id, slot.StartDate, slot.EndDate, slot.Status },
-                commandType: CommandType.StoredProcedure);
+            try
+            {
+                await conn.ExecuteAsync(
+                    "sp_UpdateJobSlot",
+                    new { SlotID = id, slot.StartDate, slot.EndDate, slot.Status },
+                    commandType: CommandType.StoredProcedure);
 
-            return Ok();
+                return Ok();
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
