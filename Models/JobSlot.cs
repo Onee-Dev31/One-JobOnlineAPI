@@ -19,6 +19,8 @@ namespace JobOnlineAPI.Models
         public string Status { get; set; } = "Open";
 
         public int? AssignedApplicantID { get; set; }
+        public string? AssignedApplicantFirstNameThai { get; set; }
+        public string? AssignedApplicantLastNameThai { get; set; }
         public DateTime? AssignedDate { get; set; }
 
         public int? CreatedByAdminID { get; set; }

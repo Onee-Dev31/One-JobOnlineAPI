@@ -53,6 +53,8 @@ BEGIN
         JS.EndDate,
         JS.Status,
         JS.AssignedApplicantID,
+        APP.FirstNameThai AS AssignedApplicantFirstNameThai,
+        APP.LastNameThai AS AssignedApplicantLastNameThai,
         JS.AssignedDate,
         JS.CreatedByAdminID,
         JS.RequestedByName,
@@ -67,6 +69,8 @@ BEGIN
         FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
     ) EMP
         ON JS.Department = EMP.COSTCENT
+    LEFT JOIN T_APPLICANTS APP
+        ON JS.AssignedApplicantID = APP.ApplicantID
     WHERE Department = @Department
     ORDER BY SlotNumber
 END
