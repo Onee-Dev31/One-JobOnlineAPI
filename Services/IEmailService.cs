@@ -2,6 +2,6 @@
 {
     public interface IEmailService
     {
-        Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? jobIds);
+        Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? jobIds, bool bypassTestMode = false);
     }
 }

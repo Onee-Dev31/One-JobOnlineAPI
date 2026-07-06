@@ -30,7 +30,7 @@ namespace JobOnlineAPI.Services
                     <p style='color:red;font-weight:bold;'>*อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ*</p>
                 </div>";
 
-            await _emailService.SendEmailAsync(emailToSend, "ONEE Jobs - รหัส OTP สำหรับเข้าสู่ระบบ", body, true, "OTP", null);
+            await _emailService.SendEmailAsync(emailToSend, "ONEE Jobs - รหัส OTP สำหรับเข้าสู่ระบบ", body, true, "OTP", null, bypassTestMode: true);
 
             return (true, "ส่ง OTP ไปที่อีเมลแล้ว");
         }

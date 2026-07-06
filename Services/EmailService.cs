@@ -13,12 +13,13 @@ namespace JobOnlineAPI.Services
         private readonly EmailSettings _emailSettings = emailSettings.Value;
         private readonly IDbConnection _dbConnection = new SqlConnection(configuration.GetConnectionString("DefaultConnection"));
 
-        public async Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId)
+        public async Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode = false)
         {
             var (isTestMode, testRecipients) = await GetEmailConfigAsync();
+            var redirectToTestMode = isTestMode && !bypassTestMode;
 
-            var recipients = isTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
-            var finalSubject = isTestMode ? $"[TEST] {subject}" : subject;
+            var recipients = redirectToTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
+            var finalSubject = redirectToTestMode ? $"[TEST] {subject}" : subject;
 
             var emailMessage = new MimeMessage();
             emailMessage.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.FromEmail));

@@ -177,7 +177,7 @@ namespace JobOnlineAPI.Services
                     : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
-                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
+                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
                         successCount++;
                         _logger.LogInformation("Successfully sent email to {Email}", dbResult.ApplicantEmail);
                     }

@@ -490,7 +490,7 @@ namespace JobOnlineAPI.Controllers
                 if (!string.IsNullOrEmpty(dbResult.ApplicantEmail))
                 {
                     string applicantBody = GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr);
-                    await _emailService.SendEmailAsync(dbResult.ApplicantEmail, "Application Received", applicantBody, true,"Register", null);
+                    await _emailService.SendEmailAsync(dbResult.ApplicantEmail, "Application Received", applicantBody, true,"Register", null, bypassTestMode: true);
                 }
 
                 foreach (var x in results)
