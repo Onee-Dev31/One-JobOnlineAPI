@@ -191,7 +191,11 @@ namespace JobOnlineAPI.Repositories
                 PostedDate = job.PostedDate.HasValue ? (object)job.PostedDate.Value : DBNull.Value,
                 ClosingDate = job.ClosingDate.HasValue ? (object)job.ClosingDate.Value : DBNull.Value,
                 ModifiedBy = job.ModifiedBy.HasValue ? (object)job.ModifiedBy.Value : DBNull.Value,
-                ModifiedDate = job.ModifiedDate.HasValue ? (object)job.ModifiedDate.Value : DBNull.Value
+                ModifiedDate = job.ModifiedDate.HasValue ? (object)job.ModifiedDate.Value : DBNull.Value,
+                job.JobGroupID,
+                job.Office,
+                job.Tier,
+                job.EmployeeType
             };
             // await SendJobNotificationEmailsAsync(job, db);
             return await db.ExecuteAsync(sql, parameters, commandType: CommandType.StoredProcedure);
