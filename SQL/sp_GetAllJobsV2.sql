@@ -61,7 +61,7 @@ BEGIN
     CROSS APPLY dbo.fn_GetDepartmentNameFromCoscent(j.Department) d
     WHERE
         (@JobID IS NULL OR j.JobID = @JobID)
-        AND j.ClosingDate >= GETDATE()
+        AND (j.ClosingDate IS NULL OR j.ClosingDate >= GETDATE())
         AND j.JobStatus <> 'Time Up'
     GROUP BY
         j.JobID
