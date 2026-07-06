@@ -99,7 +99,7 @@ BEGIN
                 AND (JS.EndDate IS NULL OR JS.EndDate >= @WindowStart)
             )
           )
-    ORDER BY JS.Department, JS.SlotNumber
+    ORDER BY JS.StartDate, JS.EndDate
 END
 
 GO
