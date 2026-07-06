@@ -187,7 +187,7 @@ namespace JobOnlineAPI.Services
                     }
                 }
 
-                foreach (var staff in resultsWithOpenFor)
+                foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
                 {
                     var emailStaff = staff.Email?.Trim();
                     if (string.IsNullOrWhiteSpace(emailStaff) )
