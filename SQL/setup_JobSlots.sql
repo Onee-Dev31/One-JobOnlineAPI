@@ -47,6 +47,22 @@ CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
     @Year INT = NULL
 AS
 BEGIN
+    DECLARE @WindowStart DATE = NULL, @WindowEnd DATE = NULL;
+
+    IF @Year IS NOT NULL
+    BEGIN
+        IF @Month IS NOT NULL
+        BEGIN
+            SET @WindowStart = DATEFROMPARTS(@Year, @Month, 1);
+            SET @WindowEnd = EOMONTH(@WindowStart);
+        END
+        ELSE
+        BEGIN
+            SET @WindowStart = DATEFROMPARTS(@Year, 1, 1);
+            SET @WindowEnd = DATEFROMPARTS(@Year, 12, 31);
+        END
+    END
+
      SELECT
         JS.SlotID,
         JS.Department,
@@ -77,10 +93,10 @@ BEGIN
     WHERE (@Department IS NULL OR JS.Department = @Department)
       AND (@Company IS NULL OR EMP.COMPANY_CODE = @Company)
       AND (
-            @Month IS NULL OR @Year IS NULL
+            @WindowStart IS NULL
             OR (
-                (JS.StartDate IS NULL OR JS.StartDate <= EOMONTH(DATEFROMPARTS(@Year, @Month, 1)))
-                AND (JS.EndDate IS NULL OR JS.EndDate >= DATEFROMPARTS(@Year, @Month, 1))
+                (JS.StartDate IS NULL OR JS.StartDate <= @WindowEnd)
+                AND (JS.EndDate IS NULL OR JS.EndDate >= @WindowStart)
             )
           )
     ORDER BY JS.Department, JS.SlotNumber

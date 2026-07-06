@@ -16,14 +16,12 @@ namespace JobOnlineAPI.Controllers
         [HttpGet("department")]
         public async Task<IActionResult> GetSlotsByDepartment([FromQuery] string? department, [FromQuery] string? company, [FromQuery] int? month, [FromQuery] int? year)
         {
-            var now = DateTime.Now;
-            var effectiveMonth = month ?? now.Month;
-            var effectiveYear = year ?? now.Year;
+            var effectiveYear = year ?? DateTime.Now.Year;
 
             using var conn = new SqlConnection(_connectionString);
             var slots = await conn.QueryAsync<JobSlot>(
                 "sp_GetJobSlotsByDepartment",
-                new { Department = department, Company = company, Month = effectiveMonth, Year = effectiveYear },
+                new { Department = department, Company = company, Month = month, Year = effectiveYear },
                 commandType: CommandType.StoredProcedure);
 
             return Ok(slots);
