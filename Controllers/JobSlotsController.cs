@@ -13,8 +13,8 @@ namespace JobOnlineAPI.Controllers
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
-        [HttpGet("department/{department?}")]
-        public async Task<IActionResult> GetSlotsByDepartment(string? department, [FromQuery] string? company, [FromQuery] int? month, [FromQuery] int? year)
+        [HttpGet("department")]
+        public async Task<IActionResult> GetSlotsByDepartment([FromQuery] string? department, [FromQuery] string? company, [FromQuery] int? month, [FromQuery] int? year)
         {
             var now = DateTime.Now;
             var effectiveMonth = month ?? now.Month;
