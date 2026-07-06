@@ -41,7 +41,10 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_GetJobSlotsByDepartment
-    @Department NVARCHAR(200)
+    @Department NVARCHAR(200) = NULL,
+    @Company NVARCHAR(50) = NULL,
+    @Month INT = NULL,
+    @Year INT = NULL
 AS
 BEGIN
      SELECT
@@ -71,8 +74,16 @@ BEGIN
         ON JS.Department = EMP.COSTCENT
     LEFT JOIN T_APPLICANTS APP
         ON JS.AssignedApplicantID = APP.ApplicantID
-    WHERE Department = @Department
-    ORDER BY SlotNumber
+    WHERE (@Department IS NULL OR JS.Department = @Department)
+      AND (@Company IS NULL OR EMP.COMPANY_CODE = @Company)
+      AND (
+            @Month IS NULL OR @Year IS NULL
+            OR (
+                (JS.StartDate IS NULL OR JS.StartDate <= EOMONTH(DATEFROMPARTS(@Year, @Month, 1)))
+                AND (JS.EndDate IS NULL OR JS.EndDate >= DATEFROMPARTS(@Year, @Month, 1))
+            )
+          )
+    ORDER BY JS.Department, JS.SlotNumber
 END
 
 GO
