@@ -62,7 +62,11 @@ namespace JobOnlineAPI.Repositories
                     job.OpenFor,
                     ClosingDate = job.ClosingDate.HasValue ? (object)job.ClosingDate.Value : DBNull.Value,
                     CreatedBy = job.CreatedBy.HasValue ? (object)job.CreatedBy.Value : DBNull.Value,
-                    job.CreatedByRole
+                    job.CreatedByRole,
+                    job.JobGroupID,
+                    job.Office,
+                    job.Tier,
+                    job.EmployeeType
                 };
 
                 var result = await db.ExecuteScalarAsync(sql, parameters, commandType: CommandType.StoredProcedure);

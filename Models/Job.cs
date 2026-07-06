@@ -60,5 +60,9 @@ namespace JobOnlineAPI.Models
         public string? OpenForNameThai { get; set; }
         public string? OpenForNameENG { get; set; }
         public string? DepartmentName { get; set; }
+        public int? JobGroupID { get; set; }
+        public string? Office { get; set; }
+        public string? Tier { get; set; }
+        public string? EmployeeType { get; set; }
     }
 }
