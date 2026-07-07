@@ -123,7 +123,8 @@ builder.Services.AddCors(options =>
             "https://ess.oneeclick.co",
             "https://localhost:5173",
             "http://localhost:5175",
-            "http://10.2.0.11:5248"
+            "http://10.2.0.11:5248",
+            "https://10.2.0.11:5248"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
