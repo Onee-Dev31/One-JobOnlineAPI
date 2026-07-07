@@ -89,7 +89,7 @@ namespace JobOnlineAPI.Services
             if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "Applicant")
             {
                 string managerBody = GenerateManagerEmailBody(fullNameThai, jobTitle);
-                foreach (var staff in results)
+                foreach (var staff in results.Where(s => s.Role != 2))
                 {
                     var emailStaff = staff.Email?.Trim();
                     if (string.IsNullOrWhiteSpace(emailStaff))
@@ -248,9 +248,9 @@ namespace JobOnlineAPI.Services
                 <br>
                 <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
             </div>";
-
+            var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
-            return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
+            return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
         }
 
         public async Task<int> SendManagerEmailsAsync(ApplicantRequestData requestData)
@@ -321,12 +321,12 @@ namespace JobOnlineAPI.Services
                 <p style='margin: 0 0 10px 0;'>* สำหรับผู้สมัครที่ต่อรองสำเร็จ ทางฝ่ายฯ จะทำการดำเนินการตามกระบวนการถัดไป เพื่อทำการรับผู้สมัครเข้าเป็นพนักงานและกำหนดวันที่เริ่มงานต่อไป *</p>
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
-
+            var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
             // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
             var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
-            return await SendEmailsAsync(emails!, "ONEE Jobs - List of candidates for job interview", hrBody, null);
+            return await SendEmailsAsync(emails!, subjectEmail, hrBody, null);
         }
 
         public async Task<int> SendHrEmailsAsync(ApplicantRequestData requestData)
@@ -392,9 +392,9 @@ namespace JobOnlineAPI.Services
                 <br>
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
-
+            var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
-            return await SendEmailsAsync(recipients, "ONEE Jobs - List of candidates for job interview", hrBody, null);
+            return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
         }
 
         public async Task<int> SendNotificationEmailsAsync(ApplicantRequestData requestData)
