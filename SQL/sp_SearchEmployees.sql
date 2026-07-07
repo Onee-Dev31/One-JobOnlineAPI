@@ -33,7 +33,7 @@ BEGIN
         t.COMPANY_NAME  AS CompanyName,
         CASE WHEN au.AdminID IS NOT NULL THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS IsAdmin,
         COUNT(*) OVER() AS TotalCount
-    FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE t
+    FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO t
     LEFT JOIN AdminUsers au ON au.EmpNo = t.CODEMPID
     WHERE (@CompanyCode IS NULL OR t.COMPANY_CODE = @CompanyCode)
       AND (@Department IS NULL OR t.COSTCENT = @Department)
