@@ -10,18 +10,15 @@ namespace JobOnlineAPI.Models
         public string Department { get; set; } = string.Empty;
         public string CompanyCode { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "SlotNumber is required.")]
-        public int? SlotNumber { get; set; }
+        [Required(ErrorMessage = "NumberOfPositions is required.")]
+        public int? NumberOfPositions { get; set; }
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
         public string Status { get; set; } = "Open";
 
-        public int? AssignedApplicantID { get; set; }
-        public string? AssignedApplicantFirstNameThai { get; set; }
-        public string? AssignedApplicantLastNameThai { get; set; }
-        public DateTime? AssignedDate { get; set; }
+        public int AssignedCount { get; set; }
 
         public int? CreatedByAdminID { get; set; }
         public string? RequestedByName { get; set; }
@@ -31,9 +28,22 @@ namespace JobOnlineAPI.Models
         public int? ModifiedByAdminID { get; set; }
     }
 
+    public class JobSlotAssignment
+    {
+        public int AssignmentID { get; set; }
+        public int SlotID { get; set; }
+        public int? ApplicantID { get; set; }
+        public string? FirstNameThai { get; set; }
+        public string? LastNameThai { get; set; }
+        public string Status { get; set; } = "Assigned";
+        public DateTime AssignedDate { get; set; }
+    }
+
     public class AssignApplicantRequest
     {
-        [Required(ErrorMessage = "ApplicantID is required.")]
-        public int ApplicantID { get; set; }
+        // Either ApplicantID (sourced from T_APPLICANTS) or FirstNameThai (manual entry) must be provided.
+        public int? ApplicantID { get; set; }
+        public string? FirstNameThai { get; set; }
+        public string? LastNameThai { get; set; }
     }
 }
