@@ -144,7 +144,7 @@ namespace JobOnlineAPI.Services
                                 <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{fullName}</p>
                                 <p>สำเนา ผู้เกี่ยวข้อง</p>
                                 <br>
-                                <p>ทางฝ่ายสรรหาทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
+                                <p>ทางฝ่ายทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
                                 <p>โดยมีรายละเอียด ดังนี้</p>
                                 <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
                                 <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ {applicationFormUri} <span style='color: red; font-weight: bold;'>*</span></p>
@@ -235,7 +235,7 @@ namespace JobOnlineAPI.Services
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายสรรหาบุคคลากร<br>
+                    เรียน ฝ่ายทรัพยากรบุคคล<br>
                     ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
                     มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง <b>{requestData.JobTitle}</b>
                 </p>
@@ -375,9 +375,9 @@ namespace JobOnlineAPI.Services
             string hrBody = $@"
             <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
                 <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายสรรหาทรัพยากรบุคคล<br>
+                    เรียน ฝ่ายทรัพยากรบุคคล<br>
                     หลังจากที่พิจารณาคุณสมบัติของผู้สมัคร ในตำแหน่ง <b>{requestData!.JobTitle}</b> แล้วนั้น <br>
-                    ทางต้นสังกัด ใคร่ขอให้ทางฝ่ายสรรหาทรัพยากรบุคคล ติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียด ดังนี้
+                    ทางต้นสังกัด ใคร่ขอให้ทางฝ่ายทรัพยากรบุคคล ติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียด ดังนี้
                 </p>
                 <p style='margin: 0 0 10px 0;'>
                     {candidateNamesString}
@@ -684,7 +684,7 @@ namespace JobOnlineAPI.Services
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
-                        ทางฝ่ายสรรหาทรัพยากรบุคคล ได้รับเรื่องคำขอของท่านแล้ว <br> 
+                        ทางฝ่ายทรัพยากรบุคคล ได้รับเรื่องคำขอของท่านแล้ว <br> 
                         และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ
                     </p>
                     <br>
