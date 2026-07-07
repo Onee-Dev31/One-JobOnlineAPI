@@ -13,13 +13,15 @@ namespace JobOnlineAPI.Controllers
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
 
-        [HttpGet("department/{department}")]
-        public async Task<IActionResult> GetSlotsByDepartment(string department)
+        [HttpGet("department")]
+        public async Task<IActionResult> GetSlotsByDepartment([FromQuery] string? department, [FromQuery] string? company, [FromQuery] int? month, [FromQuery] int? year)
         {
+            var effectiveYear = year ?? DateTime.Now.Year;
+
             using var conn = new SqlConnection(_connectionString);
             var slots = await conn.QueryAsync<JobSlot>(
                 "sp_GetJobSlotsByDepartment",
-                new { Department = department },
+                new { Department = department, Company = company, Month = month, Year = effectiveYear },
                 commandType: CommandType.StoredProcedure);
 
             return Ok(slots);
@@ -36,7 +38,7 @@ namespace JobOnlineAPI.Controllers
             {
                 var slotId = await conn.ExecuteScalarAsync<int>(
                     "sp_AddJobSlot",
-                    new { slot.Department, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.CreatedByAdminID, slot.RequestedByName },
+                    new { slot.Department, slot.NumberOfPositions, slot.StartDate, slot.EndDate, slot.CreatedByAdminID, slot.RequestedByName },
                     commandType: CommandType.StoredProcedure);
 
                 return Ok(new { SlotID = slotId });
@@ -55,7 +57,7 @@ namespace JobOnlineAPI.Controllers
             {
                 var updated = await conn.QueryFirstOrDefaultAsync<JobSlot>(
                     "sp_UpdateJobSlot",
-                    new { SlotID = id, slot.SlotNumber, slot.StartDate, slot.EndDate, slot.Status, slot.RequestedByName, slot.ModifiedByAdminID },
+                    new { SlotID = id, slot.NumberOfPositions, slot.StartDate, slot.EndDate, slot.Status, slot.RequestedByName, slot.ModifiedByAdminID },
                     commandType: CommandType.StoredProcedure);
 
                 if (updated == null)
@@ -108,9 +110,46 @@ namespace JobOnlineAPI.Controllers
                 return BadRequest(ModelState);
 
             using var conn = new SqlConnection(_connectionString);
+            try
+            {
+                await conn.ExecuteAsync(
+                    "sp_AssignApplicantToSlot",
+                    new
+                    {
+                        SlotID = id,
+                        request.ApplicantID,
+                        ManualFirstNameThai = request.FirstNameThai,
+                        ManualLastNameThai = request.LastNameThai
+                    },
+                    commandType: CommandType.StoredProcedure);
+
+                return Ok();
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/assignments")]
+        public async Task<IActionResult> GetSlotAssignments(int id)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var assignments = await conn.QueryAsync<JobSlotAssignment>(
+                "sp_GetSlotAssignments",
+                new { SlotID = id },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(assignments);
+        }
+
+        [HttpDelete("assignments/{assignmentId}")]
+        public async Task<IActionResult> UnassignApplicant(int assignmentId)
+        {
+            using var conn = new SqlConnection(_connectionString);
             await conn.ExecuteAsync(
-                "sp_AssignApplicantToSlot",
-                new { SlotID = id, request.ApplicantID },
+                "sp_UnassignApplicantFromSlot",
+                new { AssignmentID = assignmentId },
                 commandType: CommandType.StoredProcedure);
 
             return Ok();
