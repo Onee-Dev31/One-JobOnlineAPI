@@ -188,6 +188,8 @@ namespace JobOnlineAPI.Repositories
                 job.Department,
                 job.JobStatus,
                 // job.ApprovalStatus,
+                job.OpenFor,
+                job.Remark,
                 PostedDate = job.PostedDate.HasValue ? (object)job.PostedDate.Value : DBNull.Value,
                 ClosingDate = job.ClosingDate.HasValue ? (object)job.ClosingDate.Value : DBNull.Value,
                 ModifiedBy = job.ModifiedBy.HasValue ? (object)job.ModifiedBy.Value : DBNull.Value,
