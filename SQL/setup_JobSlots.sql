@@ -87,6 +87,10 @@ BEGIN
         ApplicantID          INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
         ManualFirstNameThai  NVARCHAR(200) NULL,
         ManualLastNameThai   NVARCHAR(200) NULL,
+        ManualMobilePhone    NVARCHAR(20) NULL,
+        ManualEmail          NVARCHAR(150) NULL,
+        ManualCitizenID      NVARCHAR(20) NULL,
+        ManualBirthDate      DATE NULL,
         Status               NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
         AssignedDate         DATETIME2 NOT NULL DEFAULT GETDATE(),
         AssignedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
@@ -94,6 +98,16 @@ BEGIN
         ModifiedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
     )
     PRINT 'Created JobSlotAssignments'
+END
+
+-- Add manual contact fields if they don't exist yet (from a previous version of this script).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualMobilePhone')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD
+        ManualMobilePhone NVARCHAR(20) NULL,
+        ManualEmail       NVARCHAR(150) NULL,
+        ManualCitizenID   NVARCHAR(20) NULL,
+        ManualBirthDate   DATE NULL
 END
 
 -- Migrate existing seat assignments (AssignedApplicantID) from the old table into JobSlotAssignments.
@@ -186,6 +200,10 @@ BEGIN
         A.ApplicantID,
         COALESCE(APP.FirstNameThai, A.ManualFirstNameThai) AS FirstNameThai,
         COALESCE(APP.LastNameThai, A.ManualLastNameThai) AS LastNameThai,
+        COALESCE(APP.MobilePhone, A.ManualMobilePhone) AS MobilePhone,
+        COALESCE(APP.Email, A.ManualEmail) AS Email,
+        COALESCE(APP.CitizenID, A.ManualCitizenID) AS CitizenID,
+        COALESCE(APP.BirthDate, A.ManualBirthDate) AS BirthDate,
         A.Status,
         A.AssignedDate
     FROM JobSlotAssignments A
@@ -253,6 +271,10 @@ CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
     @ApplicantID         INT = NULL,
     @ManualFirstNameThai NVARCHAR(200) = NULL,
     @ManualLastNameThai  NVARCHAR(200) = NULL,
+    @ManualMobilePhone   NVARCHAR(20) = NULL,
+    @ManualEmail         NVARCHAR(150) = NULL,
+    @ManualCitizenID     NVARCHAR(20) = NULL,
+    @ManualBirthDate     DATE = NULL,
     @AssignedByAdminID   INT = NULL
 AS
 BEGIN
@@ -279,8 +301,14 @@ BEGIN
         RETURN;
     END
 
-    INSERT INTO JobSlotAssignments (SlotID, ApplicantID, ManualFirstNameThai, ManualLastNameThai, AssignedByAdminID)
-    VALUES (@SlotID, @ApplicantID, @ManualFirstNameThai, @ManualLastNameThai, @AssignedByAdminID)
+    INSERT INTO JobSlotAssignments (
+        SlotID, ApplicantID, ManualFirstNameThai, ManualLastNameThai,
+        ManualMobilePhone, ManualEmail, ManualCitizenID, ManualBirthDate, AssignedByAdminID
+    )
+    VALUES (
+        @SlotID, @ApplicantID, @ManualFirstNameThai, @ManualLastNameThai,
+        @ManualMobilePhone, @ManualEmail, @ManualCitizenID, @ManualBirthDate, @AssignedByAdminID
+    )
 
     IF (@CurrentCount + 1) >= @Capacity
     BEGIN

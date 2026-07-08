@@ -35,6 +35,10 @@ namespace JobOnlineAPI.Models
         public int? ApplicantID { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
+        public string? MobilePhone { get; set; }
+        public string? Email { get; set; }
+        public string? CitizenID { get; set; }
+        public DateTime? BirthDate { get; set; }
         public string Status { get; set; } = "Assigned";
         public DateTime AssignedDate { get; set; }
     }
@@ -45,5 +49,9 @@ namespace JobOnlineAPI.Models
         public int? ApplicantID { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
+        public string? MobilePhone { get; set; }
+        public string? Email { get; set; }
+        public string? CitizenID { get; set; }
+        public DateTime? BirthDate { get; set; }
     }
 }

@@ -119,7 +119,11 @@ namespace JobOnlineAPI.Controllers
                         SlotID = id,
                         request.ApplicantID,
                         ManualFirstNameThai = request.FirstNameThai,
-                        ManualLastNameThai = request.LastNameThai
+                        ManualLastNameThai = request.LastNameThai,
+                        ManualMobilePhone = request.MobilePhone,
+                        ManualEmail = request.Email,
+                        ManualCitizenID = request.CitizenID,
+                        ManualBirthDate = request.BirthDate
                     },
                     commandType: CommandType.StoredProcedure);
 
