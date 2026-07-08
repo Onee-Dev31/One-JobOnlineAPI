@@ -82,20 +82,39 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlotAssignments')
 BEGIN
     CREATE TABLE JobSlotAssignments (
-        AssignmentID         INT IDENTITY(1,1) PRIMARY KEY,
-        SlotID               INT NOT NULL FOREIGN KEY REFERENCES JobSlots(SlotID),
-        ApplicantID          INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
-        ManualFirstNameThai  NVARCHAR(200) NULL,
-        ManualLastNameThai   NVARCHAR(200) NULL,
-        ManualMobilePhone    NVARCHAR(20) NULL,
-        ManualEmail          NVARCHAR(150) NULL,
-        ManualCitizenID      NVARCHAR(20) NULL,
-        ManualBirthDate      DATE NULL,
-        Status               NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
-        AssignedDate         DATETIME2 NOT NULL DEFAULT GETDATE(),
-        AssignedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
-        ModifiedAt           DATETIME2 NULL,
-        ModifiedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
+        AssignmentID                  INT IDENTITY(1,1) PRIMARY KEY,
+        SlotID                        INT NOT NULL FOREIGN KEY REFERENCES JobSlots(SlotID),
+        ApplicantID                   INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
+        ManualTitle                   NVARCHAR(20) NULL,
+        ManualFirstNameThai           NVARCHAR(200) NULL,
+        ManualLastNameThai            NVARCHAR(200) NULL,
+        ManualNickname                NVARCHAR(50) NULL,
+        ManualAge                     INT NULL,
+        ManualYear                    NVARCHAR(10) NULL, -- ชั้นปีการศึกษา
+        ManualGPA                     DECIMAL(3, 2) NULL,
+        ManualMajor                   NVARCHAR(200) NULL,
+        ManualFaculty                 NVARCHAR(200) NULL,
+        ManualUniversity              NVARCHAR(200) NULL,
+        ManualInternshipType          NVARCHAR(50) NULL, -- ฝึกงานภาคฤดูร้อน / ฝึกงานตามหลักสูตร / ฝึกงานสหกิจ
+        ManualInternStartDate         DATE NULL,
+        ManualInternEndDate           DATE NULL,
+        ManualDurationMonths          NVARCHAR(20) NULL,
+        ManualPreferredPosition       NVARCHAR(100) NULL,
+        ManualPreferredPositionBackup NVARCHAR(100) NULL,
+        ManualMobilePhone             NVARCHAR(20) NULL,
+        ManualEmail                   NVARCHAR(150) NULL,
+        ManualCanCommute              BIT NULL, -- สะดวกเดินทางมาทำงานที่ตึกได้หรือไม่
+        ManualCanTravelOutside        BIT NULL, -- สะดวกออกกองข้างนอก/ต่างจังหวัดหรือไม่ (Production)
+        ManualFlexibleWork            BIT NULL, -- ทำงานแบบยืดหยุ่นได้หรือไม่ (Production)
+        ManualTranscriptUrl           NVARCHAR(500) NULL,
+        ManualResumeLink              NVARCHAR(500) NULL,
+        ManualPortfolioLink           NVARCHAR(500) NULL,
+        ManualReasonForInterest       NVARCHAR(1000) NULL,
+        Status                        NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
+        AssignedDate                  DATETIME2 NOT NULL DEFAULT GETDATE(),
+        AssignedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        ModifiedAt                    DATETIME2 NULL,
+        ModifiedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
     )
     PRINT 'Created JobSlotAssignments'
 END
@@ -105,9 +124,42 @@ IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAss
 BEGIN
     ALTER TABLE JobSlotAssignments ADD
         ManualMobilePhone NVARCHAR(20) NULL,
-        ManualEmail       NVARCHAR(150) NULL,
-        ManualCitizenID   NVARCHAR(20) NULL,
-        ManualBirthDate   DATE NULL
+        ManualEmail       NVARCHAR(150) NULL
+END
+
+-- Drop CitizenID/BirthDate from a previous version of this script — the internship application
+-- form (docs.google.com/forms/.../1FAIpQLSesXWC0Hnng3mfc9Rl27VGsITC4XExcnONyOaiSuf0gMcrPIA) collects
+-- Age instead, and doesn't ask for a citizen ID at all.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualCitizenID')
+BEGIN
+    ALTER TABLE JobSlotAssignments DROP COLUMN ManualCitizenID, ManualBirthDate
+END
+
+-- Add the remaining internship-application fields if they don't exist yet (from a previous version of this script).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualNickname')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD
+        ManualTitle                   NVARCHAR(20) NULL,
+        ManualNickname                NVARCHAR(50) NULL,
+        ManualAge                     INT NULL,
+        ManualYear                    NVARCHAR(10) NULL,
+        ManualGPA                     DECIMAL(3, 2) NULL,
+        ManualMajor                   NVARCHAR(200) NULL,
+        ManualFaculty                 NVARCHAR(200) NULL,
+        ManualUniversity              NVARCHAR(200) NULL,
+        ManualInternshipType          NVARCHAR(50) NULL,
+        ManualInternStartDate         DATE NULL,
+        ManualInternEndDate           DATE NULL,
+        ManualDurationMonths          NVARCHAR(20) NULL,
+        ManualPreferredPosition       NVARCHAR(100) NULL,
+        ManualPreferredPositionBackup NVARCHAR(100) NULL,
+        ManualCanCommute              BIT NULL,
+        ManualCanTravelOutside        BIT NULL,
+        ManualFlexibleWork            BIT NULL,
+        ManualTranscriptUrl           NVARCHAR(500) NULL,
+        ManualResumeLink              NVARCHAR(500) NULL,
+        ManualPortfolioLink           NVARCHAR(500) NULL,
+        ManualReasonForInterest       NVARCHAR(1000) NULL
 END
 
 -- Migrate existing seat assignments (AssignedApplicantID) from the old table into JobSlotAssignments.
@@ -198,12 +250,31 @@ BEGIN
         A.AssignmentID,
         A.SlotID,
         A.ApplicantID,
+        COALESCE(APP.Title, A.ManualTitle) AS Title,
         COALESCE(APP.FirstNameThai, A.ManualFirstNameThai) AS FirstNameThai,
         COALESCE(APP.LastNameThai, A.ManualLastNameThai) AS LastNameThai,
+        COALESCE(APP.Nickname, A.ManualNickname) AS Nickname,
+        A.ManualAge AS Age,
+        A.ManualYear AS Year,
+        A.ManualGPA AS GPA,
+        A.ManualMajor AS Major,
+        A.ManualFaculty AS Faculty,
+        A.ManualUniversity AS University,
+        A.ManualInternshipType AS InternshipType,
+        A.ManualInternStartDate AS InternStartDate,
+        A.ManualInternEndDate AS InternEndDate,
+        A.ManualDurationMonths AS DurationMonths,
+        A.ManualPreferredPosition AS PreferredPosition,
+        A.ManualPreferredPositionBackup AS PreferredPositionBackup,
         COALESCE(APP.MobilePhone, A.ManualMobilePhone) AS MobilePhone,
         COALESCE(APP.Email, A.ManualEmail) AS Email,
-        COALESCE(APP.CitizenID, A.ManualCitizenID) AS CitizenID,
-        COALESCE(APP.BirthDate, A.ManualBirthDate) AS BirthDate,
+        A.ManualCanCommute AS CanCommute,
+        A.ManualCanTravelOutside AS CanTravelOutside,
+        A.ManualFlexibleWork AS FlexibleWork,
+        A.ManualTranscriptUrl AS TranscriptUrl,
+        A.ManualResumeLink AS ResumeLink,
+        A.ManualPortfolioLink AS PortfolioLink,
+        A.ManualReasonForInterest AS ReasonForInterest,
         A.Status,
         A.AssignedDate
     FROM JobSlotAssignments A
@@ -267,15 +338,34 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
-    @SlotID              INT,
-    @ApplicantID         INT = NULL,
-    @ManualFirstNameThai NVARCHAR(200) = NULL,
-    @ManualLastNameThai  NVARCHAR(200) = NULL,
-    @ManualMobilePhone   NVARCHAR(20) = NULL,
-    @ManualEmail         NVARCHAR(150) = NULL,
-    @ManualCitizenID     NVARCHAR(20) = NULL,
-    @ManualBirthDate     DATE = NULL,
-    @AssignedByAdminID   INT = NULL
+    @SlotID                        INT,
+    @ApplicantID                   INT = NULL,
+    @ManualTitle                   NVARCHAR(20) = NULL,
+    @ManualFirstNameThai           NVARCHAR(200) = NULL,
+    @ManualLastNameThai            NVARCHAR(200) = NULL,
+    @ManualNickname                NVARCHAR(50) = NULL,
+    @ManualAge                     INT = NULL,
+    @ManualYear                    NVARCHAR(10) = NULL,
+    @ManualGPA                     DECIMAL(3, 2) = NULL,
+    @ManualMajor                   NVARCHAR(200) = NULL,
+    @ManualFaculty                 NVARCHAR(200) = NULL,
+    @ManualUniversity              NVARCHAR(200) = NULL,
+    @ManualInternshipType          NVARCHAR(50) = NULL,
+    @ManualInternStartDate         DATE = NULL,
+    @ManualInternEndDate           DATE = NULL,
+    @ManualDurationMonths          NVARCHAR(20) = NULL,
+    @ManualPreferredPosition       NVARCHAR(100) = NULL,
+    @ManualPreferredPositionBackup NVARCHAR(100) = NULL,
+    @ManualMobilePhone             NVARCHAR(20) = NULL,
+    @ManualEmail                   NVARCHAR(150) = NULL,
+    @ManualCanCommute              BIT = NULL,
+    @ManualCanTravelOutside        BIT = NULL,
+    @ManualFlexibleWork            BIT = NULL,
+    @ManualTranscriptUrl           NVARCHAR(500) = NULL,
+    @ManualResumeLink              NVARCHAR(500) = NULL,
+    @ManualPortfolioLink           NVARCHAR(500) = NULL,
+    @ManualReasonForInterest       NVARCHAR(1000) = NULL,
+    @AssignedByAdminID             INT = NULL
 AS
 BEGIN
     IF @ApplicantID IS NULL AND @ManualFirstNameThai IS NULL
@@ -302,12 +392,22 @@ BEGIN
     END
 
     INSERT INTO JobSlotAssignments (
-        SlotID, ApplicantID, ManualFirstNameThai, ManualLastNameThai,
-        ManualMobilePhone, ManualEmail, ManualCitizenID, ManualBirthDate, AssignedByAdminID
+        SlotID, ApplicantID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
+        ManualAge, ManualYear, ManualGPA, ManualMajor, ManualFaculty, ManualUniversity,
+        ManualInternshipType, ManualInternStartDate, ManualInternEndDate, ManualDurationMonths,
+        ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
+        ManualCanCommute, ManualCanTravelOutside, ManualFlexibleWork,
+        ManualTranscriptUrl, ManualResumeLink, ManualPortfolioLink, ManualReasonForInterest,
+        AssignedByAdminID
     )
     VALUES (
-        @SlotID, @ApplicantID, @ManualFirstNameThai, @ManualLastNameThai,
-        @ManualMobilePhone, @ManualEmail, @ManualCitizenID, @ManualBirthDate, @AssignedByAdminID
+        @SlotID, @ApplicantID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
+        @ManualAge, @ManualYear, @ManualGPA, @ManualMajor, @ManualFaculty, @ManualUniversity,
+        @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
+        @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
+        @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork,
+        @ManualTranscriptUrl, @ManualResumeLink, @ManualPortfolioLink, @ManualReasonForInterest,
+        @AssignedByAdminID
     )
 
     IF (@CurrentCount + 1) >= @Capacity

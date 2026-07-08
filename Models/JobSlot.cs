@@ -33,12 +33,31 @@ namespace JobOnlineAPI.Models
         public int AssignmentID { get; set; }
         public int SlotID { get; set; }
         public int? ApplicantID { get; set; }
+        public string? Title { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
+        public string? Nickname { get; set; }
+        public int? Age { get; set; }
+        public string? Year { get; set; }
+        public decimal? GPA { get; set; }
+        public string? Major { get; set; }
+        public string? Faculty { get; set; }
+        public string? University { get; set; }
+        public string? InternshipType { get; set; }
+        public DateTime? InternStartDate { get; set; }
+        public DateTime? InternEndDate { get; set; }
+        public string? DurationMonths { get; set; }
+        public string? PreferredPosition { get; set; }
+        public string? PreferredPositionBackup { get; set; }
         public string? MobilePhone { get; set; }
         public string? Email { get; set; }
-        public string? CitizenID { get; set; }
-        public DateTime? BirthDate { get; set; }
+        public bool? CanCommute { get; set; }
+        public bool? CanTravelOutside { get; set; }
+        public bool? FlexibleWork { get; set; }
+        public string? TranscriptUrl { get; set; }
+        public string? ResumeLink { get; set; }
+        public string? PortfolioLink { get; set; }
+        public string? ReasonForInterest { get; set; }
         public string Status { get; set; } = "Assigned";
         public DateTime AssignedDate { get; set; }
     }
@@ -47,11 +66,30 @@ namespace JobOnlineAPI.Models
     {
         // Either ApplicantID (sourced from T_APPLICANTS) or FirstNameThai (manual entry) must be provided.
         public int? ApplicantID { get; set; }
+        public string? Title { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }
+        public string? Nickname { get; set; }
+        public int? Age { get; set; }
+        public string? Year { get; set; }
+        public decimal? GPA { get; set; }
+        public string? Major { get; set; }
+        public string? Faculty { get; set; }
+        public string? University { get; set; }
+        public string? InternshipType { get; set; }
+        public DateTime? InternStartDate { get; set; }
+        public DateTime? InternEndDate { get; set; }
+        public string? DurationMonths { get; set; }
+        public string? PreferredPosition { get; set; }
+        public string? PreferredPositionBackup { get; set; }
         public string? MobilePhone { get; set; }
         public string? Email { get; set; }
-        public string? CitizenID { get; set; }
-        public DateTime? BirthDate { get; set; }
+        public bool? CanCommute { get; set; }
+        public bool? CanTravelOutside { get; set; }
+        public bool? FlexibleWork { get; set; }
+        public string? TranscriptUrl { get; set; }
+        public string? ResumeLink { get; set; }
+        public string? PortfolioLink { get; set; }
+        public string? ReasonForInterest { get; set; }
     }
 }

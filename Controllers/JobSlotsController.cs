@@ -118,12 +118,31 @@ namespace JobOnlineAPI.Controllers
                     {
                         SlotID = id,
                         request.ApplicantID,
+                        ManualTitle = request.Title,
                         ManualFirstNameThai = request.FirstNameThai,
                         ManualLastNameThai = request.LastNameThai,
+                        ManualNickname = request.Nickname,
+                        ManualAge = request.Age,
+                        ManualYear = request.Year,
+                        ManualGPA = request.GPA,
+                        ManualMajor = request.Major,
+                        ManualFaculty = request.Faculty,
+                        ManualUniversity = request.University,
+                        ManualInternshipType = request.InternshipType,
+                        ManualInternStartDate = request.InternStartDate,
+                        ManualInternEndDate = request.InternEndDate,
+                        ManualDurationMonths = request.DurationMonths,
+                        ManualPreferredPosition = request.PreferredPosition,
+                        ManualPreferredPositionBackup = request.PreferredPositionBackup,
                         ManualMobilePhone = request.MobilePhone,
                         ManualEmail = request.Email,
-                        ManualCitizenID = request.CitizenID,
-                        ManualBirthDate = request.BirthDate
+                        ManualCanCommute = request.CanCommute,
+                        ManualCanTravelOutside = request.CanTravelOutside,
+                        ManualFlexibleWork = request.FlexibleWork,
+                        ManualTranscriptUrl = request.TranscriptUrl,
+                        ManualResumeLink = request.ResumeLink,
+                        ManualPortfolioLink = request.PortfolioLink,
+                        ManualReasonForInterest = request.ReasonForInterest
                     },
                     commandType: CommandType.StoredProcedure);
 
