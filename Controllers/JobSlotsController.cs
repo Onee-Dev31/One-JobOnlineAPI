@@ -95,7 +95,7 @@ namespace JobOnlineAPI.Controllers
                 new { SlotID = id },
                 commandType: CommandType.StoredProcedure);
 
-            return Ok();
+            return Ok(new { SlotID = id, message = "ลบ Slot เรียบร้อยแล้ว" });
         }
 
         [HttpGet("job/{jobId}/candidates")]
@@ -267,7 +267,7 @@ namespace JobOnlineAPI.Controllers
 
             foreach (var assignment in assignments)
             {
-                assignment.Files = files.Where(f => f.AssignmentID == assignment.AssignmentID).ToList();
+                assignment.Files = [.. files.Where(f => f.AssignmentID == assignment.AssignmentID)];
             }
 
             return Ok(assignments);
@@ -282,7 +282,7 @@ namespace JobOnlineAPI.Controllers
                 new { AssignmentID = assignmentId },
                 commandType: CommandType.StoredProcedure);
 
-            return Ok();
+            return Ok(new { AssignmentID = assignmentId, message = "ยกเลิกการมอบหมายเรียบร้อยแล้ว" });
         }
 
         [HttpGet("dashboard")]
