@@ -1,17 +1,32 @@
 using Dapper;
 using JobOnlineAPI.Models;
+using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Text.Json;
 
 namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class JobSlotsController(IConfiguration configuration) : ControllerBase
+    public class JobSlotsController(
+        IConfiguration configuration,
+        INetworkShareService networkShareService) : ControllerBase
     {
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+        private readonly INetworkShareService _networkShareService = networkShareService;
+
+        private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private static readonly string[] AllowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"];
+        private static readonly string[] AllowedMimeTypes =
+        [
+            "application/pdf", "image/png", "image/jpeg",
+            "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        ];
+        private const long MaxFileSize = 40 * 1024 * 1024;
 
         [HttpGet("department")]
         public async Task<IActionResult> GetSlotsByDepartment([FromQuery] string? department, [FromQuery] string? company, [FromQuery] int? month, [FromQuery] int? year)
@@ -116,53 +131,125 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPut("{id}/assign")]
-        public async Task<IActionResult> AssignApplicant(int id, [FromBody] AssignApplicantRequest request)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> AssignApplicant(
+            int id,
+            [FromForm] string jsonData,
+            [FromForm] List<IFormFile>? resumeFiles,
+            [FromForm] List<IFormFile>? cvFiles)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
-            using var conn = new SqlConnection(_connectionString);
+            AssignApplicantRequest? request;
             try
             {
+                request = JsonSerializer.Deserialize<AssignApplicantRequest>(jsonData, JsonOptions);
+            }
+            catch
+            {
+                return BadRequest(new { message = "jsonData ไม่ถูกต้อง" });
+            }
+
+            if (request == null)
+                return BadRequest(new { message = "jsonData ไม่ถูกต้อง" });
+
+            await _networkShareService.ConnectAsync();
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                try
+                {
+                    var assignmentId = await conn.ExecuteScalarAsync<int>(
+                        "sp_AssignApplicantToSlot",
+                        new
+                        {
+                            SlotID = id,
+                            request.ApplicantID,
+                            ManualTitle = request.Title,
+                            ManualFirstNameThai = request.FirstNameThai,
+                            ManualLastNameThai = request.LastNameThai,
+                            ManualNickname = request.Nickname,
+                            ManualAge = request.Age,
+                            ManualYear = request.Year,
+                            ManualGPA = request.GPA,
+                            ManualMajor = request.Major,
+                            ManualFaculty = request.Faculty,
+                            ManualUniversity = request.University,
+                            ManualInternshipType = request.InternshipType,
+                            ManualInternStartDate = request.InternStartDate,
+                            ManualInternEndDate = request.InternEndDate,
+                            ManualDurationMonths = request.DurationMonths,
+                            ManualPreferredPosition = request.PreferredPosition,
+                            ManualPreferredPositionBackup = request.PreferredPositionBackup,
+                            ManualMobilePhone = request.MobilePhone,
+                            ManualEmail = request.Email,
+                            ManualCanCommute = request.CanCommute,
+                            ManualCanTravelOutside = request.CanTravelOutside,
+                            ManualFlexibleWork = request.FlexibleWork,
+                            ManualReasonForInterest = request.ReasonForInterest
+                        },
+                        commandType: CommandType.StoredProcedure);
+
+                    var fileGroups = new[]
+                    {
+                        (Files: resumeFiles, Section: "resume"),
+                        (Files: cvFiles,     Section: "cv"),
+                    };
+
+                    foreach (var (files, section) in fileGroups)
+                    {
+                        if (files == null || files.Count == 0) continue;
+                        await SaveFilesAsync(conn, files, assignmentId, section);
+                    }
+
+                    return Ok(new { AssignmentID = assignmentId });
+                }
+                catch (SqlException ex)
+                {
+                    return BadRequest(new { message = ex.Message });
+                }
+            }
+            finally
+            {
+                _networkShareService.Disconnect();
+            }
+        }
+
+        private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int assignmentId, string section)
+        {
+            var folder = Path.Combine(_networkShareService.GetBasePath(), $"jobslot_assignment_{assignmentId}");
+            Directory.CreateDirectory(folder);
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0) continue;
+
+                if (file.Length > MaxFileSize)
+                    throw new InvalidOperationException($"ไฟล์ {file.FileName} ใหญ่เกิน 40MB");
+
+                var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
+                if (!AllowedExtensions.Contains(ext))
+                    throw new InvalidOperationException($"ไฟล์ {file.FileName} ไม่รองรับนามสกุล {ext}");
+
+                if (!AllowedMimeTypes.Contains(file.ContentType))
+                    throw new InvalidOperationException($"ไฟล์ {file.FileName} มี MIME type ไม่ถูกต้อง");
+
+                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                var filePath = Path.Combine(folder, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                    await file.CopyToAsync(stream);
+
                 await conn.ExecuteAsync(
-                    "sp_AssignApplicantToSlot",
+                    @"INSERT INTO JobSlotAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
+                      VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)",
                     new
                     {
-                        SlotID = id,
-                        request.ApplicantID,
-                        ManualTitle = request.Title,
-                        ManualFirstNameThai = request.FirstNameThai,
-                        ManualLastNameThai = request.LastNameThai,
-                        ManualNickname = request.Nickname,
-                        ManualAge = request.Age,
-                        ManualYear = request.Year,
-                        ManualGPA = request.GPA,
-                        ManualMajor = request.Major,
-                        ManualFaculty = request.Faculty,
-                        ManualUniversity = request.University,
-                        ManualInternshipType = request.InternshipType,
-                        ManualInternStartDate = request.InternStartDate,
-                        ManualInternEndDate = request.InternEndDate,
-                        ManualDurationMonths = request.DurationMonths,
-                        ManualPreferredPosition = request.PreferredPosition,
-                        ManualPreferredPositionBackup = request.PreferredPositionBackup,
-                        ManualMobilePhone = request.MobilePhone,
-                        ManualEmail = request.Email,
-                        ManualCanCommute = request.CanCommute,
-                        ManualCanTravelOutside = request.CanTravelOutside,
-                        ManualFlexibleWork = request.FlexibleWork,
-                        ManualTranscriptUrl = request.TranscriptUrl,
-                        ManualResumeLink = request.ResumeLink,
-                        ManualPortfolioLink = request.PortfolioLink,
-                        ManualReasonForInterest = request.ReasonForInterest
-                    },
-                    commandType: CommandType.StoredProcedure);
-
-                return Ok();
-            }
-            catch (SqlException ex)
-            {
-                return BadRequest(new { message = ex.Message });
+                        AssignmentID = assignmentId,
+                        FilePath = filePath.Replace('\\', '/'),
+                        FileName = fileName,
+                        FileSize = file.Length,
+                        FileType = file.ContentType,
+                        SectionFile = section
+                    });
             }
         }
 
@@ -170,10 +257,18 @@ namespace JobOnlineAPI.Controllers
         public async Task<IActionResult> GetSlotAssignments(int id)
         {
             using var conn = new SqlConnection(_connectionString);
-            var assignments = await conn.QueryAsync<JobSlotAssignment>(
+            using var multi = await conn.QueryMultipleAsync(
                 "sp_GetSlotAssignments",
                 new { SlotID = id },
                 commandType: CommandType.StoredProcedure);
+
+            var assignments = (await multi.ReadAsync<JobSlotAssignment>()).ToList();
+            var files = (await multi.ReadAsync<JobSlotAssignmentFile>()).ToList();
+
+            foreach (var assignment in assignments)
+            {
+                assignment.Files = files.Where(f => f.AssignmentID == assignment.AssignmentID).ToList();
+            }
 
             return Ok(assignments);
         }

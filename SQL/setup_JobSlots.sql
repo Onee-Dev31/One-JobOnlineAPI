@@ -106,9 +106,6 @@ BEGIN
         ManualCanCommute              BIT NULL, -- สะดวกเดินทางมาทำงานที่ตึกได้หรือไม่
         ManualCanTravelOutside        BIT NULL, -- สะดวกออกกองข้างนอก/ต่างจังหวัดหรือไม่ (Production)
         ManualFlexibleWork            BIT NULL, -- ทำงานแบบยืดหยุ่นได้หรือไม่ (Production)
-        ManualTranscriptUrl           NVARCHAR(500) NULL,
-        ManualResumeLink              NVARCHAR(500) NULL,
-        ManualPortfolioLink           NVARCHAR(500) NULL,
         ManualReasonForInterest       NVARCHAR(1000) NULL,
         Status                        NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
         AssignedDate                  DATETIME2 NOT NULL DEFAULT GETDATE(),
@@ -117,6 +114,31 @@ BEGIN
         ModifiedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
     )
     PRINT 'Created JobSlotAssignments'
+END
+
+-- Table: JobSlotAssignmentFiles
+-- Attached files (Resume, CV) for a JobSlotAssignments row. Replaces the old
+-- ManualTranscriptUrl/ManualResumeLink/ManualPortfolioLink link fields.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlotAssignmentFiles')
+BEGIN
+    CREATE TABLE JobSlotAssignmentFiles (
+        FileID          INT IDENTITY(1,1) PRIMARY KEY,
+        AssignmentID    INT NOT NULL FOREIGN KEY REFERENCES JobSlotAssignments(AssignmentID),
+        FilePath        NVARCHAR(500) NOT NULL,
+        FileName        NVARCHAR(300) NOT NULL,
+        FileSize        BIGINT NOT NULL,
+        FileType        NVARCHAR(100) NULL,
+        SectionFile     NVARCHAR(20) NOT NULL, -- resume / cv
+        UploadedDate    DATETIME2 NOT NULL DEFAULT GETDATE()
+    )
+    PRINT 'Created JobSlotAssignmentFiles'
+END
+
+-- Drop the old manual link columns (from a previous version of this script) — attachments are now
+-- stored as files in JobSlotAssignmentFiles instead of pasted links.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualTranscriptUrl')
+BEGIN
+    ALTER TABLE JobSlotAssignments DROP COLUMN ManualTranscriptUrl, ManualResumeLink, ManualPortfolioLink
 END
 
 -- Add manual contact fields if they don't exist yet (from a previous version of this script).
@@ -156,9 +178,6 @@ BEGIN
         ManualCanCommute              BIT NULL,
         ManualCanTravelOutside        BIT NULL,
         ManualFlexibleWork            BIT NULL,
-        ManualTranscriptUrl           NVARCHAR(500) NULL,
-        ManualResumeLink              NVARCHAR(500) NULL,
-        ManualPortfolioLink           NVARCHAR(500) NULL,
         ManualReasonForInterest       NVARCHAR(1000) NULL
 END
 
@@ -271,9 +290,6 @@ BEGIN
         A.ManualCanCommute AS CanCommute,
         A.ManualCanTravelOutside AS CanTravelOutside,
         A.ManualFlexibleWork AS FlexibleWork,
-        A.ManualTranscriptUrl AS TranscriptUrl,
-        A.ManualResumeLink AS ResumeLink,
-        A.ManualPortfolioLink AS PortfolioLink,
         A.ManualReasonForInterest AS ReasonForInterest,
         A.Status,
         A.AssignedDate
@@ -282,6 +298,20 @@ BEGIN
     WHERE A.SlotID = @SlotID
       AND A.Status <> 'Cancelled'
     ORDER BY A.AssignedDate
+
+    SELECT
+        F.FileID,
+        F.AssignmentID,
+        F.FilePath,
+        F.FileName,
+        F.FileSize,
+        F.FileType,
+        F.SectionFile,
+        F.UploadedDate
+    FROM JobSlotAssignmentFiles F
+    INNER JOIN JobSlotAssignments A ON A.AssignmentID = F.AssignmentID
+    WHERE A.SlotID = @SlotID
+      AND A.Status <> 'Cancelled'
 END
 
 GO
@@ -361,9 +391,6 @@ CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
     @ManualCanCommute              BIT = NULL,
     @ManualCanTravelOutside        BIT = NULL,
     @ManualFlexibleWork            BIT = NULL,
-    @ManualTranscriptUrl           NVARCHAR(500) = NULL,
-    @ManualResumeLink              NVARCHAR(500) = NULL,
-    @ManualPortfolioLink           NVARCHAR(500) = NULL,
     @ManualReasonForInterest       NVARCHAR(1000) = NULL,
     @AssignedByAdminID             INT = NULL
 AS
@@ -397,7 +424,7 @@ BEGIN
         ManualInternshipType, ManualInternStartDate, ManualInternEndDate, ManualDurationMonths,
         ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
         ManualCanCommute, ManualCanTravelOutside, ManualFlexibleWork,
-        ManualTranscriptUrl, ManualResumeLink, ManualPortfolioLink, ManualReasonForInterest,
+        ManualReasonForInterest,
         AssignedByAdminID
     )
     VALUES (
@@ -406,14 +433,18 @@ BEGIN
         @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
         @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
         @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork,
-        @ManualTranscriptUrl, @ManualResumeLink, @ManualPortfolioLink, @ManualReasonForInterest,
+        @ManualReasonForInterest,
         @AssignedByAdminID
     )
+
+    DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
 
     IF (@CurrentCount + 1) >= @Capacity
     BEGIN
         UPDATE JobSlots SET Status = 'Filled', ModifiedAt = GETDATE() WHERE SlotID = @SlotID
     END
+
+    SELECT @NewAssignmentID AS AssignmentID
 END
 
 GO

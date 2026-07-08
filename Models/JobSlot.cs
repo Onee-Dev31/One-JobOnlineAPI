@@ -54,12 +54,22 @@ namespace JobOnlineAPI.Models
         public bool? CanCommute { get; set; }
         public bool? CanTravelOutside { get; set; }
         public bool? FlexibleWork { get; set; }
-        public string? TranscriptUrl { get; set; }
-        public string? ResumeLink { get; set; }
-        public string? PortfolioLink { get; set; }
         public string? ReasonForInterest { get; set; }
         public string Status { get; set; } = "Assigned";
         public DateTime AssignedDate { get; set; }
+        public List<JobSlotAssignmentFile> Files { get; set; } = [];
+    }
+
+    public class JobSlotAssignmentFile
+    {
+        public int FileID { get; set; }
+        public int AssignmentID { get; set; }
+        public string FilePath { get; set; } = "";
+        public string FileName { get; set; } = "";
+        public long FileSize { get; set; }
+        public string? FileType { get; set; }
+        public string? SectionFile { get; set; }
+        public DateTime UploadedDate { get; set; }
     }
 
     public class AssignApplicantRequest
@@ -87,9 +97,6 @@ namespace JobOnlineAPI.Models
         public bool? CanCommute { get; set; }
         public bool? CanTravelOutside { get; set; }
         public bool? FlexibleWork { get; set; }
-        public string? TranscriptUrl { get; set; }
-        public string? ResumeLink { get; set; }
-        public string? PortfolioLink { get; set; }
         public string? ReasonForInterest { get; set; }
     }
 }
