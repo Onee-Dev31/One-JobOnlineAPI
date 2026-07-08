@@ -103,6 +103,18 @@ namespace JobOnlineAPI.Controllers
             return Ok(new { Candidates = candidates, Slots = slots });
         }
 
+        [HttpGet("trainee-candidates")]
+        public async Task<IActionResult> GetTraineeSlotCandidates([FromQuery] string? department)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var candidates = await conn.QueryAsync(
+                "sp_GetTraineeSlotCandidates",
+                new { Department = department },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(candidates);
+        }
+
         [HttpPut("{id}/assign")]
         public async Task<IActionResult> AssignApplicant(int id, [FromBody] AssignApplicantRequest request)
         {

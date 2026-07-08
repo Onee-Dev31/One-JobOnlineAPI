@@ -452,3 +452,34 @@ BEGIN
              JS.CreatedByAdminID, JS.RequestedByName, JS.ModifiedByAdminID
     ORDER BY JS.Department, JS.StartDate, JS.EndDate
 END
+
+GO
+-- Candidates ready to be assigned into a trainee slot: applicants who applied to a
+-- job posting for students (Jobs.EmployeeType = 'นักศึกษาฝึกงาน') and whose application
+-- has reached the "Employment confirm" status.
+CREATE OR ALTER PROCEDURE sp_GetTraineeSlotCandidates
+    @Department NVARCHAR(200) = NULL
+AS
+BEGIN
+    SELECT
+        JA.ApplicationID,
+        JA.ApplicantID,
+        JA.JobID,
+        J.JobTitle,
+        J.Department,
+        JA.Status,
+        JA.SubmissionDate,
+        APP.Title,
+        APP.FirstNameThai,
+        APP.LastNameThai,
+        APP.Nickname,
+        APP.MobilePhone,
+        APP.Email
+    FROM JobApplications JA
+    INNER JOIN Jobs J ON J.JobID = JA.JobID
+    INNER JOIN T_APPLICANTS APP ON APP.ApplicantID = JA.ApplicantID
+    WHERE J.EmployeeType = N'นักศึกษาฝึกงาน'
+      AND JA.Status = 'Employment confirm'
+      AND (@Department IS NULL OR J.Department = @Department)
+    ORDER BY JA.SubmissionDate
+END
