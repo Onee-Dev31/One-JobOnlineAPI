@@ -147,6 +147,7 @@ builder.Services.AddScoped<IHRStaffRepository, HRStaffRepository>();
 builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IUniversityService, UniversityService>();
 builder.Services.AddScoped<ILdapService, LdapService>();
 builder.Services.AddScoped<IConsentService, ConsentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
