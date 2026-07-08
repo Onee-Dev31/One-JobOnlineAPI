@@ -82,18 +82,103 @@ GO
 IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlotAssignments')
 BEGIN
     CREATE TABLE JobSlotAssignments (
-        AssignmentID         INT IDENTITY(1,1) PRIMARY KEY,
-        SlotID               INT NOT NULL FOREIGN KEY REFERENCES JobSlots(SlotID),
-        ApplicantID          INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
-        ManualFirstNameThai  NVARCHAR(200) NULL,
-        ManualLastNameThai   NVARCHAR(200) NULL,
-        Status               NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
-        AssignedDate         DATETIME2 NOT NULL DEFAULT GETDATE(),
-        AssignedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
-        ModifiedAt           DATETIME2 NULL,
-        ModifiedByAdminID    INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
+        AssignmentID                  INT IDENTITY(1,1) PRIMARY KEY,
+        SlotID                        INT NOT NULL FOREIGN KEY REFERENCES JobSlots(SlotID),
+        ApplicantID                   INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
+        ManualTitle                   NVARCHAR(20) NULL,
+        ManualFirstNameThai           NVARCHAR(200) NULL,
+        ManualLastNameThai            NVARCHAR(200) NULL,
+        ManualNickname                NVARCHAR(50) NULL,
+        ManualAge                     INT NULL,
+        ManualYear                    NVARCHAR(10) NULL, -- ชั้นปีการศึกษา
+        ManualGPA                     DECIMAL(3, 2) NULL,
+        ManualMajor                   NVARCHAR(200) NULL,
+        ManualFaculty                 NVARCHAR(200) NULL,
+        ManualUniversity              NVARCHAR(200) NULL,
+        ManualInternshipType          NVARCHAR(50) NULL, -- ฝึกงานภาคฤดูร้อน / ฝึกงานตามหลักสูตร / ฝึกงานสหกิจ
+        ManualInternStartDate         DATE NULL,
+        ManualInternEndDate           DATE NULL,
+        ManualDurationMonths          NVARCHAR(20) NULL,
+        ManualPreferredPosition       NVARCHAR(100) NULL,
+        ManualPreferredPositionBackup NVARCHAR(100) NULL,
+        ManualMobilePhone             NVARCHAR(20) NULL,
+        ManualEmail                   NVARCHAR(150) NULL,
+        ManualCanCommute              BIT NULL, -- สะดวกเดินทางมาทำงานที่ตึกได้หรือไม่
+        ManualCanTravelOutside        BIT NULL, -- สะดวกออกกองข้างนอก/ต่างจังหวัดหรือไม่ (Production)
+        ManualFlexibleWork            BIT NULL, -- ทำงานแบบยืดหยุ่นได้หรือไม่ (Production)
+        ManualReasonForInterest       NVARCHAR(1000) NULL,
+        Status                        NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
+        AssignedDate                  DATETIME2 NOT NULL DEFAULT GETDATE(),
+        AssignedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        ModifiedAt                    DATETIME2 NULL,
+        ModifiedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID)
     )
     PRINT 'Created JobSlotAssignments'
+END
+
+-- Table: JobSlotAssignmentFiles
+-- Attached files (Resume, CV) for a JobSlotAssignments row. Replaces the old
+-- ManualTranscriptUrl/ManualResumeLink/ManualPortfolioLink link fields.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlotAssignmentFiles')
+BEGIN
+    CREATE TABLE JobSlotAssignmentFiles (
+        FileID          INT IDENTITY(1,1) PRIMARY KEY,
+        AssignmentID    INT NOT NULL FOREIGN KEY REFERENCES JobSlotAssignments(AssignmentID),
+        FilePath        NVARCHAR(500) NOT NULL,
+        FileName        NVARCHAR(300) NOT NULL,
+        FileSize        BIGINT NOT NULL,
+        FileType        NVARCHAR(100) NULL,
+        SectionFile     NVARCHAR(20) NOT NULL, -- resume / cv
+        UploadedDate    DATETIME2 NOT NULL DEFAULT GETDATE()
+    )
+    PRINT 'Created JobSlotAssignmentFiles'
+END
+
+-- Drop the old manual link columns (from a previous version of this script) — attachments are now
+-- stored as files in JobSlotAssignmentFiles instead of pasted links.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualTranscriptUrl')
+BEGIN
+    ALTER TABLE JobSlotAssignments DROP COLUMN ManualTranscriptUrl, ManualResumeLink, ManualPortfolioLink
+END
+
+-- Add manual contact fields if they don't exist yet (from a previous version of this script).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualMobilePhone')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD
+        ManualMobilePhone NVARCHAR(20) NULL,
+        ManualEmail       NVARCHAR(150) NULL
+END
+
+-- Drop CitizenID/BirthDate from a previous version of this script — the internship application
+-- form (docs.google.com/forms/.../1FAIpQLSesXWC0Hnng3mfc9Rl27VGsITC4XExcnONyOaiSuf0gMcrPIA) collects
+-- Age instead, and doesn't ask for a citizen ID at all.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualCitizenID')
+BEGIN
+    ALTER TABLE JobSlotAssignments DROP COLUMN ManualCitizenID, ManualBirthDate
+END
+
+-- Add the remaining internship-application fields if they don't exist yet (from a previous version of this script).
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ManualNickname')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD
+        ManualTitle                   NVARCHAR(20) NULL,
+        ManualNickname                NVARCHAR(50) NULL,
+        ManualAge                     INT NULL,
+        ManualYear                    NVARCHAR(10) NULL,
+        ManualGPA                     DECIMAL(3, 2) NULL,
+        ManualMajor                   NVARCHAR(200) NULL,
+        ManualFaculty                 NVARCHAR(200) NULL,
+        ManualUniversity              NVARCHAR(200) NULL,
+        ManualInternshipType          NVARCHAR(50) NULL,
+        ManualInternStartDate         DATE NULL,
+        ManualInternEndDate           DATE NULL,
+        ManualDurationMonths          NVARCHAR(20) NULL,
+        ManualPreferredPosition       NVARCHAR(100) NULL,
+        ManualPreferredPositionBackup NVARCHAR(100) NULL,
+        ManualCanCommute              BIT NULL,
+        ManualCanTravelOutside        BIT NULL,
+        ManualFlexibleWork            BIT NULL,
+        ManualReasonForInterest       NVARCHAR(1000) NULL
 END
 
 -- Migrate existing seat assignments (AssignedApplicantID) from the old table into JobSlotAssignments.
@@ -184,8 +269,28 @@ BEGIN
         A.AssignmentID,
         A.SlotID,
         A.ApplicantID,
+        COALESCE(APP.Title, A.ManualTitle) AS Title,
         COALESCE(APP.FirstNameThai, A.ManualFirstNameThai) AS FirstNameThai,
         COALESCE(APP.LastNameThai, A.ManualLastNameThai) AS LastNameThai,
+        COALESCE(APP.Nickname, A.ManualNickname) AS Nickname,
+        A.ManualAge AS Age,
+        A.ManualYear AS Year,
+        A.ManualGPA AS GPA,
+        A.ManualMajor AS Major,
+        A.ManualFaculty AS Faculty,
+        A.ManualUniversity AS University,
+        A.ManualInternshipType AS InternshipType,
+        A.ManualInternStartDate AS InternStartDate,
+        A.ManualInternEndDate AS InternEndDate,
+        A.ManualDurationMonths AS DurationMonths,
+        A.ManualPreferredPosition AS PreferredPosition,
+        A.ManualPreferredPositionBackup AS PreferredPositionBackup,
+        COALESCE(APP.MobilePhone, A.ManualMobilePhone) AS MobilePhone,
+        COALESCE(APP.Email, A.ManualEmail) AS Email,
+        A.ManualCanCommute AS CanCommute,
+        A.ManualCanTravelOutside AS CanTravelOutside,
+        A.ManualFlexibleWork AS FlexibleWork,
+        A.ManualReasonForInterest AS ReasonForInterest,
         A.Status,
         A.AssignedDate
     FROM JobSlotAssignments A
@@ -193,6 +298,20 @@ BEGIN
     WHERE A.SlotID = @SlotID
       AND A.Status <> 'Cancelled'
     ORDER BY A.AssignedDate
+
+    SELECT
+        F.FileID,
+        F.AssignmentID,
+        F.FilePath,
+        F.FileName,
+        F.FileSize,
+        F.FileType,
+        F.SectionFile,
+        F.UploadedDate
+    FROM JobSlotAssignmentFiles F
+    INNER JOIN JobSlotAssignments A ON A.AssignmentID = F.AssignmentID
+    WHERE A.SlotID = @SlotID
+      AND A.Status <> 'Cancelled'
 END
 
 GO
@@ -249,11 +368,31 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
-    @SlotID              INT,
-    @ApplicantID         INT = NULL,
-    @ManualFirstNameThai NVARCHAR(200) = NULL,
-    @ManualLastNameThai  NVARCHAR(200) = NULL,
-    @AssignedByAdminID   INT = NULL
+    @SlotID                        INT,
+    @ApplicantID                   INT = NULL,
+    @ManualTitle                   NVARCHAR(20) = NULL,
+    @ManualFirstNameThai           NVARCHAR(200) = NULL,
+    @ManualLastNameThai            NVARCHAR(200) = NULL,
+    @ManualNickname                NVARCHAR(50) = NULL,
+    @ManualAge                     INT = NULL,
+    @ManualYear                    NVARCHAR(10) = NULL,
+    @ManualGPA                     DECIMAL(3, 2) = NULL,
+    @ManualMajor                   NVARCHAR(200) = NULL,
+    @ManualFaculty                 NVARCHAR(200) = NULL,
+    @ManualUniversity              NVARCHAR(200) = NULL,
+    @ManualInternshipType          NVARCHAR(50) = NULL,
+    @ManualInternStartDate         DATE = NULL,
+    @ManualInternEndDate           DATE = NULL,
+    @ManualDurationMonths          NVARCHAR(20) = NULL,
+    @ManualPreferredPosition       NVARCHAR(100) = NULL,
+    @ManualPreferredPositionBackup NVARCHAR(100) = NULL,
+    @ManualMobilePhone             NVARCHAR(20) = NULL,
+    @ManualEmail                   NVARCHAR(150) = NULL,
+    @ManualCanCommute              BIT = NULL,
+    @ManualCanTravelOutside        BIT = NULL,
+    @ManualFlexibleWork            BIT = NULL,
+    @ManualReasonForInterest       NVARCHAR(1000) = NULL,
+    @AssignedByAdminID             INT = NULL
 AS
 BEGIN
     IF @ApplicantID IS NULL AND @ManualFirstNameThai IS NULL
@@ -279,13 +418,33 @@ BEGIN
         RETURN;
     END
 
-    INSERT INTO JobSlotAssignments (SlotID, ApplicantID, ManualFirstNameThai, ManualLastNameThai, AssignedByAdminID)
-    VALUES (@SlotID, @ApplicantID, @ManualFirstNameThai, @ManualLastNameThai, @AssignedByAdminID)
+    INSERT INTO JobSlotAssignments (
+        SlotID, ApplicantID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
+        ManualAge, ManualYear, ManualGPA, ManualMajor, ManualFaculty, ManualUniversity,
+        ManualInternshipType, ManualInternStartDate, ManualInternEndDate, ManualDurationMonths,
+        ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
+        ManualCanCommute, ManualCanTravelOutside, ManualFlexibleWork,
+        ManualReasonForInterest,
+        AssignedByAdminID
+    )
+    VALUES (
+        @SlotID, @ApplicantID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
+        @ManualAge, @ManualYear, @ManualGPA, @ManualMajor, @ManualFaculty, @ManualUniversity,
+        @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
+        @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
+        @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork,
+        @ManualReasonForInterest,
+        @AssignedByAdminID
+    )
+
+    DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
 
     IF (@CurrentCount + 1) >= @Capacity
     BEGIN
         UPDATE JobSlots SET Status = 'Filled', ModifiedAt = GETDATE() WHERE SlotID = @SlotID
     END
+
+    SELECT @NewAssignmentID AS AssignmentID
 END
 
 GO
@@ -323,4 +482,35 @@ BEGIN
     GROUP BY JS.SlotID, JS.Department, JS.NumberOfPositions, JS.StartDate, JS.EndDate, JS.Status,
              JS.CreatedByAdminID, JS.RequestedByName, JS.ModifiedByAdminID
     ORDER BY JS.Department, JS.StartDate, JS.EndDate
+END
+
+GO
+-- Candidates ready to be assigned into a trainee slot: applicants who applied to a
+-- job posting for students (Jobs.EmployeeType = 'นักศึกษาฝึกงาน') and whose application
+-- has reached the "Employment confirm" status.
+CREATE OR ALTER PROCEDURE sp_GetTraineeSlotCandidates
+    @Department NVARCHAR(200) = NULL
+AS
+BEGIN
+    SELECT
+        JA.ApplicationID,
+        JA.ApplicantID,
+        JA.JobID,
+        J.JobTitle,
+        J.Department,
+        JA.Status,
+        JA.SubmissionDate,
+        APP.Title,
+        APP.FirstNameThai,
+        APP.LastNameThai,
+        APP.Nickname,
+        APP.MobilePhone,
+        APP.Email
+    FROM JobApplications JA
+    INNER JOIN Jobs J ON J.JobID = JA.JobID
+    INNER JOIN T_APPLICANTS APP ON APP.ApplicantID = JA.ApplicantID
+    WHERE J.EmployeeType = N'นักศึกษาฝึกงาน'
+      AND JA.Status = 'Employment confirm'
+      AND (@Department IS NULL OR J.Department = @Department)
+    ORDER BY JA.SubmissionDate
 END
