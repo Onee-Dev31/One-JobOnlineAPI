@@ -15,6 +15,7 @@ namespace JobOnlineAPI.Services
         Task<int> SendEmailWhenHRReceived(ApplicantRequestData requestData);
         Task<int> SendNotificationEmailsAsync(ApplicantRequestData requestData);
         Task<int> SendApplicationEmailsAsync(IDictionary<string, object?> req, (int ApplicantId, string ApplicantEmail, string HrManagerEmails, string JobManagerEmails, string JobTitle, string CompanyName, int OutJobID) dbResult, string applicationFormUri);
+        Task<int> SendEmailCandidatePass(ApplicantRequestData requestData);
         Task<int> SendEmailsJobsStatusAsync(int JobID);
     }
 
@@ -171,7 +172,7 @@ namespace JobOnlineAPI.Services
                 {
                     string applicantBody = typeMail == "Part2"
                     ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle, dbResult.CompanyName)
-                    : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                    : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
                     ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน รอบที่ 2 ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
                     : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
@@ -211,6 +212,79 @@ namespace JobOnlineAPI.Services
                     {
                         _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
                     }
+                }
+            }
+
+            return successCount;
+        }
+
+        public async Task<int> SendEmailCandidatePass(ApplicantRequestData requestData)
+        {
+            int successCount = 0;
+
+            using var connection = _context.CreateConnection();
+            var results = await connection.QueryAsync<StaffEmail>(
+                "sp_GetDataSendEmailRegister",
+                new { requestData.JobID },
+                commandType: CommandType.StoredProcedure);
+
+            var parameters = new DynamicParameters();
+            parameters.Add("@JobID", requestData.JobID);
+            var resultsNew = await connection.QueryAsync<StaffEmailNew>(
+                "EXEC sp_GetDataSendEmailByJobID_V2  @JobID",
+                parameters);
+
+            var resultsWithOpenFor = await connection.QueryAsync<StaffEmail>(
+                "sp_GetDataSendEmailRegisterWithOpenFor",
+                new { requestData.JobID },
+                commandType: CommandType.StoredProcedure);
+
+            var OpenForName = resultsWithOpenFor.FirstOrDefault(x => x.SourceType == "OpenFor" && !string.IsNullOrEmpty(x.NAMETHAI));
+
+            var candidateData = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                "GetDataCandidateByJobID",
+                new { requestData.JobID, requestData.ApplicantID },
+                commandType: CommandType.StoredProcedure);
+
+            string fullNameThai = candidateData?.fullNameThai?.ToString() ?? string.Empty;
+            string jobTitle = candidateData?.jobTitle?.ToString() ?? string.Empty;
+            string applicantEmail = candidateData?.applicantEmail?.ToString() ?? string.Empty;
+            string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
+            string applicationFormUri = _config["FileStorage:ApplicationFormUri"] ?? string.Empty;
+
+            if (!string.IsNullOrEmpty(applicantEmail))
+            {
+                string applicantBody = GenerateEmailBody(true, companyName, fullNameThai, jobTitle, requestData.ApplicantID, applicationFormUri);
+                string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                try
+                {
+                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
+                    successCount++;
+                    _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send email to {Email}: {Message}", applicantEmail, ex.Message);
+                }
+            }
+
+            foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
+            {
+                var emailStaff = staff.Email?.Trim();
+                if (string.IsNullOrWhiteSpace(emailStaff))
+                    continue;
+
+                string managerBody = await GenerateApplicantPart1ToHREmailBody(requestData.ApplicantID, jobTitle, _config, _context, requestData.JobID, OpenForName!.NAMETHAI!);
+                string applicantSubject = $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                try
+                {
+                    await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
+                    successCount++;
+                    _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
                 }
             }
 
@@ -546,14 +620,11 @@ namespace JobOnlineAPI.Services
                 </div>";
         }
 
-        private static string GenerateEmailBody(bool isApplicant, string recipient, string fullNameThai, string jobTitle, StaffEmail? hr, int applicantId, string applicationFormUri)
+        private static string GenerateEmailBody(bool isApplicant, string recipient, string fullNameThai, string jobTitle, int applicantId, string applicationFormUri)
         {
             if (isApplicant)
             {
                 string companyName = recipient;
-                string hrEmail = hr?.Email ?? "-";
-                string hrTel = hr?.TELOFF ?? "-";
-                string hrName = hr?.NAMETHAI ?? "-";
                 return $@"
                     <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
                         <p style='margin: 0; font-weight: bold;'>{companyName}: ได้รับใบสมัครงานของคุณแล้ว</p>

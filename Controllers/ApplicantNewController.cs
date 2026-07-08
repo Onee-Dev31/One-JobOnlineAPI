@@ -508,7 +508,13 @@ namespace JobOnlineAPI.Controllers
                     return BadRequest("Invalid ApplicantID or Status format.");
 
                 var typeMail = requestData.TypeMail;
+                var status = requestData.Status;
                 bool isBatch = data.ContainsKey("IsBatch") && data["IsBatch"]?.ToString()?.Trim().ToLower() == "true";
+
+                if (status == "New Candidate")
+                {
+                    await _emailNotificationService.SendEmailCandidatePass(requestData);
+                }
 
                 if (typeMail == "Hire")
                 {
@@ -1236,6 +1242,7 @@ namespace JobOnlineAPI.Controllers
 
                 try
                 {
+                    // ฟอร์ม Email ใหม่
                     await _emailNotificationService.SendApplicationEmailsAsync(
                         req,
                         (
