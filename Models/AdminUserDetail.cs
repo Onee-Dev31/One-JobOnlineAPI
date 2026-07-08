@@ -17,6 +17,8 @@ namespace JobOnlineAPI.Models
         public DateTime? CreatedDate { get; set; }
         public DateTime? UpdatedDate { get; set; }
         public string? Role { get; set; }
+        public int? ReportsToAdminID { get; set; }
+        public string? ReportsToName { get; set; }
     }
 
     public class AdminUserCreateRequest
@@ -31,6 +33,8 @@ namespace JobOnlineAPI.Models
         public string? Position { get; set; }
         public string? CompanyName { get; set; }
         public int? RoleID { get; set; }
+        // Required only when RoleID resolves to the "เลขา" (Secretary) role — the boss's EmpNo.
+        public string? ReportsToEmpNo { get; set; }
     }
 
     public class AdminUserUpdateRequest
@@ -49,5 +53,14 @@ namespace JobOnlineAPI.Models
     {
         public int RoleID { get; set; }
         public string RoleName { get; set; } = string.Empty;
+    }
+
+    // Raw shape returned by sp_CreateSecretaryAdminUser.
+    public class SecretaryCreateResult
+    {
+        public int NewAdminID { get; set; }
+        public bool BossWasNewlyCreated { get; set; }
+        public int? BossAdminID { get; set; }
+        public string? BossNameThai { get; set; }
     }
 }

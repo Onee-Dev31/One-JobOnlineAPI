@@ -2,6 +2,7 @@ using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using JobOnlineAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -63,8 +64,30 @@ namespace JobOnlineAPI.Controllers
                 if (existing != null)
                     return Conflict($"Username '{request.Username}' already exists.");
 
+                var roles = await _adminRepository.GetAllRolesAsync();
+                var secretaryRoleId = roles.FirstOrDefault(r => r.RoleName == "เลขา")?.RoleID;
+
+                if (secretaryRoleId != null && request.RoleID == secretaryRoleId)
+                {
+                    if (string.IsNullOrWhiteSpace(request.ReportsToEmpNo))
+                        return BadRequest("กรุณาระบุรหัสพนักงานของหัวหน้า (ReportsToEmpNo) สำหรับ Role เลขา");
+
+                    var result = await _adminRepository.CreateSecretaryAdminUserAsync(request);
+                    return CreatedAtAction(nameof(GetAdminUserById), new { id = result.NewAdminID }, new
+                    {
+                        AdminID = result.NewAdminID,
+                        BossWasNewlyCreated = result.BossWasNewlyCreated,
+                        ReportsToAdminID = result.BossAdminID,
+                        ReportsToName = result.BossNameThai
+                    });
+                }
+
                 var newId = await _adminRepository.CreateAdminUserAsync(request);
                 return CreatedAtAction(nameof(GetAdminUserById), new { id = newId }, new { AdminID = newId });
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception)
             {
