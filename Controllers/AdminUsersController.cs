@@ -127,9 +127,10 @@ namespace JobOnlineAPI.Controllers
             if (id <= 0)
                 return BadRequest("Admin ID must be a positive integer.");
 
+            AdminUserDetail? existingAdminUser = null;
             try
             {
-                var existingAdminUser = await _adminRepository.GetAdminUserByIdAsync(id);
+                existingAdminUser = await _adminRepository.GetAdminUserByIdAsync(id);
                 if (existingAdminUser == null)
                     return NotFound($"Admin user with ID {id} not found.");
 
@@ -141,11 +142,13 @@ namespace JobOnlineAPI.Controllers
             }
             catch (SqlException ex) when (ex.Number == 547)
             {
+                var roles = await _adminRepository.GetAllRolesAsync();
+                var roleName = roles.FirstOrDefault(r => r.RoleID == existingAdminUser?.RoleID)?.RoleName ?? "Admin";
                 var secretaryNames = (await _adminRepository.GetDependentSecretaryNamesAsync(id)).ToList();
                 var names = secretaryNames.Count > 0 ? string.Join(", ", secretaryNames) : null;
                 var message = names == null
-                    ? "ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่"
-                    : $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่: {names}";
+                    ? $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ {roleName} ท่านนี้อยู่"
+                    : $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ {roleName} ท่านนี้อยู่: {names}";
                 return Conflict(new { message });
             }
             catch (Exception)
