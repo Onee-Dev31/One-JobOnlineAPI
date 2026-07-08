@@ -106,3 +106,16 @@ BEGIN
     SELECT @@ROWCOUNT AS AffectedRows;
 END
 GO
+
+-- sp_GetDependentSecretaryNames: names of secretaries reporting to @AdminID, for the
+-- "cannot delete this admin" conflict message shown when a delete hits FK_AdminUsers_ReportsToAdminID.
+CREATE OR ALTER PROCEDURE sp_GetDependentSecretaryNames
+    @AdminID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT COALESCE(NameThai, Username) AS DisplayName
+    FROM AdminUsers
+    WHERE ReportsToAdminID = @AdminID;
+END
+GO

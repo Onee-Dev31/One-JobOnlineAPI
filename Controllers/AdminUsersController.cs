@@ -141,7 +141,12 @@ namespace JobOnlineAPI.Controllers
             }
             catch (SqlException ex) when (ex.Number == 547)
             {
-                return Conflict(new { message = "ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่" });
+                var secretaryNames = (await _adminRepository.GetDependentSecretaryNamesAsync(id)).ToList();
+                var names = secretaryNames.Count > 0 ? string.Join(", ", secretaryNames) : null;
+                var message = names == null
+                    ? "ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่"
+                    : $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่: {names}";
+                return Conflict(new { message });
             }
             catch (Exception)
             {

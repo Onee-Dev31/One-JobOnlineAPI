@@ -23,6 +23,7 @@ namespace JobOnlineAPI.Repositories
         Task<SecretaryCreateResult> CreateSecretaryAdminUserAsync(AdminUserCreateRequest request);
         Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request);
         Task<bool> DeleteAdminUserAsync(int id);
+        Task<IEnumerable<string>> GetDependentSecretaryNamesAsync(int adminId);
         Task<bool> SetAdminUserActiveAsync(int id, bool isActive);
     }
 }

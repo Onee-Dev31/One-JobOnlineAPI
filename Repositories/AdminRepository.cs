@@ -228,5 +228,13 @@ namespace JobOnlineAPI.Repositories
             var rows = await db.QuerySingleAsync<int>("sp_SetAdminUserActive", parameters, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }
+
+        public async Task<IEnumerable<string>> GetDependentSecretaryNamesAsync(int adminId)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@AdminID", adminId);
+            return await db.QueryAsync<string>("sp_GetDependentSecretaryNames", parameters, commandType: CommandType.StoredProcedure);
+        }
     }
 }
