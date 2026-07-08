@@ -65,12 +65,12 @@ namespace JobOnlineAPI.Controllers
                     return Conflict($"Username '{request.Username}' already exists.");
 
                 var roles = await _adminRepository.GetAllRolesAsync();
-                var secretaryRoleId = roles.FirstOrDefault(r => r.RoleName == "เลขา")?.RoleID;
+                var secretaryRoleId = roles.FirstOrDefault(r => r.RoleName == "Secretary")?.RoleID;
 
                 if (secretaryRoleId != null && request.RoleID == secretaryRoleId)
                 {
                     if (string.IsNullOrWhiteSpace(request.ReportsToEmpNo))
-                        return BadRequest("กรุณาระบุรหัสพนักงานของหัวหน้า (ReportsToEmpNo) สำหรับ Role เลขา");
+                        return BadRequest("กรุณาระบุรหัสพนักงานของหัวหน้า (ReportsToEmpNo) สำหรับ Role Secretary");
 
                     var result = await _adminRepository.CreateSecretaryAdminUserAsync(request);
                     return CreatedAtAction(nameof(GetAdminUserById), new { id = result.NewAdminID }, new

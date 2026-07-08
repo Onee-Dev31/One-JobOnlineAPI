@@ -1,4 +1,4 @@
--- Adds the "เลขา" (Secretary) Role: a self-referencing ReportsToAdminID column on AdminUsers,
+-- Adds the "Secretary" Role: a self-referencing ReportsToAdminID column on AdminUsers,
 -- the Role master-data row itself, and sp_CreateSecretaryAdminUser which — in one transaction —
 -- finds-or-auto-creates the boss's AdminUsers account (as Hiring Manager, sourced from HRMS by
 -- EmpNo) and then inserts the secretary pointing at that boss.
@@ -21,10 +21,10 @@ BEGIN
 END
 GO
 
-IF NOT EXISTS (SELECT 1 FROM T_ROLE WHERE ROLE_NAME = N'เลขา')
+IF NOT EXISTS (SELECT 1 FROM T_ROLE WHERE ROLE_NAME = N'Secretary')
 BEGIN
     DECLARE @NewRoleID INT;
-    INSERT INTO T_ROLE (ROLE_NAME, IsActive) VALUES (N'เลขา', 1);
+    INSERT INTO T_ROLE (ROLE_NAME, IsActive) VALUES (N'Secretary', 1);
     SET @NewRoleID = CAST(SCOPE_IDENTITY() AS INT);
     UPDATE T_ROLE SET RoleCode = CAST(@NewRoleID AS NVARCHAR(10)) WHERE ID = @NewRoleID;
 END

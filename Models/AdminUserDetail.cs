@@ -33,7 +33,7 @@ namespace JobOnlineAPI.Models
         public string? Position { get; set; }
         public string? CompanyName { get; set; }
         public int? RoleID { get; set; }
-        // Required only when RoleID resolves to the "เลขา" (Secretary) role — the boss's EmpNo.
+        // Required only when RoleID resolves to the "Secretary" role — the boss's EmpNo.
         public string? ReportsToEmpNo { get; set; }
     }
 
