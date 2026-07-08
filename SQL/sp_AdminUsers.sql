@@ -1,12 +1,20 @@
+-- AdminUsers has a filtered unique index (UQ_AdminUsers_EmpNo, WHERE EmpNo IS NOT NULL), so every
+-- proc that INSERT/UPDATE/DELETEs it must be compiled with QUOTED_IDENTIFIER ON (this setting is
+-- captured at CREATE PROCEDURE time and baked into the proc regardless of the caller's session).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 -- sp_GetAllAdminUsers
 CREATE OR ALTER PROCEDURE sp_GetAllAdminUsers
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT AdminID, Username, HRID, EMAIL, Department, EmpNo, NameThai,
-           Mobile, Position, CompanyName, RoleID, IsActive, CreatedDate, UpdatedDate, Role
-    FROM AdminUsers
-    ORDER BY AdminID;
+    SELECT au.AdminID, au.Username, au.HRID, au.EMAIL, au.Department, au.EmpNo, au.NameThai,
+           au.Mobile, au.Position, au.CompanyName, au.RoleID, au.IsActive, au.CreatedDate, au.UpdatedDate, au.Role,
+           au.ReportsToAdminID, boss.NameThai AS ReportsToName
+    FROM AdminUsers au
+    LEFT JOIN AdminUsers boss ON boss.AdminID = au.ReportsToAdminID
+    ORDER BY au.AdminID;
 END
 GO
 
@@ -16,10 +24,12 @@ CREATE OR ALTER PROCEDURE sp_GetAdminUserById
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT AdminID, Username, HRID, EMAIL, Department, EmpNo, NameThai,
-           Mobile, Position, CompanyName, RoleID, IsActive, CreatedDate, UpdatedDate, Role
-    FROM AdminUsers
-    WHERE AdminID = @AdminID;
+    SELECT au.AdminID, au.Username, au.HRID, au.EMAIL, au.Department, au.EmpNo, au.NameThai,
+           au.Mobile, au.Position, au.CompanyName, au.RoleID, au.IsActive, au.CreatedDate, au.UpdatedDate, au.Role,
+           au.ReportsToAdminID, boss.NameThai AS ReportsToName
+    FROM AdminUsers au
+    LEFT JOIN AdminUsers boss ON boss.AdminID = au.ReportsToAdminID
+    WHERE au.AdminID = @AdminID;
 END
 GO
 

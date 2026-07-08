@@ -20,6 +20,7 @@ namespace JobOnlineAPI.Repositories
         Task UpdateRoutesSortOrderAsync(List<RoutesSortOrderItem> items);
         Task<AdminUserDetail?> GetAdminUserByIdAsync(int id);
         Task<int> CreateAdminUserAsync(AdminUserCreateRequest request);
+        Task<SecretaryCreateResult> CreateSecretaryAdminUserAsync(AdminUserCreateRequest request);
         Task<bool> UpdateAdminUserAsync(int id, AdminUserUpdateRequest request);
         Task<bool> DeleteAdminUserAsync(int id);
         Task<bool> SetAdminUserActiveAsync(int id, bool isActive);
