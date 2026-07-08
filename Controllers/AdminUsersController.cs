@@ -139,6 +139,10 @@ namespace JobOnlineAPI.Controllers
 
                 return NoContent();
             }
+            catch (SqlException ex) when (ex.Number == 547)
+            {
+                return Conflict(new { message = "ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ Admin คนนี้อยู่" });
+            }
             catch (Exception)
             {
                 return StatusCode(500, "Internal Server error");
