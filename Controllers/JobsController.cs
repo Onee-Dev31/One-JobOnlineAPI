@@ -129,10 +129,9 @@ namespace JobOnlineAPI.Controllers
                 job.JobID = newId;
                 return CreatedAtAction(nameof(GetJobById), new { id = newId }, job);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
-                return StatusCode(500, "Internal Server error");
+                return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
             }
         }
 
