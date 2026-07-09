@@ -1243,6 +1243,9 @@ namespace JobOnlineAPI.Controllers
                 try
                 {
                     // ฟอร์ม Email ใหม่
+                    int jobId = req.TryGetValue("JobID", out var v) && int.TryParse(v?.ToString(), out var parsedJobId)
+                    ? parsedJobId
+                    : 0;
                     await _emailNotificationService.SendApplicationEmailsAsync(
                         req,
                         (
@@ -1252,12 +1255,12 @@ namespace JobOnlineAPI.Controllers
                             "",
                             req.TryGetValue("JobTitle", out var jobTitle) ? jobTitle?.ToString() ?? "" : "",
                             req.TryGetValue("CompanyName", out var company) ? company?.ToString() ?? "" : "",
-                            req.TryGetValue("JobID", out var v) && int.TryParse(v?.ToString(), out var jobId)
-                                ? jobId
-                                : 0
+                            jobId
                         ),
                         _applicationFormUri
                     );
+
+                    await _emailNotificationService.SendEmailsNotiHrAfterApplyAsync(applicantId, jobId, false);
                 }
                 catch (Exception ex)
                 {

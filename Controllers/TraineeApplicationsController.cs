@@ -241,16 +241,19 @@ namespace JobOnlineAPI.Controllers
                     if (files == null || files.Count == 0) continue;
                     await SaveFilesAsync(conn, files, id, section);
                 }
-
-                try
-                {
-                    // ฟอร์ม Email ใหม่
-                    await _emailNotificationService.SendEmailsTraineeRegisterAsync(id, request.JobID);
+                if (request.TraineeApplicationID == 0) {
+                    try
+                    {
+                        // ฟอร์ม Email ใหม่
+                        await _emailNotificationService.SendEmailsTraineeRegisterAsync(id, request.JobID);
+                        await _emailNotificationService.SendEmailsNotiHrAfterApplyAsync(id, request.JobID, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", request.TraineeApplicationID);
+                    }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", request.TraineeApplicationID);
-                }
+                
 
                 return Ok(new { TraineeApplicationID = id });
             }
