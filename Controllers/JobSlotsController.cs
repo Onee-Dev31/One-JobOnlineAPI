@@ -262,8 +262,7 @@ namespace JobOnlineAPI.Controllers
                     await file.CopyToAsync(stream);
 
                 await conn.ExecuteAsync(
-                    @"INSERT INTO JobSlotAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
-                      VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)",
+                    "sp_AddJobSlotAssignmentFile",
                     new
                     {
                         AssignmentID = assignmentId,
@@ -272,7 +271,8 @@ namespace JobOnlineAPI.Controllers
                         FileSize = file.Length,
                         FileType = file.ContentType,
                         SectionFile = section
-                    });
+                    },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 

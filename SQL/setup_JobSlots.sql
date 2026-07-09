@@ -654,3 +654,17 @@ BEGIN
       AND (@Department IS NULL OR J.Department = @Department)
     ORDER BY JA.SubmissionDate
 END
+
+GO
+CREATE OR ALTER PROCEDURE sp_AddJobSlotAssignmentFile
+    @AssignmentID INT,
+    @FilePath     NVARCHAR(500),
+    @FileName     NVARCHAR(300),
+    @FileSize     BIGINT,
+    @FileType     NVARCHAR(100) = NULL,
+    @SectionFile  NVARCHAR(20)
+AS
+BEGIN
+    INSERT INTO JobSlotAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
+    VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)
+END
