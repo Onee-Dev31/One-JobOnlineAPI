@@ -83,8 +83,8 @@ IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlotAssignments')
 BEGIN
     CREATE TABLE JobSlotAssignments (
         AssignmentID                  INT IDENTITY(1,1) PRIMARY KEY,
-        SlotID                        INT NOT NULL FOREIGN KEY REFERENCES JobSlots(SlotID),
-        ApplicantID                   INT NULL FOREIGN KEY REFERENCES T_APPLICANTS(ApplicantID), -- NULL when entered manually (not sourced from T_APPLICANTS)
+        SlotID                        INT NULL FOREIGN KEY REFERENCES JobSlots(SlotID), -- NULL until an admin assigns this application into a batch
+        ApplicationID                 INT NULL FOREIGN KEY REFERENCES JobApplications(ApplicationID), -- which application (job + applicant) this is for; NULL for a pure manual/walk-in entry
         ManualTitle                   NVARCHAR(20) NULL,
         ManualFirstNameThai           NVARCHAR(200) NULL,
         ManualLastNameThai            NVARCHAR(200) NULL,
@@ -181,12 +181,56 @@ BEGIN
         ManualReasonForInterest       NVARCHAR(1000) NULL
 END
 
--- Migrate existing seat assignments (AssignedApplicantID) from the old table into JobSlotAssignments.
+-- Allow SlotID to be NULL — a JobSlotAssignments row can now be created directly from a trainee's
+-- application (JobID set, no batch chosen yet) before an admin assigns it into a JobSlots batch.
+IF EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'SlotID' AND is_nullable = 0
+)
+BEGIN
+    ALTER TABLE JobSlotAssignments ALTER COLUMN SlotID INT NULL
+END
+
+-- Replace the direct ApplicantID (-> T_APPLICANTS) and JobID (-> Jobs) columns with a single
+-- ApplicationID (-> JobApplications) — an assignment now links through JobApplications, which
+-- already tracks JobID and ApplicantID, instead of duplicating that linkage on JobSlotAssignments.
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ApplicantID')
+BEGIN
+    DECLARE @ApplicantFk NVARCHAR(200) = (
+        SELECT fk.name FROM sys.foreign_keys fk
+        WHERE fk.parent_object_id = OBJECT_ID('JobSlotAssignments')
+          AND fk.referenced_object_id = OBJECT_ID('T_APPLICANTS')
+    )
+    IF @ApplicantFk IS NOT NULL EXEC('ALTER TABLE JobSlotAssignments DROP CONSTRAINT ' + @ApplicantFk)
+
+    ALTER TABLE JobSlotAssignments DROP COLUMN ApplicantID
+END
+
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'JobID')
+BEGIN
+    DECLARE @JobFk NVARCHAR(200) = (
+        SELECT fk.name FROM sys.foreign_keys fk
+        WHERE fk.parent_object_id = OBJECT_ID('JobSlotAssignments')
+          AND fk.referenced_object_id = OBJECT_ID('Jobs')
+    )
+    IF @JobFk IS NOT NULL EXEC('ALTER TABLE JobSlotAssignments DROP CONSTRAINT ' + @JobFk)
+
+    ALTER TABLE JobSlotAssignments DROP COLUMN JobID
+END
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ApplicationID')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD ApplicationID INT NULL FOREIGN KEY REFERENCES JobApplications(ApplicationID)
+END
+
+-- Migrate existing seat assignments from the old table into JobSlotAssignments. The old schema has
+-- no JobApplications-compatible record for these seats, so the applicant link isn't carried over —
+-- only the seat itself (SlotID/AssignedDate) is preserved.
 IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'JobSlots_Old')
    AND NOT EXISTS (SELECT 1 FROM JobSlotAssignments)
 BEGIN
-    INSERT INTO JobSlotAssignments (SlotID, ApplicantID, AssignedDate)
-    SELECT js.SlotID, o.AssignedApplicantID, o.AssignedDate
+    INSERT INTO JobSlotAssignments (SlotID, AssignedDate)
+    SELECT js.SlotID, o.AssignedDate
     FROM JobSlots_Old o
     INNER JOIN JobSlots js
         ON js.Department = o.Department
@@ -268,11 +312,12 @@ BEGIN
     SELECT
         A.AssignmentID,
         A.SlotID,
-        A.ApplicantID,
-        COALESCE(APP.Title, A.ManualTitle) AS Title,
-        COALESCE(APP.FirstNameThai, A.ManualFirstNameThai) AS FirstNameThai,
-        COALESCE(APP.LastNameThai, A.ManualLastNameThai) AS LastNameThai,
-        COALESCE(APP.Nickname, A.ManualNickname) AS Nickname,
+        JA.JobID,
+        JA.ApplicantID,
+        A.ManualTitle AS Title,
+        A.ManualFirstNameThai AS FirstNameThai,
+        A.ManualLastNameThai AS LastNameThai,
+        A.ManualNickname AS Nickname,
         A.ManualAge AS Age,
         A.ManualYear AS Year,
         A.ManualGPA AS GPA,
@@ -285,8 +330,8 @@ BEGIN
         A.ManualDurationMonths AS DurationMonths,
         A.ManualPreferredPosition AS PreferredPosition,
         A.ManualPreferredPositionBackup AS PreferredPositionBackup,
-        COALESCE(APP.MobilePhone, A.ManualMobilePhone) AS MobilePhone,
-        COALESCE(APP.Email, A.ManualEmail) AS Email,
+        A.ManualMobilePhone AS MobilePhone,
+        A.ManualEmail AS Email,
         A.ManualCanCommute AS CanCommute,
         A.ManualCanTravelOutside AS CanTravelOutside,
         A.ManualFlexibleWork AS FlexibleWork,
@@ -294,7 +339,7 @@ BEGIN
         A.Status,
         A.AssignedDate
     FROM JobSlotAssignments A
-    LEFT JOIN T_APPLICANTS APP ON APP.ApplicantID = A.ApplicantID
+    LEFT JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
     WHERE A.SlotID = @SlotID
       AND A.Status <> 'Cancelled'
     ORDER BY A.AssignedDate
@@ -368,8 +413,9 @@ END
 
 GO
 CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
-    @SlotID                        INT,
-    @ApplicantID                   INT = NULL,
+    @SlotID                        INT = NULL, -- NULL only for a direct/self-submitted application with no batch chosen yet
+    @ApplicationID                 INT = NULL, -- existing JobApplications row. If it already has a pending JobSlotAssignments row (self-submitted, SlotID still NULL), that row is updated with the chosen SlotID; otherwise a new JobSlotAssignments row is created for it.
+    @JobID                         INT = NULL, -- job posting; used when creating a brand-new JobApplications row (no ApplicationID given) — always created with ApplicantID = NULL, not sourced from T_APPLICANTS
     @ManualTitle                   NVARCHAR(20) = NULL,
     @ManualFirstNameThai           NVARCHAR(200) = NULL,
     @ManualLastNameThai            NVARCHAR(200) = NULL,
@@ -395,31 +441,99 @@ CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
     @AssignedByAdminID             INT = NULL
 AS
 BEGIN
-    IF @ApplicantID IS NULL AND @ManualFirstNameThai IS NULL
+    DECLARE @ExistingAssignmentID INT = NULL, @ExistingSlotID INT = NULL;
+
+    IF @ApplicationID IS NOT NULL
     BEGIN
-        RAISERROR('Either ApplicantID or a manual name must be provided.', 16, 1);
+        SELECT TOP 1 @ExistingAssignmentID = AssignmentID, @ExistingSlotID = SlotID
+        FROM JobSlotAssignments
+        WHERE ApplicationID = @ApplicationID AND Status <> 'Cancelled'
+    END
+
+    IF @ExistingAssignmentID IS NOT NULL AND @ExistingSlotID IS NOT NULL
+    BEGIN
+        RAISERROR('This application has already been assigned to a batch.', 16, 1);
         RETURN;
     END
 
-    DECLARE @Capacity INT, @CurrentCount INT;
-
-    SELECT @Capacity = NumberOfPositions FROM JobSlots WHERE SlotID = @SlotID;
-    SELECT @CurrentCount = COUNT(*) FROM JobSlotAssignments WHERE SlotID = @SlotID AND Status <> 'Cancelled';
-
-    IF @Capacity IS NULL
+    IF @ExistingAssignmentID IS NOT NULL
     BEGIN
-        RAISERROR('Slot not found.', 16, 1);
+        -- Existing self-submitted application (JobSlotAssignments row already there, SlotID still NULL):
+        -- just place it into the chosen batch, don't touch its data.
+        IF @SlotID IS NULL
+        BEGIN
+            RAISERROR('SlotID is required to place an existing assignment into a batch.', 16, 1);
+            RETURN;
+        END
+
+        DECLARE @Capacity INT, @CurrentCount INT;
+        SELECT @Capacity = NumberOfPositions FROM JobSlots WHERE SlotID = @SlotID;
+        SELECT @CurrentCount = COUNT(*) FROM JobSlotAssignments WHERE SlotID = @SlotID AND Status <> 'Cancelled';
+
+        IF @Capacity IS NULL
+        BEGIN
+            RAISERROR('Slot not found.', 16, 1);
+            RETURN;
+        END
+
+        IF @CurrentCount >= @Capacity
+        BEGIN
+            RAISERROR('This batch is already full.', 16, 1);
+            RETURN;
+        END
+
+        UPDATE JobSlotAssignments
+        SET SlotID = @SlotID, ModifiedAt = GETDATE(), ModifiedByAdminID = @AssignedByAdminID
+        WHERE AssignmentID = @ExistingAssignmentID
+
+        IF (@CurrentCount + 1) >= @Capacity
+        BEGIN
+            UPDATE JobSlots SET Status = 'Filled', ModifiedAt = GETDATE() WHERE SlotID = @SlotID
+        END
+
+        SELECT @ExistingAssignmentID AS AssignmentID
+        RETURN
+    END
+
+    IF @ApplicationID IS NULL AND @ManualFirstNameThai IS NULL
+    BEGIN
+        RAISERROR('Either ApplicationID or a manual name must be provided.', 16, 1);
         RETURN;
     END
 
-    IF @CurrentCount >= @Capacity
+    DECLARE @Capacity2 INT, @CurrentCount2 INT;
+
+    IF @SlotID IS NOT NULL
     BEGIN
-        RAISERROR('This batch is already full.', 16, 1);
-        RETURN;
+        SELECT @Capacity2 = NumberOfPositions FROM JobSlots WHERE SlotID = @SlotID;
+        SELECT @CurrentCount2 = COUNT(*) FROM JobSlotAssignments WHERE SlotID = @SlotID AND Status <> 'Cancelled';
+
+        IF @Capacity2 IS NULL
+        BEGIN
+            RAISERROR('Slot not found.', 16, 1);
+            RETURN;
+        END
+
+        IF @CurrentCount2 >= @Capacity2
+        BEGIN
+            RAISERROR('This batch is already full.', 16, 1);
+            RETURN;
+        END
+    END
+
+    IF @ApplicationID IS NULL
+    BEGIN
+        -- No existing application to reuse: record one directly. A SlotID chosen by an admin means
+        -- this is a manual placement straight into a batch (Employment confirm); no SlotID means a
+        -- self-submitted application still awaiting review (pending).
+        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+        VALUES (NULL, @JobID, IIF(@SlotID IS NOT NULL, 'Employment confirm', 'pending'), GETDATE())
+
+        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
     END
 
     INSERT INTO JobSlotAssignments (
-        SlotID, ApplicantID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
+        SlotID, ApplicationID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
         ManualAge, ManualYear, ManualGPA, ManualMajor, ManualFaculty, ManualUniversity,
         ManualInternshipType, ManualInternStartDate, ManualInternEndDate, ManualDurationMonths,
         ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
@@ -428,7 +542,7 @@ BEGIN
         AssignedByAdminID
     )
     VALUES (
-        @SlotID, @ApplicantID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
+        @SlotID, @ApplicationID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
         @ManualAge, @ManualYear, @ManualGPA, @ManualMajor, @ManualFaculty, @ManualUniversity,
         @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
         @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
@@ -439,7 +553,7 @@ BEGIN
 
     DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
 
-    IF (@CurrentCount + 1) >= @Capacity
+    IF @SlotID IS NOT NULL AND (@CurrentCount2 + 1) >= @Capacity2
     BEGIN
         UPDATE JobSlots SET Status = 'Filled', ModifiedAt = GETDATE() WHERE SlotID = @SlotID
     END
@@ -485,31 +599,57 @@ BEGIN
 END
 
 GO
--- Candidates ready to be assigned into a trainee slot: applicants who applied to a
--- job posting for students (Jobs.EmployeeType = 'นักศึกษาฝึกงาน') and whose application
--- has reached the "Employment confirm" status.
-CREATE OR ALTER PROCEDURE sp_GetTraineeSlotCandidates
+-- Dead: no reachable code path ever creates a JobApplications row with ApplicantID populated,
+-- so this always returned zero rows. Trainee candidates come only from JobSlotAssignments now —
+-- see sp_GetUnassignedTraineeAssignments.
+IF OBJECT_ID('sp_GetTraineeSlotCandidates', 'P') IS NOT NULL
+BEGIN
+    DROP PROCEDURE sp_GetTraineeSlotCandidates
+END
+
+GO
+-- Self-submitted trainee applications already sitting in JobSlotAssignments (SlotID still NULL)
+-- waiting for an admin to place them into a batch via ApplicationID.
+CREATE OR ALTER PROCEDURE sp_GetUnassignedTraineeAssignments
     @Department NVARCHAR(200) = NULL
 AS
 BEGIN
     SELECT
-        JA.ApplicationID,
-        JA.ApplicantID,
+        A.AssignmentID,
+        A.ApplicationID,
         JA.JobID,
         J.JobTitle,
         J.Department,
-        JA.Status,
+        JA.Status AS ApplicationStatus,
         JA.SubmissionDate,
-        APP.Title,
-        APP.FirstNameThai,
-        APP.LastNameThai,
-        APP.Nickname,
-        APP.MobilePhone,
-        APP.Email
-    FROM JobApplications JA
-    INNER JOIN Jobs J ON J.JobID = JA.JobID
-    INNER JOIN T_APPLICANTS APP ON APP.ApplicantID = JA.ApplicantID
-    WHERE J.EmployeeType = N'นักศึกษาฝึกงาน'
+        A.ManualTitle AS Title,
+        A.ManualFirstNameThai AS FirstNameThai,
+        A.ManualLastNameThai AS LastNameThai,
+        A.ManualNickname AS Nickname,
+        A.ManualAge AS Age,
+        A.ManualYear AS Year,
+        A.ManualGPA AS GPA,
+        A.ManualMajor AS Major,
+        A.ManualFaculty AS Faculty,
+        A.ManualUniversity AS University,
+        A.ManualInternshipType AS InternshipType,
+        A.ManualInternStartDate AS InternStartDate,
+        A.ManualInternEndDate AS InternEndDate,
+        A.ManualDurationMonths AS DurationMonths,
+        A.ManualPreferredPosition AS PreferredPosition,
+        A.ManualPreferredPositionBackup AS PreferredPositionBackup,
+        A.ManualMobilePhone AS MobilePhone,
+        A.ManualEmail AS Email,
+        A.ManualCanCommute AS CanCommute,
+        A.ManualCanTravelOutside AS CanTravelOutside,
+        A.ManualFlexibleWork AS FlexibleWork,
+        A.ManualReasonForInterest AS ReasonForInterest
+    FROM JobSlotAssignments A
+    LEFT JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
+    LEFT JOIN Jobs J ON J.JobID = JA.JobID
+    WHERE A.SlotID IS NULL
+      AND A.Status <> 'Cancelled'
+      AND J.EmployeeType = N'นักศึกษาฝึกงาน'
       AND JA.Status = 'Employment confirm'
       AND (@Department IS NULL OR J.Department = @Department)
     ORDER BY JA.SubmissionDate
