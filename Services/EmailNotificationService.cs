@@ -188,29 +188,31 @@ namespace JobOnlineAPI.Services
                     }
                 }
 
-                foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
-                {
-                    var emailStaff = staff.Email?.Trim();
-                    if (string.IsNullOrWhiteSpace(emailStaff) )
-                        continue;
+                if (typeMail == "Part2") {
+                    foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
+                    {
+                        var emailStaff = staff.Email?.Trim();
+                        if (string.IsNullOrWhiteSpace(emailStaff))
+                            continue;
 
-                    //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
-                    string managerBody = typeMail == "Part2"
-                   ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle)
-                   : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
-                   //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
-                    string applicantSubject = typeMail == "Part2"
-                    ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
-                    : $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
-                    try
-                    {
-                        await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
-                        successCount++;
-                        _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
+                        //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
+                        string managerBody = typeMail == "Part2"
+                       ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle)
+                       : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
+                        //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
+                        string applicantSubject = typeMail == "Part2"
+                        ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
+                        : $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                        try
+                        {
+                            await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
+                            successCount++;
+                            _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
+                        }
                     }
                 }
             }
@@ -252,21 +254,6 @@ namespace JobOnlineAPI.Services
             string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
             string applicationFormUri = _config["FileStorage:ApplicationFormUri"] ?? string.Empty;
 
-            if (!string.IsNullOrEmpty(applicantEmail))
-            {
-                string applicantBody = GenerateEmailBody(true, companyName, fullNameThai, jobTitle, requestData.ApplicantID, applicationFormUri);
-                string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
-                try
-                {
-                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
-                    successCount++;
-                    _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send email to {Email}: {Message}", applicantEmail, ex.Message);
-                }
-            }
 
             foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
             {
