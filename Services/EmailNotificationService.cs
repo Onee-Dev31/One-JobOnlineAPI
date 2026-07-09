@@ -303,7 +303,7 @@ namespace JobOnlineAPI.Services
                 string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                 try
                 {
-                    await _emailService.SendEmailAsync(applicationFormUri, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
+                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
                     _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
                 }
                 catch (Exception ex)

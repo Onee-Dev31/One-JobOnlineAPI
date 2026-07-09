@@ -245,7 +245,7 @@ namespace JobOnlineAPI.Controllers
                 try
                 {
                     // ฟอร์ม Email ใหม่
-                    await _emailNotificationService.SendEmailsTraineeRegisterAsync(request.TraineeApplicationID, request.JobID);
+                    await _emailNotificationService.SendEmailsTraineeRegisterAsync(id, request.JobID);
                 }
                 catch (Exception ex)
                 {
