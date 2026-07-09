@@ -649,6 +649,8 @@ BEGIN
     LEFT JOIN Jobs J ON J.JobID = JA.JobID
     WHERE A.SlotID IS NULL
       AND A.Status <> 'Cancelled'
+      AND J.EmployeeType = N'นักศึกษาฝึกงาน'
+      AND JA.Status = 'Employment confirm'
       AND (@Department IS NULL OR J.Department = @Department)
     ORDER BY JA.SubmissionDate
 END
