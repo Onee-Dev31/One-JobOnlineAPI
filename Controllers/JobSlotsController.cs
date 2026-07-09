@@ -136,7 +136,7 @@ namespace JobOnlineAPI.Controllers
             int id,
             [FromForm] string jsonData,
             [FromForm] List<IFormFile>? resumeFiles,
-            [FromForm] List<IFormFile>? cvFiles)
+            [FromForm] List<IFormFile>? transcriptFiles)
         {
             AssignApplicantRequest? request;
             try
@@ -191,7 +191,7 @@ namespace JobOnlineAPI.Controllers
                     var fileGroups = new[]
                     {
                         (Files: resumeFiles, Section: "resume"),
-                        (Files: cvFiles,     Section: "cv"),
+                        (Files: transcriptFiles, Section: "transcript"),
                     };
 
                     foreach (var (files, section) in fileGroups)
