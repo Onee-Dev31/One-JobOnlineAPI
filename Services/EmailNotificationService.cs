@@ -435,7 +435,13 @@ namespace JobOnlineAPI.Services
             // string candidateNamesString = string.Join(" ", candidateNames);
 
             var candidateNames = requestData.Candidates?
-                .Select((candidate, index) => $"{index + 1}. คุณ {candidate.FirstNameThai} {candidate.LastNameThai}".Trim())
+                .Select((candidate, index) =>
+                {
+                    var name = $"{index + 1}. คุณ {candidate.FirstNameThai} {candidate.LastNameThai}".Trim();
+                    return string.IsNullOrWhiteSpace(candidate.Remark)
+                        ? name
+                        : $"{name}<br>&nbsp;&nbsp;&nbsp;<span style='color:#555;'>หมายเหตุ: {candidate.Remark}</span>";
+                })
                 .ToList() ?? [];
 
             string candidateNamesString = string.Join("<br>", candidateNames);
@@ -489,7 +495,7 @@ namespace JobOnlineAPI.Services
                 <br>
                 <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
             </div>";
-            var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
+            var subjectEmail = $"Onee Jobs - เรียกผู้สมัครสัมภาษณ์งาน ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
         }
