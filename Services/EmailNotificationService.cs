@@ -21,6 +21,7 @@ namespace JobOnlineAPI.Services
         Task<int> SendEmailCandidatePass(ApplicantRequestData requestData);
         Task<int> SendEmailsJobsStatusAsync(int JobID);
         Task<int> SendEmailsTraineeRegisterAsync(int TraineeApplicationID, int JobID);
+        Task<int> SendEmailsNotiHrAfterApplyAsync(int ApplicationID, int JobID, bool istrainee);
     }
 
     public class EmailNotificationService(
@@ -182,7 +183,7 @@ namespace JobOnlineAPI.Services
                     : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
-                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
+                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
                         successCount++;
                         _logger.LogInformation("Successfully sent email to {Email}", dbResult.ApplicantEmail);
                     }
@@ -297,13 +298,14 @@ namespace JobOnlineAPI.Services
             string applicantEmail = candidateData?.applicantEmail?.ToString() ?? string.Empty;
             string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
             string applicationFormUri = _config["FileStorage:ApplicationFormUri"] ?? string.Empty;
+
             if (!string.IsNullOrEmpty(applicantEmail))
             {
                 string applicantBody = GenerateEmailBody(true, companyName, fullNameThai, jobTitle, TraineeApplicationID, applicationFormUri);
                 string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                 try
                 {
-                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
+                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null);
                     _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
                 }
                 catch (Exception ex)
@@ -312,6 +314,113 @@ namespace JobOnlineAPI.Services
                 }
             }
             return successCount;
+        }
+
+        public async Task<int> SendEmailsNotiHrAfterApplyAsync(int ApplicationID, int JobID, bool istrainee)
+        {
+            int successCount = 0;
+
+            try
+            {
+                using var connection = _context.CreateConnection();
+
+                dynamic? candidateData;
+                try
+                {
+                    candidateData = istrainee
+                        ? await connection.QueryFirstOrDefaultAsync<dynamic>(
+                            "GetTraineeDataByAppJobForSendMail",
+                            new { TraineeApplicationID = ApplicationID, JobID },
+                            commandType: CommandType.StoredProcedure)
+                        : await connection.QueryFirstOrDefaultAsync<dynamic>(
+                            "GetDataCandidateByJobID",
+                            new { JobID, ApplicationID },
+                            commandType: CommandType.StoredProcedure);
+
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "STEP 1 FAILED: Query candidateData (istrainee={IsTrainee}, AppID={AppID}, JobID={JobID})", istrainee, ApplicationID, JobID);
+                    return successCount;
+                }
+
+                string fullNameThai = candidateData?.fullNameThai?.ToString() ?? string.Empty;
+                string jobTitle = candidateData?.jobTitle?.ToString() ?? string.Empty;
+                string applicantEmail = candidateData?.applicantEmail?.ToString() ?? string.Empty;
+                string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
+                string companyCode = candidateData?.companyCode?.ToString() ?? string.Empty;
+                string departmentName = candidateData?.departmentName?.ToString() ?? string.Empty;
+                string createDate = candidateData?.createdate?.ToString() ?? string.Empty;
+                string mobliephone = candidateData?.MobilePhone?.ToString() ?? string.Empty;
+                string applicationFormUri = _config["FileStorage:ApplicationFormUri"] ?? string.Empty;
+
+                _logger.LogInformation("Parsed candidateData: fullNameThai={FullName}, jobTitle={JobTitle}, applicantEmail={Email}, companyCode={CompanyCode}",
+                    fullNameThai, jobTitle, applicantEmail, companyCode);
+
+                IEnumerable<dynamic> hrEmailList;
+                try
+                {
+                    hrEmailList = await connection.QueryAsync<dynamic>(
+                        "GetEmailHRByCompanyCode",
+                        new { companyCode },
+                        commandType: CommandType.StoredProcedure);
+
+                    _logger.LogInformation("hrEmailList query success. Count: {Count}", hrEmailList?.Count() ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "STEP 2 FAILED: Query hrEmailList (companyCode={CompanyCode})", companyCode);
+                    return successCount;
+                }
+
+                string hrSubject = $"แจ้งเตือน: มีผู้สมัครใหม่รอการคัดกรอง - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+
+                string hrBody;
+                try
+                {
+                    hrBody = await GenerateEmailsNotiHrAfterApplyBody(_config, jobTitle, fullNameThai, applicantEmail, mobliephone, createDate, departmentName, companyName);
+                    _logger.LogInformation("hrBody generated. Length: {Length}", hrBody?.Length ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "STEP 3 FAILED: GenerateEmailsNotiHrAfterApplyBody");
+                    return successCount;
+                }
+
+                if (hrEmailList == null || !hrEmailList.Any())
+                {
+                    _logger.LogWarning("hrEmailList is empty. No HR emails to send. companyCode={CompanyCode}", companyCode);
+                    return successCount;
+                }
+
+                foreach (var hr in hrEmailList)
+                {
+                    string hrEmail = hr?.Email?.ToString() ?? string.Empty;
+                    if (string.IsNullOrEmpty(hrEmail))
+                    {
+                        _logger.LogWarning("Skipped HR row with empty Email.");
+                        continue;
+                    }
+
+                    try
+                    {
+                        await _emailService.SendEmailAsync(hrEmail, hrSubject, hrBody, true, "Register", null);
+                        _logger.LogInformation("Successfully sent HR notification email to {Email}", hrEmail);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send HR notification email to {Email}: {Message}", hrEmail, ex.Message);
+                    }
+                }
+
+                return successCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "UNEXPECTED FAILURE in SendEmailsNotiHrAfterApplyAsync (AppID={AppID}, JobID={JobID}, istrainee={IsTrainee})", ApplicationID, JobID, istrainee);
+                return successCount;
+            }
         }
 
         public async Task<int> SendHireToHrEmailsAsync(ApplicantRequestData requestData)
@@ -882,6 +991,40 @@ namespace JobOnlineAPI.Services
                 { "BaseUrl", baseUrlFront }
             });
         }
+
+        private static async Task<string> GenerateEmailsNotiHrAfterApplyBody(
+            IConfiguration config,
+            string jobTitle,
+            string fullNameThai,
+            string applicantEmail,
+            string mobliephone,
+            string createDate,
+            string departmentName,
+            string companyName
+        )
+        {
+            var baseUrl = config["UrlFile:BaseUrl"] ?? "";
+            var baseUrlFront = config["FrontEnd:BaseUrl"] ?? "";
+            var template = LoadEmailTemplate("ToHROnlyFormApply.html");
+
+            var culture = new CultureInfo("th-TH");
+            string CreateDate = createDate != null
+                ? Convert.ToDateTime(createDate).ToString("d MMMM yyyy", culture)
+                : "";
+
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "MobilePhone", mobliephone },
+                { "Email", applicantEmail },
+                { "CreateDate", CreateDate },
+                { "Department", departmentName },
+                { "CompanyName", companyName },
+                { "BaseUrl", baseUrlFront }
+            });
+        }
         private static string GenerateWaittingCandidateInFoEmailBody(string fullNameThai, string jobTitle, string url)
         {
             var template = LoadEmailTemplate("WaittingCandidateInfo.html");
@@ -918,7 +1061,7 @@ namespace JobOnlineAPI.Services
             return template;
         }
 
-     
+
     }
 }
 

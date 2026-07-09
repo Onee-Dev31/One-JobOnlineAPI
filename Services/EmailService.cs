@@ -19,7 +19,7 @@ namespace JobOnlineAPI.Services
             var redirectToTestMode = isTestMode && !bypassTestMode;
 
             var recipients = redirectToTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
-            var finalSubject = redirectToTestMode ? $"[TEST] {subject}" : subject;
+            var finalSubject = redirectToTestMode ? $"[TEST] {subject} To {to}" : subject;
 
             var emailMessage = new MimeMessage();
             emailMessage.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.FromEmail));

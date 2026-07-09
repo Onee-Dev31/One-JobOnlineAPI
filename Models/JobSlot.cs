@@ -32,7 +32,8 @@ namespace JobOnlineAPI.Models
     public class JobSlotAssignment
     {
         public int AssignmentID { get; set; }
-        public int SlotID { get; set; }
+        public int? SlotID { get; set; }
+        public int? JobID { get; set; }
         public int? ApplicantID { get; set; }
         public string? Title { get; set; }
         public string? FirstNameThai { get; set; }
@@ -75,8 +76,13 @@ namespace JobOnlineAPI.Models
 
     public class AssignApplicantRequest
     {
-        // Either ApplicantID (sourced from T_APPLICANTS) or FirstNameThai (manual entry) must be provided.
-        public int? ApplicantID { get; set; }
+        // Either ApplicationID (an existing, already-vetted JobApplications row) or FirstNameThai
+        // (manual entry) must be provided.
+        public int JobID { get; set; }
+        // Existing JobApplications row — whether self-submitted (still awaiting a batch, from
+        // sp_GetUnassignedTraineeAssignments) or an already-created manual entry. The SP figures out
+        // whether to update its pending JobSlotAssignments row or create a new one.
+        public int? ApplicationID { get; set; }
         public string? Title { get; set; }
         public string? FirstNameThai { get; set; }
         public string? LastNameThai { get; set; }

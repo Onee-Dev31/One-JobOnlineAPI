@@ -12,13 +12,17 @@ namespace JobOnlineAPI.Controllers
     [Route("api/[controller]")]
     public class JobSlotsController(
         IConfiguration configuration,
-        INetworkShareService networkShareService) : ControllerBase
+        INetworkShareService networkShareService,
+        IEmailNotificationService emailNotificationService,
+        ILogger<ApplicantNewController> logger
+        ) : ControllerBase
     {
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
         private readonly INetworkShareService _networkShareService = networkShareService;
-
+        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private readonly ILogger _logger = logger;
         private static readonly string[] AllowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"];
         private static readonly string[] AllowedMimeTypes =
         [
@@ -118,16 +122,16 @@ namespace JobOnlineAPI.Controllers
             return Ok(new { Candidates = candidates, Slots = slots });
         }
 
-        [HttpGet("trainee-candidates")]
-        public async Task<IActionResult> GetTraineeSlotCandidates([FromQuery] string? department)
+        [HttpGet("unassigned-trainees")]
+        public async Task<IActionResult> GetUnassignedTraineeAssignments([FromQuery] string? department)
         {
             using var conn = new SqlConnection(_connectionString);
-            var candidates = await conn.QueryAsync(
-                "sp_GetTraineeSlotCandidates",
+            var assignments = await conn.QueryAsync(
+                "sp_GetUnassignedTraineeAssignments",
                 new { Department = department },
                 commandType: CommandType.StoredProcedure);
 
-            return Ok(candidates);
+            return Ok(assignments);
         }
 
         [HttpPut("{id}/assign")]
@@ -137,6 +141,28 @@ namespace JobOnlineAPI.Controllers
             [FromForm] string jsonData,
             [FromForm] List<IFormFile>? resumeFiles,
             [FromForm] List<IFormFile>? transcriptFiles)
+        {
+            return await AssignApplicantCoreAsync(id, jsonData, resumeFiles, transcriptFiles);
+        }
+
+        // Public self-apply: a trainee applying on their own, with no batch chosen yet.
+        // Same jsonData shape as AssignApplicant, minus a SlotID — creates JobApplications
+        // (Status = 'pending') and a JobSlotAssignments row with SlotID still NULL.
+        [HttpPost("apply")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ApplyAsTrainee(
+            [FromForm] string jsonData,
+            [FromForm] List<IFormFile>? resumeFiles,
+            [FromForm] List<IFormFile>? transcriptFiles)
+        {
+            return await AssignApplicantCoreAsync(null, jsonData, resumeFiles, transcriptFiles);
+        }
+
+        private async Task<IActionResult> AssignApplicantCoreAsync(
+            int? slotId,
+            string jsonData,
+            List<IFormFile>? resumeFiles,
+            List<IFormFile>? transcriptFiles)
         {
             AssignApplicantRequest? request;
             try
@@ -161,8 +187,9 @@ namespace JobOnlineAPI.Controllers
                         "sp_AssignApplicantToSlot",
                         new
                         {
-                            SlotID = id,
-                            request.ApplicantID,
+                            SlotID = slotId,
+                            request.JobID,
+                            request.ApplicationID,
                             ManualTitle = request.Title,
                             ManualFirstNameThai = request.FirstNameThai,
                             ManualLastNameThai = request.LastNameThai,
@@ -199,6 +226,17 @@ namespace JobOnlineAPI.Controllers
                         if (files == null || files.Count == 0) continue;
                         await SaveFilesAsync(conn, files, assignmentId, section);
                     }
+
+                        try
+                        {
+                            // ฟอร์ม Email ใหม่
+                            await _emailNotificationService.SendEmailsTraineeRegisterAsync(assignmentId, request.JobID);
+                            await _emailNotificationService.SendEmailsNotiHrAfterApplyAsync(assignmentId, request.JobID, true);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", assignmentId);
+                        }
 
                     return Ok(new { AssignmentID = assignmentId });
                 }
@@ -239,8 +277,7 @@ namespace JobOnlineAPI.Controllers
                     await file.CopyToAsync(stream);
 
                 await conn.ExecuteAsync(
-                    @"INSERT INTO JobSlotAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
-                      VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)",
+                    "sp_AddJobSlotAssignmentFile",
                     new
                     {
                         AssignmentID = assignmentId,
@@ -249,7 +286,8 @@ namespace JobOnlineAPI.Controllers
                         FileSize = file.Length,
                         FileType = file.ContentType,
                         SectionFile = section
-                    });
+                    },
+                    commandType: CommandType.StoredProcedure);
             }
         }
 
