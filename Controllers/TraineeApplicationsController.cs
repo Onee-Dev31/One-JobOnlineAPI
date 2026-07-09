@@ -1,11 +1,13 @@
+using System.Data;
+using System.Text.Json;
 using Dapper;
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Models;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using System.Data;
-using System.Text.Json;
+using Org.BouncyCastle.Ocsp;
+using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -14,12 +16,18 @@ namespace JobOnlineAPI.Controllers
     public class TraineeApplicationsController(
         DapperContext context,
         INetworkShareService networkShareService,
-        IOptions<FileStorageConfig> fileStorageConfig) : ControllerBase
+        IOptions<FileStorageConfig> fileStorageConfig,
+        IEmailNotificationService emailNotificationService,
+        ILogger<ApplicantNewController> logger) : ControllerBase
     {
         private readonly DapperContext _context = context;
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly string _basePath = fileStorageConfig.Value.BasePath;
-
+        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
+        private readonly ILogger _logger = logger;
+        private readonly IOptions<FileStorageConfig> _fileStorageConfig = fileStorageConfig;
+        private readonly string _applicationFormUri = fileStorageConfig.Value.ApplicationFormUri
+        ?? throw new InvalidOperationException("Application form URI is not configured.");
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
         private static readonly string[] AllowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"];
         private static readonly string[] AllowedMimeTypes =
@@ -29,6 +37,7 @@ namespace JobOnlineAPI.Controllers
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ];
         private const long MaxFileSize = 40 * 1024 * 1024;
+        private readonly string _applicationFormUri;
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? status)
@@ -216,7 +225,8 @@ namespace JobOnlineAPI.Controllers
                         request.InfoSourceStaffName,
                         request.InfoSourceDepartment,
                         request.InfoSourceOther,
-                        request.Status
+                        request.Status,
+                        request.JobID
                     },
                     commandType: CommandType.StoredProcedure);
 
@@ -232,6 +242,16 @@ namespace JobOnlineAPI.Controllers
                     if (files == null || files.Count == 0) continue;
                     await SaveFilesAsync(conn, files, id, section);
                 }
+
+                //try
+                //{
+                //    // ฟอร์ม Email ใหม่
+                //    await _emailNotificationService.SendApplicationEmailsAsync( );
+                //}
+                //catch (Exception ex)
+                //{
+                //    _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", TraineeApplicationID);
+                //}
 
                 return Ok(new { TraineeApplicationID = id });
             }
