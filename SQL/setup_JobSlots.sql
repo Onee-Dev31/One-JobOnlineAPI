@@ -269,6 +269,7 @@ BEGIN
         JS.SlotID,
         JS.Department,
         EMP.COMPANY_CODE AS CompanyCode,
+        EMP.NAMECOSTCENT AS DepartmentName,
         JS.NumberOfPositions,
         JS.StartDate,
         JS.EndDate,
@@ -283,8 +284,13 @@ BEGIN
     LEFT JOIN (
         SELECT DISTINCT
             COSTCENT,
-            COMPANY_CODE
+            COMPANY_CODE,
+            NAMECOSTCENT
         FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL
+        AND COSTCENT <> ''
+        AND NAMECOSTCENT IS NOT NULL
+        AND NAMECOSTCENT <> ''
     ) EMP
         ON JS.Department = EMP.COSTCENT
     LEFT JOIN JobSlotAssignments A
@@ -298,7 +304,7 @@ BEGIN
                 AND (JS.EndDate IS NULL OR JS.EndDate >= @WindowStart)
             )
           )
-    GROUP BY JS.SlotID, JS.Department, EMP.COMPANY_CODE, JS.NumberOfPositions,
+    GROUP BY JS.SlotID, JS.Department, EMP.COMPANY_CODE, EMP.NAMECOSTCENT, JS.NumberOfPositions,
              JS.StartDate, JS.EndDate, JS.Status, JS.CreatedByAdminID,
              JS.RequestedByName, JS.CreatedAt, JS.ModifiedAt
     ORDER BY JS.StartDate, JS.EndDate
