@@ -118,16 +118,16 @@ namespace JobOnlineAPI.Controllers
             return Ok(new { Candidates = candidates, Slots = slots });
         }
 
-        [HttpGet("trainee-candidates")]
-        public async Task<IActionResult> GetTraineeSlotCandidates([FromQuery] string? department)
+        [HttpGet("unassigned-trainees")]
+        public async Task<IActionResult> GetUnassignedTraineeAssignments([FromQuery] string? department)
         {
             using var conn = new SqlConnection(_connectionString);
-            var candidates = await conn.QueryAsync(
-                "sp_GetTraineeSlotCandidates",
+            var assignments = await conn.QueryAsync(
+                "sp_GetUnassignedTraineeAssignments",
                 new { Department = department },
                 commandType: CommandType.StoredProcedure);
 
-            return Ok(candidates);
+            return Ok(assignments);
         }
 
         [HttpPut("{id}/assign")]
@@ -137,6 +137,28 @@ namespace JobOnlineAPI.Controllers
             [FromForm] string jsonData,
             [FromForm] List<IFormFile>? resumeFiles,
             [FromForm] List<IFormFile>? transcriptFiles)
+        {
+            return await AssignApplicantCoreAsync(id, jsonData, resumeFiles, transcriptFiles);
+        }
+
+        // Public self-apply: a trainee applying on their own, with no batch chosen yet.
+        // Same jsonData shape as AssignApplicant, minus a SlotID — creates JobApplications
+        // (Status = 'pending') and a JobSlotAssignments row with SlotID still NULL.
+        [HttpPost("apply")]
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> ApplyAsTrainee(
+            [FromForm] string jsonData,
+            [FromForm] List<IFormFile>? resumeFiles,
+            [FromForm] List<IFormFile>? transcriptFiles)
+        {
+            return await AssignApplicantCoreAsync(null, jsonData, resumeFiles, transcriptFiles);
+        }
+
+        private async Task<IActionResult> AssignApplicantCoreAsync(
+            int? slotId,
+            string jsonData,
+            List<IFormFile>? resumeFiles,
+            List<IFormFile>? transcriptFiles)
         {
             AssignApplicantRequest? request;
             try
@@ -161,8 +183,9 @@ namespace JobOnlineAPI.Controllers
                         "sp_AssignApplicantToSlot",
                         new
                         {
-                            SlotID = id,
-                            request.ApplicantID,
+                            SlotID = slotId,
+                            request.JobID,
+                            request.ApplicationID,
                             ManualTitle = request.Title,
                             ManualFirstNameThai = request.FirstNameThai,
                             ManualLastNameThai = request.LastNameThai,
