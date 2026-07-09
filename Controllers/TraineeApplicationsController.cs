@@ -37,7 +37,6 @@ namespace JobOnlineAPI.Controllers
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         ];
         private const long MaxFileSize = 40 * 1024 * 1024;
-        private readonly string _applicationFormUri;
 
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? status)
@@ -243,15 +242,15 @@ namespace JobOnlineAPI.Controllers
                     await SaveFilesAsync(conn, files, id, section);
                 }
 
-                //try
-                //{
-                //    // ฟอร์ม Email ใหม่
-                //    await _emailNotificationService.SendApplicationEmailsAsync( );
-                //}
-                //catch (Exception ex)
-                //{
-                //    _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", TraineeApplicationID);
-                //}
+                try
+                {
+                    // ฟอร์ม Email ใหม่
+                    await _emailNotificationService.SendEmailsTraineeRegisterAsync(request.TraineeApplicationID, request.JobID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", request.TraineeApplicationID);
+                }
 
                 return Ok(new { TraineeApplicationID = id });
             }

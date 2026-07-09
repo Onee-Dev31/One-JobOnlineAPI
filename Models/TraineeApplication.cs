@@ -71,7 +71,7 @@ namespace JobOnlineAPI.Models
         public string Status { get; set; } = "pending";
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public int? JobID { get; set; }
+        public int JobID { get; set; }
     }
 
     public class TraineeFile

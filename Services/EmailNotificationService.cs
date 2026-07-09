@@ -1,9 +1,12 @@
 ﻿using System.Data;
 using System.Globalization;
 using System.Text.Json;
+using Castle.DynamicProxy.Internal;
 using Dapper;
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Models;
+using Microsoft.VisualStudio.TestPlatform.Common;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
 
 namespace JobOnlineAPI.Services
 {
@@ -17,6 +20,7 @@ namespace JobOnlineAPI.Services
         Task<int> SendApplicationEmailsAsync(IDictionary<string, object?> req, (int ApplicantId, string ApplicantEmail, string HrManagerEmails, string JobManagerEmails, string JobTitle, string CompanyName, int OutJobID) dbResult, string applicationFormUri);
         Task<int> SendEmailCandidatePass(ApplicantRequestData requestData);
         Task<int> SendEmailsJobsStatusAsync(int JobID);
+        Task<int> SendEmailsTraineeRegisterAsync(int TraineeApplicationID, int JobID);
     }
 
     public class EmailNotificationService(
@@ -275,6 +279,38 @@ namespace JobOnlineAPI.Services
                 }
             }
 
+            return successCount;
+        }
+
+        public async Task<int> SendEmailsTraineeRegisterAsync(int TraineeApplicationID, int JobID)
+        {
+            int successCount = 0;
+            using var connection = _context.CreateConnection();
+
+            var candidateData = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                "GetTraineeDataByAppJobForSendMail",
+                new { TraineeApplicationID, JobID },
+                commandType: CommandType.StoredProcedure);
+
+            string fullNameThai = candidateData?.fullNameThai?.ToString() ?? string.Empty;
+            string jobTitle = candidateData?.jobTitle?.ToString() ?? string.Empty;
+            string applicantEmail = candidateData?.applicantEmail?.ToString() ?? string.Empty;
+            string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
+            string applicationFormUri = _config["FileStorage:ApplicationFormUri"] ?? string.Empty;
+            if (!string.IsNullOrEmpty(applicantEmail))
+            {
+                string applicantBody = GenerateEmailBody(true, companyName, fullNameThai, jobTitle, TraineeApplicationID, applicationFormUri);
+                string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                try
+                {
+                    await _emailService.SendEmailAsync(applicationFormUri, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
+                    _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send email to {Email}: {Message}", applicantEmail, ex.Message);
+                }
+            }
             return successCount;
         }
 
@@ -875,6 +911,8 @@ namespace JobOnlineAPI.Services
 
             return template;
         }
+
+     
     }
 }
 
