@@ -78,7 +78,7 @@ namespace JobOnlineAPI.Models
     {
         // Either ApplicationID (an existing, already-vetted JobApplications row) or FirstNameThai
         // (manual entry) must be provided.
-        public int? JobID { get; set; }
+        public int JobID { get; set; }
         // Existing JobApplications row — whether self-submitted (still awaiting a batch, from
         // sp_GetUnassignedTraineeAssignments) or an already-created manual entry. The SP figures out
         // whether to update its pending JobSlotAssignments row or create a new one.
