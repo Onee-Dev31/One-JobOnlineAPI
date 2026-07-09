@@ -178,7 +178,7 @@ namespace JobOnlineAPI.Services
                     ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle, dbResult.CompanyName)
                     : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
-                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน รอบที่ 2 ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
+                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
                     : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
