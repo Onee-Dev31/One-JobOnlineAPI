@@ -462,6 +462,71 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpPost("refresh")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var token = Request.Cookies["auth_token"];
+            if (string.IsNullOrWhiteSpace(token))
+                return Unauthorized(new { message = "ไม่พบ token" });
+
+            try
+            {
+                var jwtToken = await _jwtTokenService.ValidateTokenAsync(token);
+                var email = jwtToken.Subject;
+
+                if (string.IsNullOrWhiteSpace(email))
+                    return Unauthorized(new { message = "token ไม่ถูกต้อง" });
+
+                using var conn = _context.CreateConnection();
+                var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_GetUserByEmailOnly",
+                    new { Email = email },
+                    commandType: CommandType.StoredProcedure);
+
+                if (user == null)
+                    return Unauthorized(new { message = "ไม่พบบัญชีผู้ใช้งาน" });
+
+                var userModel = new UserModel
+                {
+                    Username = email,
+                    Role = "User",
+                    UserId = (int)(user.UserId ?? 0),
+                    ConfirmConsent = user.ConfirmConsent?.ToString() ?? "",
+                    ApplicantID = user.ApplicantID != null ? (int?)user.ApplicantID : 0,
+                    JobID = (int?)user.JobID,
+                    Status = user.Status?.ToString()
+                };
+
+                var newToken = _jwtTokenService.GenerateJwtToken(userModel);
+                Response.Cookies.Append("auth_token", newToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+
+                return Ok(new
+                {
+                    userModel.Username,
+                    userModel.Role,
+                    userModel.ConfirmConsent,
+                    userModel.UserId,
+                    userModel.ApplicantID,
+                    userModel.JobID,
+                    userModel.Status
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RefreshToken failed");
+                return Unauthorized(new { message = "token หมดอายุหรือไม่ถูกต้อง" });
+            }
+        }
+
         private static string HashPassword(string password)
         {
             var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
