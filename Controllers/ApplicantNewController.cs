@@ -10,6 +10,7 @@ using JobOnlineAPI.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.Data.SqlClient;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -1214,13 +1215,16 @@ namespace JobOnlineAPI.Controllers
 
                 int applicantId = param.Get<int>("@ApplicantID");
 
-                var username = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+                var username = HttpContext.User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value ?? "";
                 var role = HttpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+                var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+                int.TryParse(userIdClaim, out var userId);
                 var newToken = _jwtTokenService.GenerateJwtToken(new UserModel
                 {
                     Username = username,
                     Role = role,
-                    ApplicantID = applicantId
+                    ApplicantID = applicantId,
+                    UserId = userId
                 });
                 Response.Cookies.Append("auth_token", newToken, new CookieOptions
                 {
