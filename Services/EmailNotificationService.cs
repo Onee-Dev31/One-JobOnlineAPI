@@ -206,7 +206,7 @@ namespace JobOnlineAPI.Services
                        : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
                         //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                         string applicantSubject = typeMail == "Part2"
-                        ? "แจ้งการกรอกข้อมูลเพิ่มเติมรอบที่ 2"
+                        ? "แจ้งการกรอกข้อมูลประวัติประกอบการทำสัญญาจ้างงาน"
                         : $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                         try
                         {
