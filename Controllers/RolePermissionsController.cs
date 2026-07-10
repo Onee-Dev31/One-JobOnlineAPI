@@ -47,8 +47,12 @@ namespace JobOnlineAPI.Controllers
                 if (string.IsNullOrEmpty(roleName))
                     return Unauthorized("Role not found in token.");
 
-                var routes = await _adminRepository.GetRoutesByRoleNameAsync(roleName);
-                return Ok(new MyPermissionResponse { Routes = routes.ToList() });
+                var items = (await _adminRepository.GetRoutesByRoleNameWithDetailAsync(roleName)).ToList();
+                return Ok(new MyPermissionResponse
+                {
+                    Routes = items.Select(i => i.RoutePath).ToList(),
+                    Items = items
+                });
             }
             catch (Exception)
             {
@@ -81,6 +85,85 @@ namespace JobOnlineAPI.Controllers
             try
             {
                 await _adminRepository.UpdateRoutesSortOrderAsync(items);
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpGet("manage")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> GetAllRolePermissionsDetail()
+        {
+            try
+            {
+                var items = await _adminRepository.GetAllRolePermissionsDetailAsync();
+                return Ok(items);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> CreateRolePermission([FromBody] RolePermissionCreateRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.RoutePath))
+                return BadRequest("RoutePath is required.");
+
+            try
+            {
+                var existing = await _adminRepository.GetRolePermissionByRoleAndRouteAsync(request.RoleID, request.RoutePath);
+                if (existing != null)
+                    return Conflict($"Route '{request.RoutePath}' is already assigned to this role.");
+
+                var newId = await _adminRepository.CreateRolePermissionAsync(request);
+                return StatusCode(StatusCodes.Status201Created, new { ID = newId });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPut("{id:int}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> UpdateRolePermission(int id, [FromBody] RolePermissionUpdateRequest request)
+        {
+            if (id <= 0)
+                return BadRequest("ID must be a positive integer.");
+
+            try
+            {
+                var updated = await _adminRepository.UpdateRolePermissionAsync(id, request);
+                if (!updated)
+                    return NotFound($"Role permission with ID {id} not found.");
+
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpDelete("{id:int}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> DeleteRolePermission(int id)
+        {
+            if (id <= 0)
+                return BadRequest("ID must be a positive integer.");
+
+            try
+            {
+                var deleted = await _adminRepository.DeleteRolePermissionAsync(id);
+                if (!deleted)
+                    return NotFound($"Role permission with ID {id} not found.");
+
                 return NoContent();
             }
             catch (Exception)
