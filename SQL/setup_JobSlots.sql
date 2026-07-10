@@ -674,3 +674,64 @@ BEGIN
     INSERT INTO JobSlotAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
     VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)
 END
+
+GO
+-- Single candidate detail for a job, from whichever pipeline it came from:
+-- ApplicantID given -> general pipeline (T_APPLICANTS). ApplicantID NULL -> manual/self-submit
+-- pipeline (JobSlotAssignments). Pass @ApplicationID too when JobID alone could match more than
+-- one manual application (e.g. several self-submits for the same JobID) — without it, the most
+-- recent submission wins.
+CREATE OR ALTER PROCEDURE sp_GetApplicationDetail
+    @JobID          INT,
+    @ApplicantID    INT = NULL,
+    @ApplicationID  INT = NULL
+AS
+BEGIN
+    IF @ApplicantID IS NOT NULL
+    BEGIN
+        SELECT TOP 1
+            JA.ApplicationID,
+            JA.JobID,
+            JA.ApplicantID,
+            JA.Status,
+            JA.SubmissionDate,
+            APP.Title,
+            APP.FirstNameThai,
+            APP.LastNameThai,
+            APP.FirstNameEng,
+            APP.LastNameEng,
+            APP.Nickname,
+            APP.MobilePhone,
+            APP.Email
+        FROM JobApplications JA
+        INNER JOIN T_APPLICANTS APP ON APP.ApplicantID = JA.ApplicantID
+        WHERE JA.ApplicantID = @ApplicantID
+          AND JA.JobID = @JobID
+          AND (@ApplicationID IS NULL OR JA.ApplicationID = @ApplicationID)
+        ORDER BY JA.SubmissionDate DESC
+    END
+    ELSE
+    BEGIN
+        SELECT TOP 1
+            JA.ApplicationID,
+            JA.JobID,
+            JA.ApplicantID,
+            JA.Status,
+            JA.SubmissionDate,
+            A.ManualTitle AS Title,
+            A.ManualFirstNameThai AS FirstNameThai,
+            A.ManualLastNameThai AS LastNameThai,
+            CAST(NULL AS NVARCHAR(100)) AS FirstNameEng,
+            CAST(NULL AS NVARCHAR(100)) AS LastNameEng,
+            A.ManualNickname AS Nickname,
+            A.ManualMobilePhone AS MobilePhone,
+            A.ManualEmail AS Email
+        FROM JobApplications JA
+        INNER JOIN JobSlotAssignments A ON A.ApplicationID = JA.ApplicationID
+        WHERE JA.ApplicantID IS NULL
+          AND JA.JobID = @JobID
+          AND (@ApplicationID IS NULL OR JA.ApplicationID = @ApplicationID)
+          AND A.Status <> 'Cancelled'
+        ORDER BY JA.SubmissionDate DESC
+    END
+END
