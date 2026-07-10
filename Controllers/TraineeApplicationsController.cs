@@ -1,3 +1,4 @@
+using System;
 using System.Data;
 using System.Text.Json;
 using Dapper;
@@ -51,12 +52,12 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int id)
+        public async Task<IActionResult> GetById(int assignmentID, int applicationId)
         {
             using var conn = _context.CreateConnection();
             using var multi = await conn.QueryMultipleAsync(
                 "sp_GetTraineeApplicationByID",
-                new { TraineeApplicationID = id },
+                new { AssignmentID = assignmentID, ApplicationID = applicationId },
                 commandType: CommandType.StoredProcedure);
 
             var application = await multi.ReadFirstOrDefaultAsync<dynamic>();
