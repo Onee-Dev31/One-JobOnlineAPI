@@ -211,7 +211,8 @@ namespace JobOnlineAPI.Controllers
                             ManualCanCommute = request.CanCommute,
                             ManualCanTravelOutside = request.CanTravelOutside,
                             ManualFlexibleWork = request.FlexibleWork,
-                            ManualReasonForInterest = request.ReasonForInterest
+                            ManualReasonForInterest = request.ReasonForInterest,
+                            UserID = request.UserID
                         },
                         commandType: CommandType.StoredProcedure);
 
