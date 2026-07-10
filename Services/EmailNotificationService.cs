@@ -334,7 +334,7 @@ namespace JobOnlineAPI.Services
                             commandType: CommandType.StoredProcedure)
                         : await connection.QueryFirstOrDefaultAsync<dynamic>(
                             "GetDataCandidateByJobID",
-                            new { JobID, ApplicationID },
+                            new { JobID, ApplicantID = ApplicationID },
                             commandType: CommandType.StoredProcedure);
 
                 }

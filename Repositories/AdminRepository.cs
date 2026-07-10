@@ -206,6 +206,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@CompanyName", request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
             parameters.Add("@IsActive", request.IsActive);
+            parameters.Add("@ReportsToEmpNo", string.IsNullOrWhiteSpace(request.ReportsToEmpNo) ? null : request.ReportsToEmpNo);
             var rows = await db.QuerySingleAsync<int>("sp_UpdateAdminUser", parameters, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }

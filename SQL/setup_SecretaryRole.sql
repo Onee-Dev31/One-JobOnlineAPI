@@ -30,29 +30,21 @@ BEGIN
 END
 GO
 
--- @ReportsToEmpNo is the boss's EmpNo (HRMS CODEMPID). If no AdminUsers row exists for that EmpNo
--- yet (regardless of that person's Role), one is auto-created here as Hiring Manager using data
--- pulled from HRMS. If a row already exists, it's reused as-is (its Role is never touched).
-CREATE OR ALTER PROCEDURE sp_CreateSecretaryAdminUser
-    @Username       NVARCHAR(50),
-    @HRID           INT = NULL,
-    @EMAIL          NVARCHAR(255) = NULL,
-    @Department     NVARCHAR(100) = NULL,
-    @EmpNo          NVARCHAR(50) = NULL,
-    @NameThai       NVARCHAR(100) = NULL,
-    @Mobile         NVARCHAR(20) = NULL,
-    @Position       NVARCHAR(100) = NULL,
-    @CompanyName    NVARCHAR(100) = NULL,
-    @RoleID         INT,
-    @ReportsToEmpNo NVARCHAR(50)
+-- sp_ResolveBossAdminUser: given a boss's EmpNo (HRMS CODEMPID), finds the existing AdminUsers row
+-- for that EmpNo, or auto-creates one (as Hiring Manager, sourced from HRMS) if none exists yet
+-- (regardless of that person's Role, an existing row is reused as-is and its Role is never touched).
+-- Shared by sp_CreateSecretaryAdminUser and sp_UpdateAdminUser so this logic lives in one place.
+-- The caller owns the transaction (and should SET XACT_ABORT ON) — this proc does not start one.
+CREATE OR ALTER PROCEDURE sp_ResolveBossAdminUser
+    @ReportsToEmpNo      NVARCHAR(50),
+    @BossAdminID         INT OUTPUT,
+    @BossNameThai        NVARCHAR(100) OUTPUT,
+    @BossWasNewlyCreated BIT OUTPUT
 AS
 BEGIN
     SET NOCOUNT ON;
-    SET XACT_ABORT ON;
 
-    BEGIN TRANSACTION;
-
-    DECLARE @BossAdminID INT, @BossNameThai NVARCHAR(100), @BossWasNewlyCreated BIT = 0;
+    SET @BossWasNewlyCreated = 0;
 
     SELECT @BossAdminID = AdminID, @BossNameThai = NameThai
     FROM AdminUsers WITH (UPDLOCK, HOLDLOCK)
@@ -77,10 +69,7 @@ BEGIN
         WHERE t.CODEMPID = @ReportsToEmpNo;
 
         IF @BossAdUser IS NULL
-        BEGIN
-            ROLLBACK TRANSACTION;
             THROW 51000, N'ไม่พบข้อมูลพนักงานตามรหัสพนักงานของหัวหน้าในระบบ HRMS กรุณาตรวจสอบรหัสพนักงาน', 1;
-        END
 
         INSERT INTO AdminUsers (Username, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID)
         VALUES (@BossAdUser, @BossEmail, @BossDept, @ReportsToEmpNo, @BossNameThai, @BossMobile, @BossPosition, @BossCompanyName, @HiringManagerRoleID);
@@ -88,6 +77,37 @@ BEGIN
         SET @BossAdminID = CAST(SCOPE_IDENTITY() AS INT);
         SET @BossWasNewlyCreated = 1;
     END
+END
+GO
+
+-- @ReportsToEmpNo is the boss's EmpNo (HRMS CODEMPID); resolution/auto-create is delegated to
+-- sp_ResolveBossAdminUser (shared with sp_UpdateAdminUser).
+CREATE OR ALTER PROCEDURE sp_CreateSecretaryAdminUser
+    @Username       NVARCHAR(50),
+    @HRID           INT = NULL,
+    @EMAIL          NVARCHAR(255) = NULL,
+    @Department     NVARCHAR(100) = NULL,
+    @EmpNo          NVARCHAR(50) = NULL,
+    @NameThai       NVARCHAR(100) = NULL,
+    @Mobile         NVARCHAR(20) = NULL,
+    @Position       NVARCHAR(100) = NULL,
+    @CompanyName    NVARCHAR(100) = NULL,
+    @RoleID         INT,
+    @ReportsToEmpNo NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRANSACTION;
+
+    DECLARE @BossAdminID INT, @BossNameThai NVARCHAR(100), @BossWasNewlyCreated BIT;
+
+    EXEC sp_ResolveBossAdminUser
+        @ReportsToEmpNo = @ReportsToEmpNo,
+        @BossAdminID = @BossAdminID OUTPUT,
+        @BossNameThai = @BossNameThai OUTPUT,
+        @BossWasNewlyCreated = @BossWasNewlyCreated OUTPUT;
 
     INSERT INTO AdminUsers (Username, HRID, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID, ReportsToAdminID)
     VALUES (@Username, @HRID, @EMAIL, @Department, @EmpNo, @NameThai, @Mobile, @Position, @CompanyName, @RoleID, @BossAdminID);

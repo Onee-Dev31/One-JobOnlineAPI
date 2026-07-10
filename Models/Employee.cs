@@ -6,6 +6,7 @@ namespace JobOnlineAPI.Models
         public string EmpNo { get; set; } = string.Empty;
         public string? AdUser { get; set; }
         public string? NameThai { get; set; }
+        public string? NickName { get; set; }
         public string? Email { get; set; }
         public string? Mobile { get; set; }
         public string? Telephone { get; set; }
@@ -23,6 +24,7 @@ namespace JobOnlineAPI.Models
         public string EmpNo { get; set; } = string.Empty;
         public string? AdUser { get; set; }
         public string? NameThai { get; set; }
+        public string? Nickname { get; set; }
         public string? Email { get; set; }
         public string? Mobile { get; set; }
         public string? Telephone { get; set; }
