@@ -577,7 +577,8 @@ namespace JobOnlineAPI.Controllers
                             ApplicationID = c.ApplicationID,
                             Status = requestData.Status,
                             JobID = requestData.JobID,
-                            Remark = c.Remark
+                            Remark = c.Remark,
+                            RankOfSelect = c.RankOfSelect
                         });
                     }
                     else if (hasRank)
@@ -818,9 +819,18 @@ namespace JobOnlineAPI.Controllers
             // Update JobApplications by ApplicationID directly instead.
             if (requestData.ApplicantID <= 0 && requestData.ApplicationID is > 0)
             {
+                // Mirrors sp_UpdateApplicantStatusV3's 'Waiting HR Nagotiate' behavior: assign the next
+                // rank in the job when entering negotiation without a rank; otherwise keep the existing one.
                 await connection.ExecuteAsync(
                     @"UPDATE JobApplications
                       SET Status = @Status,
+                          RankOfSelect = CASE
+                                             WHEN @RankOfSelect IS NOT NULL THEN @RankOfSelect
+                                             WHEN @Status = 'Waiting HR Nagotiate' AND RankOfSelect IS NULL
+                                             THEN (SELECT ISNULL(MAX(r.RankOfSelect), 0) + 1
+                                                   FROM JobApplications r WHERE r.JobID = @JobID)
+                                             ELSE RankOfSelect
+                                         END,
                           Remark = CASE
                                        WHEN @Remark IS NOT NULL AND LTRIM(RTRIM(@Remark)) <> ''
                                        THEN @Remark
@@ -832,7 +842,8 @@ namespace JobOnlineAPI.Controllers
                         requestData.ApplicationID,
                         requestData.JobID,
                         Status = requestData.Status ?? "",
-                        requestData.Remark
+                        requestData.Remark,
+                        requestData.RankOfSelect
                     });
                 return;
             }
