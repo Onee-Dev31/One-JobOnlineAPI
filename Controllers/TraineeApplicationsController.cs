@@ -59,79 +59,13 @@ namespace JobOnlineAPI.Controllers
                 new { TraineeApplicationID = id },
                 commandType: CommandType.StoredProcedure);
 
-            var application = await multi.ReadFirstOrDefaultAsync<TraineeApplication>();
+            var application = await multi.ReadFirstOrDefaultAsync<dynamic>();
             if (application == null)
                 return NotFound(new { message = "ไม่พบข้อมูลใบสมัครฝึกงานนี้" });
 
-            var files = (await multi.ReadAsync<TraineeFile>()).ToList();
+            var files = await multi.ReadAsync<dynamic>();
 
-            return Ok(new TraineeApplicationDetail
-            {
-                TraineeApplicationID = application.TraineeApplicationID,
-                StartDate = application.StartDate,
-                EndDate = application.EndDate,
-                DesiredField1 = application.DesiredField1,
-                DesiredField2 = application.DesiredField2,
-                DesiredField3 = application.DesiredField3,
-                Reason = application.Reason,
-                ReasonOther = application.ReasonOther,
-                PrefixT = application.PrefixT,
-                NameFirstT = application.NameFirstT,
-                NameLastT = application.NameLastT,
-                NicknameT = application.NicknameT,
-                PrefixE = application.PrefixE,
-                NameFirstE = application.NameFirstE,
-                NameLastE = application.NameLastE,
-                NicknameE = application.NicknameE,
-                Gender = application.Gender,
-                DateOfBirth = application.DateOfBirth,
-                Age = application.Age,
-                PlaceOfBirth = application.PlaceOfBirth,
-                Nationality = application.Nationality,
-                Race = application.Race,
-                Religion = application.Religion,
-                Height = application.Height,
-                Weight = application.Weight,
-                IDCardNo = application.IDCardNo,
-                IDIssuedBy = application.IDIssuedBy,
-                IDExpiredDate = application.IDExpiredDate,
-                Address = application.Address,
-                ProvinceID = application.ProvinceID,
-                DistrictID = application.DistrictID,
-                SubDistrictID = application.SubDistrictID,
-                PostalCode = application.PostalCode,
-                Telephone = application.Telephone,
-                Mobile = application.Mobile,
-                Email = application.Email,
-                FatherName = application.FatherName,
-                FatherOccupation = application.FatherOccupation,
-                FatherStatus = application.FatherStatus,
-                MotherName = application.MotherName,
-                MotherOccupation = application.MotherOccupation,
-                MotherStatus = application.MotherStatus,
-                SiblingCount = application.SiblingCount,
-                SiblingOrder = application.SiblingOrder,
-                EmergencyName = application.EmergencyName,
-                EmergencyRelation = application.EmergencyRelation,
-                EmergencyAddress = application.EmergencyAddress,
-                EmergencyPhone = application.EmergencyPhone,
-                School = application.School,
-                Faculty = application.Faculty,
-                Major = application.Major,
-                Minor = application.Minor,
-                YearOfStudy = application.YearOfStudy,
-                AdvisorName = application.AdvisorName,
-                AdvisorPhone = application.AdvisorPhone,
-                Activities = application.Activities,
-                InfoSources = application.InfoSources,
-                InfoSourceStaffName = application.InfoSourceStaffName,
-                InfoSourceDepartment = application.InfoSourceDepartment,
-                InfoSourceOther = application.InfoSourceOther,
-                Status = application.Status,
-                CreatedAt = application.CreatedAt,
-                UpdatedAt = application.UpdatedAt,
-                Files = files
-            });
+            return Ok(new { Application = application, Files = files });
         }
 
         [HttpPost("upsert")]
