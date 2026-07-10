@@ -514,7 +514,16 @@ namespace JobOnlineAPI.Controllers
 
                 if (status == "New Candidate")
                 {
-                    await _emailNotificationService.SendEmailCandidatePass(requestData);
+                    try
+                    {
+                        await _emailNotificationService.SendEmailCandidatePass(requestData);
+                    }
+                    catch (Exception ex)
+                    {
+                        // Email is a side effect; a failure (e.g. trainee candidates with no ApplicantID)
+                        // must not block the status update itself.
+                        _logger.LogError(ex, "SendEmailCandidatePass failed (ApplicantID: {ApplicantID}); continuing status update", requestData.ApplicantID);
+                    }
                 }
 
                 if (typeMail == "Hire")
@@ -565,9 +574,11 @@ namespace JobOnlineAPI.Controllers
                         updates = requestData.Candidates!.Select(c => new ApplicantRequestData
                         {
                             ApplicantID = c.ApplicantID,
+                            ApplicationID = c.ApplicationID,
                             Status = requestData.Status,
                             JobID = requestData.JobID,
-                            Remark = c.Remark
+                            Remark = c.Remark,
+                            RankOfSelect = c.RankOfSelect
                         });
                     }
                     else if (hasRank)
@@ -575,6 +586,7 @@ namespace JobOnlineAPI.Controllers
                         updates = requestData.Candidates!.Select(c => new ApplicantRequestData
                         {
                             ApplicantID = c.ApplicantID,
+                            ApplicationID = c.ApplicationID,
                             Status = typeMail == "Hire" ? requestData.Status : c.Status,
                             Remark = c.Remark,
                             RankOfSelect = c.RankOfSelect,
@@ -678,6 +690,12 @@ namespace JobOnlineAPI.Controllers
             int JobID = jobIdElement.GetInt32();
             string status = statusElement.GetString()!;
 
+            int? applicationId = normalized.TryGetValue("applicationid", out var applicationIdObj) &&
+                                 applicationIdObj is JsonElement applicationIdElement &&
+                                 applicationIdElement.ValueKind == JsonValueKind.Number
+                ? applicationIdElement.GetInt32()
+                : (int?)null;
+
             List<CandidateDto> candidates = ExtractCandidates(normalized);
             // List<CandidateDto> candidates = ExtractCandidates(data);
 
@@ -713,6 +731,7 @@ namespace JobOnlineAPI.Controllers
             return new ApplicantRequestData
             {
                 ApplicantID = ApplicantID,
+                ApplicationID = applicationId,
                 Status = status,
                 Candidates = candidates,
                 EmailSend = emailSend,
@@ -802,6 +821,41 @@ namespace JobOnlineAPI.Controllers
         private async Task UpdateStatusInDatabaseV2(ApplicantRequestData requestData)
         {
             using var connection = _context.CreateConnection();
+
+            // Trainee candidates have no ApplicantID (JobApplications.ApplicantID is NULL for them),
+            // so sp_UpdateApplicantStatusV3's WHERE ApplicantID = @ApplicantID never matches their row.
+            // Update JobApplications by ApplicationID directly instead.
+            if (requestData.ApplicantID <= 0 && requestData.ApplicationID is > 0)
+            {
+                // Mirrors sp_UpdateApplicantStatusV3's 'Waiting HR Nagotiate' behavior: assign the next
+                // rank in the job when entering negotiation without a rank; otherwise keep the existing one.
+                await connection.ExecuteAsync(
+                    @"UPDATE JobApplications
+                      SET Status = @Status,
+                          RankOfSelect = CASE
+                                             WHEN @RankOfSelect IS NOT NULL THEN @RankOfSelect
+                                             WHEN @Status = 'Waiting HR Nagotiate' AND RankOfSelect IS NULL
+                                             THEN (SELECT ISNULL(MAX(r.RankOfSelect), 0) + 1
+                                                   FROM JobApplications r WHERE r.JobID = @JobID)
+                                             ELSE RankOfSelect
+                                         END,
+                          Remark = CASE
+                                       WHEN @Remark IS NOT NULL AND LTRIM(RTRIM(@Remark)) <> ''
+                                       THEN @Remark
+                                       ELSE Remark
+                                   END
+                      WHERE ApplicationID = @ApplicationID AND JobID = @JobID",
+                    new
+                    {
+                        requestData.ApplicationID,
+                        requestData.JobID,
+                        Status = requestData.Status ?? "",
+                        requestData.Remark,
+                        requestData.RankOfSelect
+                    });
+                return;
+            }
+
             var parameters = new DynamicParameters();
 
             parameters.Add("@ApplicantID", requestData.ApplicantID);

@@ -55,9 +55,10 @@ namespace JobOnlineAPI.Services
                 useNetworkShare = !string.IsNullOrEmpty(_fileStorageConfig.NetworkUsername) &&
                                   !string.IsNullOrEmpty(_fileStorageConfig.NetworkPassword);
             }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && !string.IsNullOrEmpty(_fileStorageConfig.MacPath))
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX) && !string.IsNullOrEmpty(_fileStorageConfig.MacPath) && Directory.Exists(_fileStorageConfig.MacPath))
             {
-                // macOS: ใช้ MacPath ที่ mount SMB share ไว้แล้ว เช่น /Volumes/AppFiles/Applicants
+                // macOS: ใช้ MacPath เฉพาะเมื่อ SMB share mount ไว้แล้ว เช่น /Volumes/AppFiles/Applicants
+                // ถ้ายังไม่ mount จะ fallback ไปใช้ local BasePath แทน (สร้าง /Volumes/... ไม่ได้ เพราะเป็นของ root)
                 basePath = _fileStorageConfig.MacPath;
                 useNetworkShare = false;
             }
