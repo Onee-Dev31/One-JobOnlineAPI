@@ -145,21 +145,7 @@ namespace JobOnlineAPI.Services
 
                     try
                     {
-                        managerBody = $@"
-                            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{fullName}</p>
-                                <p>สำเนา ผู้เกี่ยวข้อง</p>
-                                <br>
-                                <p>ทางฝ่ายทรัพยากรบุคคล ได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว</p>
-                                <p>โดยมีรายละเอียด ดังนี้</p>
-                                <p>ชื่อ-สกุล : {fullNameThai} รหัสพนักงาน : {CodeMPID} วันที่เริ่มงาน : {JobStartDate}  เรียบร้อยแล้วค่ะ</p>
-                                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> หากต้องการเปิดคำร้องเพื่อขอบบริการทางด้าน IT โปรด Login และไปที่เมนู IT Request Form เข้าระบบเพื่อสร้างคำขอ {applicationFormUri} <span style='color: red; font-weight: bold;'>*</span></p>
-                                <br>
-                                <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
-                                <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
-                                <br>
-                                <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                            </div>";
+                        managerBody = GenerateRegistrationConfirmedToHRBody(fullName, fullNameThai, CodeMPID, JobStartDate, applicationFormUri);
                         string SubjectMail = $@"แจ้งผลการสรรหา - คุณ {fullNameThai}";
                         await _emailService.SendEmailAsync(emailStaff, SubjectMail, managerBody, true, "Register", null);
                         successCount++;
@@ -179,8 +165,8 @@ namespace JobOnlineAPI.Services
                     ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle, dbResult.CompanyName)
                     : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
-                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
-                    : $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน รอบ 2 ตำแหน่ง - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
+                    : $"ยืนยันการได้รับข้อมูลประวัติประกอบการสมัครงาน - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
                         await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
@@ -207,7 +193,7 @@ namespace JobOnlineAPI.Services
                         //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                         string applicantSubject = typeMail == "Part2"
                         ? "แจ้งการกรอกข้อมูลประวัติประกอบการทำสัญญาจ้างงาน"
-                        : $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                        : $"Onee Jobs - มีผู้สมัครงานเข้ามาใหม่  {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                         try
                         {
                             await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
@@ -267,7 +253,7 @@ namespace JobOnlineAPI.Services
                     continue;
 
                 string managerBody = await GenerateApplicantPart1ToHREmailBody(requestData.ApplicantID, jobTitle, _config, _context, requestData.JobID, OpenForName!.NAMETHAI!);
-                string applicantSubject = $"Onee Jobs - You've got the new candidate - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                string applicantSubject = $"Onee Jobs - มีผู้สมัครงานเข้ามาใหม่ - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                 try
                 {
                     await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
@@ -438,22 +424,7 @@ namespace JobOnlineAPI.Services
             string candidateNamesString = string.Join("<br>", candidateNames);
             string tel = requestData.Tel ?? "-";
 
-            string hrBody = $@"
-            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายทรัพยากรบุคคล<br>
-                    ทาง Manager ต้นสังกัด แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {tel} อีเมล: {requestData.RequesterMail} <br> 
-                    มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง <b>{requestData.JobTitle}</b>
-                </p>
-                <p style='margin: 0 0 10px 0;'>
-                    โดยมี ลำดับรายชื่อการติดต่อดังนี้ <br> {candidateNamesString}
-                </p>
-                <br>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> โดยให้ทำการติดต่อ ผู้มัครลำดับที่ 1 ก่อน หากเจรจาไม่สำเร็จ ให้ทำการติดต่อกับผู้มัครลำดับต่อไป <span style='color: red; font-weight: bold;'>*</span></p>
-                <p style='margin: 0 0 10px 0;'><span style='color: red; font-weight: bold;'>*</span> กรุณา Login เข้าสู่ระบบ {applicationFormUri} และไปที่ Menu การว่าจ้าง เพื่อตอบกลับคำขอนี้ <span style='color: red; font-weight: bold;'>*</span></p>
-                <br>
-                <p style='color: red; font-weight: bold;'>**Email อัตโนมัติ โปรดอย่าตอบกลับ**</p>
-            </div>";
+            string hrBody = GenerateNegotiateCandidateToHRBody(requestData.NameCon, requestData.RequesterName, tel, requestData.RequesterMail, requestData.JobTitle, candidateNamesString, applicationFormUri);
             var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
@@ -512,21 +483,8 @@ namespace JobOnlineAPI.Services
 
             var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor")
                   ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
-            // <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ {requestData.RequesterName}</p>
-            // <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน Manager ฝ่าย {requestData.JobTitle} </p>
-            string hrBody = $@"
-            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}</p>
-                <p style='font-weight: bold; margin: 0 0 10px 0;'>ทางฝ่าย ฝ่ายสรรหาบุคลากร ขอแจ้งผลการเจรจากับผู้สมัครเพื่อรับเข้าทำงาน โดยมีรายละเอียดดังต่อไปนี้</p>
-                <br>
-                <p style='margin: 0 0 10px 0;'>
-                    ตำแหน่ง {requestData!.JobTitle}<br>
-                    {candidateNamesString}
-                </p>
-                <br>
-                <p style='margin: 0 0 10px 0;'>* สำหรับผู้สมัครที่ต่อรองสำเร็จ ทางฝ่ายฯ จะทำการดำเนินการตามกระบวนการถัดไป เพื่อทำการรับผู้สมัครเข้าเป็นพนักงานและกำหนดวันที่เริ่มงานต่อไป *</p>
-                <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-            </div>";
+            string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
+            string hrBody = GenerateManagerNegotiationResultBody(recipientName, requestData!.JobTitle!, candidateNamesString);
             var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
             // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
             var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
@@ -584,26 +542,13 @@ namespace JobOnlineAPI.Services
             var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor") 
                   ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
 
-            string hrBody = $@"
-            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                <p style='margin: 0 0 10px 0;'>
-                    เรียน ฝ่ายทรัพยากรบุคคล<br>
-                    หลังจากที่พิจารณาคุณสมบัติของผู้สมัคร ในตำแหน่ง <b>{requestData!.JobTitle}</b> แล้วนั้น <br>
-                    ทางต้นสังกัด ใคร่ขอให้ทางฝ่ายทรัพยากรบุคคล ติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียด ดังนี้
-                </p>
-                <p style='margin: 0 0 10px 0;'>
-                    {candidateNamesString}
-                </p>
-                <br>
-                <p style='margin: 0 0 10px 0;'>ในส่วนของวัน เวลา นัดหมายในการสัมภาษณ์งานนั้น </p>
-                <p style='margin: 0 0 10px 0;'>หากท่านมีข้อสงสัยประการใด กรุณาติดต่อได้ที่เบอร์ด้านล่าง</p>
-                <p style='margin: 0 0 10px 0;'>{SentToName!.NAMFIRSTT} {SentToName.NAMLASTT}</p>
-                <p style='margin: 0 0 10px 0;'>{SentToName.POST}</p>
-                <p style='margin: 0 0 10px 0;'>โทร: {SentToName.TelOff}</p>
-                <p style='margin: 0 0 10px 0;'>อีเมล: {SentToName.EMAIL}</p>
-                <br>
-                <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-            </div>";
+            string hrBody = GenerateInterviewCallToHRBody(
+                requestData!.JobTitle!,
+                candidateNamesString,
+                $"{SentToName!.NAMFIRSTT} {SentToName.NAMLASTT}".Trim(),
+                (string?)SentToName.POST ?? "",
+                (string?)SentToName.TelOff ?? "",
+                (string?)SentToName.EMAIL ?? "");
             var subjectEmail = $"Onee Jobs - เรียกผู้สมัครสัมภาษณ์งาน ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
@@ -747,15 +692,86 @@ namespace JobOnlineAPI.Services
 
         private static string GenerateManagerEmailBody(string fullNameThai, string jobTitle)
         {
-            return $@"
-                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน ทุกท่าน</p>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>ผู้สมัคร คุณ {fullNameThai} ตำแหน่ง {jobTitle}</p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'>ได้ทำการกรอกข้อมูลในการสมัครงานเพิ่มเติมรอบ ที่ 2 หลังจากที่ได้รับคัดเลือกให้เข้าเป็นพนักงาน เรียบร้อยแล้ว <br> ขั้นตอนถัดไป แผนก HR จะต้องทำการเข้าสู่ระบบและไปที่เมนูการว่าจ้าง เพื่อไปทำการตรวจและยืนยันข้อมูลของผู้สมัคร</p>
-                    <br>
-                    <p style='color: red; font-weight: bold;'>**อีเมลนี้เป็นข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                </div>";
+            var template = LoadEmailTemplate("ManagerPart2Notice.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle }
+            });
+        }
+
+        private static string GenerateRegistrationConfirmedToHRBody(string recipientName, string fullNameThai, string codeMPID, string jobStartDate, string? applicationFormUri)
+        {
+            var template = LoadEmailTemplate("RegistrationConfirmedToHR.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "RecipientName", recipientName },
+                { "FullNameThai", fullNameThai },
+                { "CodeMPID", codeMPID },
+                { "JobStartDate", jobStartDate },
+                { "BaseUrl", applicationFormUri ?? "" }
+            });
+        }
+
+        private static string GenerateNegotiateCandidateToHRBody(string? deptName, string? requesterName, string tel, string? requesterMail, string? jobTitle, string candidateList, string? applicationFormUri)
+        {
+            var template = LoadEmailTemplate("NegotiateCandidateToHR.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "DeptName", deptName ?? "" },
+                { "RequesterName", requesterName ?? "" },
+                { "Tel", tel },
+                { "RequesterMail", requesterMail ?? "" },
+                { "JobTitle", jobTitle ?? "" },
+                { "CandidateList", candidateList },
+                { "BaseUrl", applicationFormUri ?? "" }
+            });
+        }
+
+        private static string GenerateManagerNegotiationResultBody(string recipientName, string jobTitle, string candidateList)
+        {
+            var template = LoadEmailTemplate("ManagerNegotiationResult.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "RecipientName", recipientName },
+                { "JobTitle", jobTitle },
+                { "CandidateList", candidateList }
+            });
+        }
+
+        private static string GenerateInterviewCallToHRBody(string jobTitle, string candidateList, string contactName, string contactPosition, string contactPhone, string contactEmail)
+        {
+            var template = LoadEmailTemplate("InterviewCallToHR.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "JobTitle", jobTitle },
+                { "CandidateList", candidateList },
+                { "ContactName", contactName },
+                { "ContactPosition", contactPosition },
+                { "ContactPhone", contactPhone },
+                { "ContactEmail", contactEmail }
+            });
+        }
+
+        private static string GenerateHRRequestReceivedBody(string recipientName, string? applicationFormUri)
+        {
+            var template = LoadEmailTemplate("HRRequestReceived.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "RecipientName", recipientName },
+                { "BaseUrl", applicationFormUri ?? "" }
+            });
+        }
+
+        private static string GenerateJobStatusApprovalBody(string recipientNames, string jobTitle, string statusBlock)
+        {
+            var template = LoadEmailTemplate("JobStatusApproval.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "RecipientNames", recipientNames },
+                { "JobTitle", jobTitle },
+                { "StatusBlock", statusBlock }
+            });
         }
 
         private static string GenerateEmailBody(bool isApplicant, string recipient, string fullNameThai, string jobTitle, int applicantId, string applicationFormUri)
@@ -763,39 +779,22 @@ namespace JobOnlineAPI.Services
             if (isApplicant)
             {
                 string companyName = recipient;
-                return $@"
-                    <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                        <p style='margin: 0; font-weight: bold;'>{companyName}: ได้รับใบสมัครงานของคุณแล้ว</p>
-                        <p style='margin: 0;'>เรียน คุณ {fullNameThai}</p>
-                        <p>
-                            ขอบคุณสำหรับความสนใจในตำแหน่ง <strong>{jobTitle}</strong>
-                            ทางบริษัทได้รับใบสมัครของท่านเรียบร้อยแล้ว ทีมงานฝ่ายทรัพยากรบุคคลของเราจะพิจารณาใบสมัครของท่าน
-                            และจะติดต่อกลับท่านอีกครั้ง หากคุณสมบัติของท่านตรงตามที่เรากำลังมองหา<br>
-                        </p>
-
-                        <p style='margin-top: 30px; margin:0'>ด้วยความเคารพ,</p>
-                        <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
-                        <p style='margin: 0;'>{companyName}</p>
-                        <br>
-                        <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                    </div>";
+                var applicantTemplate = LoadEmailTemplate("ApplicantReceivedConfirmation.html");
+                return ReplaceTemplatePlaceholders(applicantTemplate, new Dictionary<string, string>
+                {
+                    { "CompanyName", companyName },
+                    { "FullNameThai", fullNameThai },
+                    { "JobTitle", jobTitle }
+                });
             }
 
-            return $@"
-                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                    <p style='margin: 0;'>เรียนทุกท่าน</p>
-                    <p style='margin: 0;'>เรื่อง: แจ้งข้อมูลผู้สมัครตำแหน่ง <strong>{jobTitle}</strong></p>
-                    <p style='margin: 0;'>ทางฝ่ายรับสมัครงานขอแจ้งให้ทราบว่า คุณ <strong>{fullNameThai}</strong> ได้ทำการสมัครงานเข้ามาในตำแหน่ง <strong>{jobTitle}</strong></p>
-                    <p style='margin: 0;'>กรุณาคลิก Link:
-                        <a target='_blank' href='{applicationFormUri}?id={applicantId}'
-                            style='color: #007bff; text-decoration: underline;'>
-                            {applicationFormUri}
-                        </a>
-                        เพื่อดูรายละเอียดและดำเนินการในขั้นตอนต่อไป
-                    </p>
-                    <br>
-                    <p style='color: red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-                </div>";
+            var staffTemplate = LoadEmailTemplate("StaffNewApplicantNotice.html");
+            return ReplaceTemplatePlaceholders(staffTemplate, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "Link", $"{applicationFormUri}?id={applicantId}" }
+            });
         }
 
         private static string GetFullName(IDictionary<string, object?> req)
@@ -819,38 +818,20 @@ namespace JobOnlineAPI.Services
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var firstRecord = result.FirstOrDefault();
-            string hrBody = string.Empty;
-            string SubjectMail = string.Empty;
-            hrBody = $@"
-            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                <p style='margin: 0;'>
-                    เรียน คุณ{firstRecord?.NAMETHAI}
-                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $"และคุณ{firstRecord?.ApproveNameThai}")},
-                </p>
 
-                {(firstRecord?.ApprovalStatus == "Approved" ? $@"
-                    <p>
-                        ฝ่ายทรัพยากรบุคคลได้ดำเนินการ <strong>อนุมัติ</strong> คำขอเปิดรับสมัครงานในตำแหน่ง 
-                        <strong>{firstRecord?.JobTitle}</strong> เรียบร้อยแล้วค่ะ
-                    </p>
-                " : $@"
-                    <p>
-                        ฝ่ายทรัพยากรบุคคลได้ดำเนินการ <strong>ไม่อนุมัติ</strong> คำขอเปิดรับสมัครงานในตำแหน่ง 
-                        <strong>{firstRecord?.JobTitle}</strong> ด้วยเหตุผลดังต่อไปนี้ค่ะ:
-                    </p>
-                    <blockquote style='background-color:#fff3f3; padding: 10px; border-left: 4px solid #ff4d4f;'>
-                        <strong>{firstRecord?.Remark}</strong>
-                    </blockquote>
-                    <p>หากต้องการข้อมูลเพิ่มเติม กรุณาติดต่อฝ่ายทรัพยากรบุคคลโดยตรงค่ะ</p>
-                ")}
+            string recipientNames = string.IsNullOrEmpty(firstRecord?.ApproveNameThai)
+                ? $"คุณ{firstRecord?.NAMETHAI}"
+                : $"คุณ{firstRecord?.NAMETHAI} และ คุณ{firstRecord?.ApproveNameThai}";
 
-                <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
-                <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
-                <br>
-                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs.oneeclick.co เข้าดูประกาศของท่าน **</p>
-                <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-            </div>";
-            SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
+            string statusBlock = firstRecord?.ApprovalStatus == "Approved"
+                ? $@"<p style='margin:0;'>ฝ่ายทรัพยากรบุคคลได้พิจารณา <strong style='color:#16a34a;'>อนุมัติ</strong></p>
+                    <p style='margin:0;'> คำขอเปิดรับสมัครงานในตำแหน่ง <strong>{firstRecord?.JobTitle}</strong> เรียบร้อยแล้ว</p>"
+                : $@"<p style='margin:0 0 10px;'>ฝ่ายทรัพยากรบุคคลพิจารณา <strong style='color:#dc2626;'>ไม่อนุมัติ</strong> คำขอเปิดรับสมัครงานในตำแหน่ง <strong>{firstRecord?.JobTitle}</strong> ด้วยเหตุผลดังต่อไปนี้ค่ะ:</p>
+                    <blockquote style='background-color:#fff3f3;padding:10px;border-left:4px solid #ff4d4f;margin:0 0 10px;'><strong>{firstRecord?.Remark}</strong></blockquote>
+                    <p style='margin:0;'>หากต้องการข้อมูลเพิ่มเติม กรุณาติดต่อฝ่ายทรัพยากรบุคคลโดยตรงค่ะ</p>";
+
+            string hrBody = GenerateJobStatusApprovalBody(recipientNames, (string?)firstRecord?.JobTitle ?? "", statusBlock);
+            string SubjectMail = $@"Onee Jobs : ผลการพิจารณาการขอเปิดตำแหน่งงาน : {firstRecord?.JobTitle}";
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
         }
 
@@ -886,27 +867,9 @@ namespace JobOnlineAPI.Services
                   ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
 
 
-            string hrBody = string.Empty;
-            string SubjectMail = string.Empty;
-            hrBody = $@"
-                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}</p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'>
-                        ทางฝ่ายทรัพยากรบุคคล ได้รับเรื่องคำขอของท่านแล้ว <br> 
-                        และดำเนินการตามคำขอของท่าน โดยจะทำการอัพเดตความคืบหน้าผ่านระบบ
-                    </p>
-                    <br>
-                    <p style='margin: 0 0 10px 0;'> โดยท่านจะได้รับ Email แจ้งเตือนอีกครั้งเมื่อมีความคืบหน้า </p>
-                    <br>           
-                    <p>
-                        <span style='color: red; font-weight: bold;'>*ติดตามความคืบหน้าของคำขอของท่านผ่านลิงค์*</span> {applicationFormUri}
-                    </p>
-                    <p style='color: red; font-weight: bold;'>
-                        **อีเมลนี้เป็นระบบอัตโนมัติ กรุณาอย่าตอบกลับ**
-                    </p>
-                </div>";
-            SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
+            string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
+            string hrBody = GenerateHRRequestReceivedBody(recipientName, applicationFormUri);
+            string SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
 
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
         }

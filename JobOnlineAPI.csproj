@@ -35,6 +35,16 @@
 	  <None Remove="Templates\Email\ResetPassword.html" />
           <None Remove="Templates\Email\ApplicantPart2.html" />
 	  <None Remove="Templates\Email\ApplicantPart2ToHR.html" />
+	  <None Remove="Templates\Email\RegistrationConfirmedToHR.html" />
+	  <None Remove="Templates\Email\NegotiateCandidateToHR.html" />
+	  <None Remove="Templates\Email\ManagerNegotiationResult.html" />
+	  <None Remove="Templates\Email\InterviewCallToHR.html" />
+	  <None Remove="Templates\Email\ManagerPart2Notice.html" />
+	  <None Remove="Templates\Email\ApplicantReceivedConfirmation.html" />
+	  <None Remove="Templates\Email\StaffNewApplicantNotice.html" />
+	  <None Remove="Templates\Email\JobStatusApproval.html" />
+	  <None Remove="Templates\Email\HRRequestReceived.html" />
+	  <None Remove="Templates\Email\NewJobRequestNotification.html" />
 	</ItemGroup>
 
 
@@ -107,6 +117,36 @@
           <Content Include="Templates\Email\ApplicantPart2ToHR.html">
     	     <CopyToOutputDirectory>Always</CopyToOutputDirectory>
   	   </Content>
+	  <Content Include="Templates\Email\RegistrationConfirmedToHR.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\NegotiateCandidateToHR.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\ManagerNegotiationResult.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\InterviewCallToHR.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\ManagerPart2Notice.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\ApplicantReceivedConfirmation.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\StaffNewApplicantNotice.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\JobStatusApproval.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\HRRequestReceived.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\NewJobRequestNotification.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	</ItemGroup>
 
 	<ItemGroup>

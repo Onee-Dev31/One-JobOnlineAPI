@@ -975,7 +975,7 @@ namespace JobOnlineAPI.Controllers
 
                 if (rowsAffected != 0)
                 {
-                    await SendEmailsJobsStatusAsync(approvalData.JobId);
+                    await _emailNotificationService.SendEmailsJobsStatusAsync(approvalData.JobId);
                 }
                 else
                 {
@@ -989,78 +989,6 @@ namespace JobOnlineAPI.Controllers
             }
         }
         
-        private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body)
-        {
-            int successCount = 0;
-            foreach (var email in recipients)
-            {
-                if (string.IsNullOrWhiteSpace(email))
-                    continue;
-
-                try
-                {
-                    await _emailService.SendEmailAsync(email, subject, body, true, "Jobs",null);
-                    successCount++;
-                    _logger.LogInformation("Successfully sent email to {Email}", email);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to send email to {Email}: {Message}", email, ex.Message);
-                }
-            }
-            return successCount;
-        }
-
-        private async Task<int> SendEmailsJobsStatusAsync(int JobID)
-        {
-            using var connection = _context.CreateConnection();
-            var parameters = new DynamicParameters();
-            parameters.Add("@JobID", JobID);
-            var result = await connection.QueryAsync<dynamic>(
-                "sp_GetDataSendMailJobs @JobID",
-                parameters);
-            var emails = result
-                .Select(r => ((string?)r?.EMAIL)?.Trim())
-                .Where(email => !string.IsNullOrWhiteSpace(email))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            var firstRecord = result.FirstOrDefault();
-            string hrBody = string.Empty;
-            string SubjectMail = string.Empty;
-            hrBody = $@"
-            <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px; line-height: 1.6;'>
-                <p style='margin: 0;'>
-                    เรียนคุณ {firstRecord?.NAMETHAI}
-                    {(string.IsNullOrEmpty(firstRecord?.ApproveNameThai) ? "" : $" และคุณ {firstRecord?.ApproveNameThai}")},
-                </p>
-
-                {(firstRecord?.ApprovalStatus == "Approved" ? $@"
-                    <p>
-                        ฝ่ายทรัพยากรบุคคลได้ดำเนินการ <strong>อนุมัติ</strong> คำขอเปิดรับสมัครงานในตำแหน่ง 
-                        <strong>{firstRecord?.JobTitle}</strong> เรียบร้อยแล้วค่ะ
-                    </p>
-                " : $@"
-                    <p>
-                        ฝ่ายทรัพยากรบุคคลได้ดำเนินการ <strong>ไม่อนุมัติ</strong> คำขอเปิดรับสมัครงานในตำแหน่ง 
-                        <strong>{firstRecord?.JobTitle}</strong> ด้วยเหตุผลดังต่อไปนี้ค่ะ:
-                    </p>
-                    <blockquote style='background-color:#fff3f3; padding: 10px; border-left: 4px solid #ff4d4f;'>
-                        <strong>{firstRecord?.Remark}</strong>
-                    </blockquote>
-                    <p>หากต้องการข้อมูลเพิ่มเติม กรุณาติดต่อฝ่ายทรัพยากรบุคคลโดยตรงค่ะ</p>
-                ")}
-
-                <p style='margin-top: 30px;'>ด้วยความเคารพ,</p>
-                <p style='margin: 0;'>ฝ่ายทรัพยากรบุคคล</p>
-                <br>
-                <p style='color:red; font-weight: bold;'>**กรุณา Click : https://oneejobs.oneeclick.co/Careers เข้าดูประกาศของท่าน **</p>
-                <p style='color:red; font-weight: bold;'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</p>
-            </div>";
-            SubjectMail = $@"แจ้งสถานะคำขอเปิดรับสมัครพนักงาน - ตำแหน่ง {firstRecord?.JobTitle}";
-            return await SendEmailsAsync(emails!, SubjectMail, hrBody);
-        }
-
-
         [HttpGet("GetPDPAContent")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetPDPAContent()

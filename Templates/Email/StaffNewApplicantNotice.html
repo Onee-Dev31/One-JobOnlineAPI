@@ -19,22 +19,40 @@
                     <tr>
                         <td bgcolor="#111827" style="padding:30px;text-align:center;">
                             <h1 style="color:#ffffff;margin:20px 0 0;font-size:26px;font-weight:700;">
-                                🎉 Welcome to ONEE Jobs
+                                New Applicant Notice
                             </h1>
                             <p style="color:#d1d5db;margin-top:8px;font-size:15px;">
-                                การสมัครสมาชิกของคุณสำเร็จแล้ว
+                                แจ้งข้อมูลผู้สมัครตำแหน่ง {{JobTitle}}
                             </p>
                         </td>
                     </tr>
 
-                    <!-- Body -->
+                    <!-- Greeting -->
                     <tr>
                         <td style="padding:35px;">
-                            <p style="margin:0;font-size:16px;color:#374151;line-height:26px;">
-                                ยินดีต้อนรับสู่ ONEE Jobs การสมัครสมาชิกของคุณสำเร็จแล้ว
+                            <p style="margin:0;font-size:16px;color:#374151;">
+                                เรียนทุกท่าน
                             </p>
                             <p style="margin-top:15px;color:#6b7280;line-height:26px;">
-                                คุณสามารถเข้าสู่ระบบด้วยอีเมลที่ได้ทำการลงทะเบียนไว้ในหน้า Login
+                                ทางฝ่ายรับสมัครงานขอแจ้งให้ทราบว่า คุณ <strong>{{FullNameThai}}</strong>
+                                ได้ทำการสมัครงานเข้ามาในตำแหน่ง <strong>{{JobTitle}}</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Button -->
+                    <tr>
+                        <td align="center" style="padding:10px 40px 40px;">
+                            <a href="{{Link}}"
+                               style="background:#111827;color:#ffffff;padding:16px 40px;text-decoration:none;
+                                border-radius:8px;font-size:16px;font-weight:bold;display:inline-block;">
+                                View Candidate →
+                            </a>
+                            <p style="margin-top:18px;font-size:13px;color:#9ca3af;">
+                                หากปุ่มด้านบนไม่สามารถใช้งานได้ กรุณาเปิดลิงก์ด้านล่าง
+                            </p>
+                            <p style="font-size:13px;word-break:break-all;">
+                                <a href="{{Link}}" style="color:#2563eb;">{{Link}}</a>
                             </p>
                         </td>
                     </tr>

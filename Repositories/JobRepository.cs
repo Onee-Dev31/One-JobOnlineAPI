@@ -108,9 +108,47 @@ namespace JobOnlineAPI.Repositories
                     commandType: CommandType.StoredProcedure
                 );
 
-                var requesterInfo = job.Role == "1" || job.Role == "2"
-                    ? $"<li style='color: #333;'><strong>ผู้ขอ:</strong> {job.NAMETHAI} {roleSendMail}</li>"
-                    : $"<li style='color: #333;'><strong>ผู้ขอ:</strong> {job.NAMETHAI} Requester: {job.NAMECOSTCENT}</li>";
+                // Role "2" = HR created the job themself: only notify the person it's opened for, not the whole staff list.
+                if (job.Role == "2")
+                {
+                    staffList = staffList.Where(s => s.CODEMPID == job.OpenFor).ToList();
+                }
+
+                string requesterInfo = job.Role == "1" || job.Role == "2"
+                    ? $"<tr><td style='padding:14px 20px;color:#6b7280;'>ฝ่ายทรัพยากรบุคคล</td><td style='padding:14px 20px;font-weight:600;'>{job.NAMETHAI} {roleSendMail}</td></tr>"
+                    : $"<tr><td style='padding:14px 20px;color:#6b7280;'>ผู้ขอ</td><td style='padding:14px 20px;font-weight:600;'>{job.NAMETHAI}</td></tr>";
+
+                // Role "2" = HR created the job themself, so greet the person it's opened for (looked up by CODEMPID == OpenFor)
+                // by name instead of the generic HR department line.
+                var openForStaff = staffList.FirstOrDefault(s => s.CODEMPID == job.OpenFor);
+                string greetingName = job.Role == "2"
+                    ? $"คุณ {openForStaff?.NAMETHAI}"
+                    : "ฝ่ายทรัพยากรบุคคล";
+                string subjectMail = job.Role == "2" ? $"Onee Jobs : เปิดตำแหน่งงาน :{job.JobTitle}" : $"Onee Jobs : คำขอเปิดตำแหน่งงาน :{job.JobTitle}";
+
+                // Role "2" = HR created the job themself: hide the "pending request" subtitle, the หน่วยงาน/เบอร์โทร/Email
+                // rows (Job model doesn't carry reliable data for those), and show the job title as its own row instead
+                // (right above อัตรา). For other roles, look up the contact info by the OpenFor employee code.
+                string headerSubtitle = job.Role == "2"
+                    ? ""
+                    : @"<p style=""color:#d1d5db;margin-top:8px;font-size:15px;"">มีคำขอเปิดรับสมัครงานตำแหน่งใหม่รอการพิจารณา</p>";
+
+                string contactRows = "";
+                if (job.Role != "2")
+                {
+                    var openForContact = await db.QueryFirstOrDefaultAsync<OpenForContactInfo>(
+                        "GetDataOpenForByEmpCode",
+                        new { EmpCode = job.OpenFor },
+                        commandType: CommandType.StoredProcedure);
+
+                    contactRows = $@"<tr bgcolor='#fafafa'><td style='padding:14px 20px;color:#6b7280;'>หน่วยงาน</td><td style='padding:14px 20px;font-weight:600;'>{openForContact?.DEPARTMENT}</td></tr>
+                        <tr><td style='padding:14px 20px;color:#6b7280;'>เบอร์โทร</td><td style='padding:14px 20px;'>{openForContact?.TELOFF}</td></tr>
+                        <tr bgcolor='#fafafa'><td style='padding:14px 20px;color:#6b7280;'>Email</td><td style='padding:14px 20px;'>{openForContact?.EMAIL}</td></tr>";
+                }
+
+                string jobTitleRow = job.Role == "2"
+                    ? $"<tr bgcolor='#fafafa'><td style='padding:14px 20px;color:#6b7280;'>ตำแหน่งงาน</td><td style='padding:14px 20px;font-weight:600;'>{job.JobTitle}</td></tr>"
+                    : "";
 
                 int successCount = 0;
                 var emailTasks = staffList
@@ -118,39 +156,11 @@ namespace JobOnlineAPI.Repositories
                     .Select(async s =>
                     {
                         string openForInfo = s.CODEMPID == job.OpenFor
-                            ? $"<li style='color: #333;'><strong>เปิดให้:</strong> {s.NAMETHAI} Requester: {s.NAMECOSTCENT}</li>"
+                            ? $"<tr bgcolor='#fafafa'><td style='padding:14px 20px;color:#6b7280;'>เปิดให้</td><td style='padding:14px 20px;font-weight:600;'>{s.NAMETHAI} </td></tr>"
                             : "";
-                        var hrBody = $@"
-                                <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;'>
-                                    <table style='width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>
-                                        <tr>
-                                            <td style='background-color: #2E86C1; padding: 20px; text-align: center; color: #ffffff;'>
-                                                <h2 style='margin: 0; font-size: 24px;'>Request open New job</h2>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style='padding: 20px; color: #333;'>
-                                                <p style='font-size: 16px;'>เปิดรับสมัครงานในตำแหน่ง <strong>{job.JobTitle}</strong>.</p>
-                                                <ul style='font-size: 14px; line-height: 1.6;'>
-                                                    {requesterInfo}
-                                                    <li><strong>หน่วยงาน:</strong> {job.NAMECOSTCENT}</li>
-                                                    <li><strong>เบอร์โทร:</strong> {job.TELOFF}</li>
-                                                    <li><strong>Email:</strong> {job.Email}</li>
-                                                    <li><strong>อัตรา:</strong> {job.NumberOfPositions}</li>
-                                                    {openForInfo}
-                                                </ul>
-                                                <p style='font-size: 14px;'>กรุณา Link: <a href='{applicationFormUri}' target='_blank' style='text-decoration: underline;'>{applicationFormUri}</a> เข้าระบบ เพื่อดูรายละเอียดและดำเนินการพิจารณา</p>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td style=' padding: 10px; text-align: center; color: #ffffff;'>
-				                                <span style='color: red'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</span>
-                                            </td>
-                                        </tr>
-                                    </table>
-                                </div>";
+                        var hrBody = GenerateNewJobRequestNotificationBody(job.JobTitle, greetingName, headerSubtitle, requesterInfo, contactRows, jobTitleRow, job.NumberOfPositions, openForInfo, applicationFormUri);
 
-                        await _emailService.SendEmailAsync(s.Email!, "New Job Application", hrBody, true, "Jobs", null);
+                        await _emailService.SendEmailAsync(s.Email!, subjectMail, hrBody, true, "Jobs", null);
                         Interlocked.Increment(ref successCount);
                     });
 
@@ -171,6 +181,52 @@ namespace JobOnlineAPI.Repositories
                 "2" => "<HR>",
                 _ => ""
             };
+
+        private static string GenerateNewJobRequestNotificationBody(
+            string jobTitle,
+            string greetingName,
+            string headerSubtitle,
+            string requesterInfo,
+            string contactRows,
+            string jobTitleRow,
+            int numberOfPositions,
+            string openForInfo,
+            string? applicationFormUri)
+        {
+            var template = LoadEmailTemplate("NewJobRequestNotification.html");
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "JobTitle", jobTitle },
+                { "GreetingName", greetingName },
+                { "HeaderSubtitle", headerSubtitle },
+                { "RequesterInfo", requesterInfo },
+                { "ContactRows", contactRows },
+                { "JobTitleRow", jobTitleRow },
+                { "Positions", numberOfPositions.ToString() },
+                { "OpenForInfo", openForInfo },
+                { "BaseUrl", applicationFormUri ?? "" }
+            });
+        }
+
+        private static string LoadEmailTemplate(string templateName)
+        {
+            var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "Email", templateName);
+
+            if (!File.Exists(templatePath))
+                throw new FileNotFoundException($"Email template not found: {templatePath}");
+
+            return File.ReadAllText(templatePath);
+        }
+
+        private static string ReplaceTemplatePlaceholders(string template, Dictionary<string, string> values)
+        {
+            foreach (var item in values)
+            {
+                template = template.Replace($"{{{{{item.Key}}}}}", item.Value ?? string.Empty);
+            }
+
+            return template;
+        }
 
         public async Task<int> UpdateJobAsync(Job job)
         {
@@ -218,6 +274,14 @@ namespace JobOnlineAPI.Repositories
         public string? NAMETHAI { get; set; }
         public string? NAMECOSTCENT { get; set; }
         public string? Email { get; set; }
+    }
+
+    internal class OpenForContactInfo
+    {
+        public string? CODEMPID { get; set; }
+        public string? DEPARTMENT { get; set; }
+        public string? TELOFF { get; set; }
+        public string? EMAIL { get; set; }
     }
 
 }

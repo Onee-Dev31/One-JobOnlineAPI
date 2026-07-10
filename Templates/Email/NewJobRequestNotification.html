@@ -18,12 +18,13 @@
                     <!-- Header -->
                     <tr>
                         <td bgcolor="#111827" style="padding:30px;text-align:center;">
-                            <h1 style="color:#ffffff;margin:20px 0 0;font-size:26px;font-weight:700;">
-                                New Candidate Application
+                            <h1 style="color:#ffffff;margin:20px 0 0;font-size:20px;font-weight:700;">
+                                Onee Jobs : คำขอเปิดตำแหน่งงาน 
                             </h1>
-                            <p style="color:#d1d5db;margin-top:8px;font-size:15px;">
-                                มีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณา
-                            </p>
+                            <h1 style="color:#ffffff;font-size:20px;font-weight:700;">
+                                <strong>{{JobTitle}}</strong>
+                            </h1>
+                            {{HeaderSubtitle}}
                         </td>
                     </tr>
 
@@ -31,16 +32,15 @@
                     <tr>
                         <td style="padding:35px 35px 0;">
                             <p style="margin:0;font-size:16px;color:#374151;">
-                                เรียน คุณ<strong>{{ManagerName}}</strong>
+                                เรียน <strong>{{GreetingName}}</strong>
                             </p>
                             <p style="margin-top:15px;color:#6b7280;line-height:26px;">
-                                ขอแจ้งให้ทราบว่ามีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณาในตำแหน่ง
-                                <strong>{{JobTitle}}</strong> โดยมีรายละเอียดเบื้องต้นดังนี้
+                                ขอเปิดรับสมัครงานในตำแหน่ง <strong>{{JobTitle}}</strong>
                             </p>
                         </td>
                     </tr>
 
-                    <!-- Candidate Card -->
+                    <!-- Job Card -->
                     <tr>
                         <td style="padding:20px 35px 25px;">
                             <table width="100%" cellpadding="0" cellspacing="0"
@@ -48,33 +48,18 @@
                                 <tr>
                                     <td colspan="2"
                                         style="padding:16px 20px;background:#f9fafb;font-size:18px;font-weight:bold;color:#111827;">
-                                        👤 Candidate Information
+                                        💼 Request Details
                                     </td>
                                 </tr>
+                                {{RequesterInfo}}
+                                {{OpenForInfo}}
+                                {{ContactRows}}
+                                {{JobTitleRow}}
                                 <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Name - Surname</td>
-                                    <td style="padding:14px 20px;font-weight:600;">{{FullNameThai}}</td>
+                                    <td style="padding:14px 20px;color:#6b7280;">อัตรา</td>
+                                    <td style="padding:14px 20px;">{{Positions}}</td>
                                 </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Position</td>
-                                    <td style="padding:14px 20px;">{{JobTitle}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Applied Date</td>
-                                    <td style="padding:14px 20px;">{{CreateDate}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Phone</td>
-                                    <td style="padding:14px 20px;">{{MobilePhone}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Email</td>
-                                    <td style="padding:14px 20px;">{{Email}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Resume/Portfolio</td>
-                                    <td style="padding:14px 20px;">{{FileList}}</td>
-                                </tr>
+
                             </table>
                         </td>
                     </tr>
@@ -85,7 +70,7 @@
                             <a href="{{BaseUrl}}"
                                style="background:#111827;color:#ffffff;padding:16px 40px;text-decoration:none;
                                 border-radius:8px;font-size:16px;font-weight:bold;display:inline-block;">
-                                View Candidate →
+                                View Request →
                             </a>
                             <p style="margin-top:18px;font-size:13px;color:#9ca3af;">
                                 หากปุ่มด้านบนไม่สามารถใช้งานได้ กรุณาเปิดลิงก์ด้านล่าง

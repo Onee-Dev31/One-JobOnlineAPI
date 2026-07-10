@@ -19,10 +19,10 @@
                     <tr>
                         <td bgcolor="#111827" style="padding:30px;text-align:center;">
                             <h1 style="color:#ffffff;margin:20px 0 0;font-size:26px;font-weight:700;">
-                                New Candidate Application
+                                New Employee Registered
                             </h1>
                             <p style="color:#d1d5db;margin-top:8px;font-size:15px;">
-                                มีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณา
+                                ฝ่ายทรัพยากรบุคคลได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว
                             </p>
                         </td>
                     </tr>
@@ -31,16 +31,16 @@
                     <tr>
                         <td style="padding:35px 35px 0;">
                             <p style="margin:0;font-size:16px;color:#374151;">
-                                เรียน คุณ<strong>{{ManagerName}}</strong>
+                                เรียน คุณ<strong>{{RecipientName}}</strong>
                             </p>
                             <p style="margin-top:15px;color:#6b7280;line-height:26px;">
-                                ขอแจ้งให้ทราบว่ามีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณาในตำแหน่ง
-                                <strong>{{JobTitle}}</strong> โดยมีรายละเอียดเบื้องต้นดังนี้
+                                สำเนา ผู้เกี่ยวข้อง — ทางฝ่ายทรัพยากรบุคคลได้ลงทะเบียนพนักงานใหม่เรียบร้อยแล้ว
+                                โดยมีรายละเอียดดังนี้
                             </p>
                         </td>
                     </tr>
 
-                    <!-- Candidate Card -->
+                    <!-- Employee Card -->
                     <tr>
                         <td style="padding:20px 35px 25px;">
                             <table width="100%" cellpadding="0" cellspacing="0"
@@ -48,7 +48,7 @@
                                 <tr>
                                     <td colspan="2"
                                         style="padding:16px 20px;background:#f9fafb;font-size:18px;font-weight:bold;color:#111827;">
-                                        👤 Candidate Information
+                                        👤 Employee Information
                                     </td>
                                 </tr>
                                 <tr>
@@ -56,43 +56,35 @@
                                     <td style="padding:14px 20px;font-weight:600;">{{FullNameThai}}</td>
                                 </tr>
                                 <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Position</td>
-                                    <td style="padding:14px 20px;">{{JobTitle}}</td>
+                                    <td style="padding:14px 20px;color:#6b7280;">Employee Code</td>
+                                    <td style="padding:14px 20px;">{{CodeMPID}}</td>
                                 </tr>
                                 <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Applied Date</td>
-                                    <td style="padding:14px 20px;">{{CreateDate}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Phone</td>
-                                    <td style="padding:14px 20px;">{{MobilePhone}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Email</td>
-                                    <td style="padding:14px 20px;">{{Email}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Resume/Portfolio</td>
-                                    <td style="padding:14px 20px;">{{FileList}}</td>
+                                    <td style="padding:14px 20px;color:#6b7280;">Start Date</td>
+                                    <td style="padding:14px 20px;">{{JobStartDate}}</td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
 
-                    <!-- Button -->
+                    <!-- Notice -->
                     <tr>
-                        <td align="center" style="padding:10px 40px 40px;">
-                            <a href="{{BaseUrl}}"
-                               style="background:#111827;color:#ffffff;padding:16px 40px;text-decoration:none;
-                                border-radius:8px;font-size:16px;font-weight:bold;display:inline-block;">
-                                View Candidate →
-                            </a>
-                            <p style="margin-top:18px;font-size:13px;color:#9ca3af;">
-                                หากปุ่มด้านบนไม่สามารถใช้งานได้ กรุณาเปิดลิงก์ด้านล่าง
-                            </p>
-                            <p style="font-size:13px;word-break:break-all;">
-                                <a href="{{BaseUrl}}" style="color:#2563eb;">{{BaseUrl}}</a>
-                            </p>
+                        <td style="padding:0 35px 35px;">
+                            <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:18px 20px;border-radius:8px;">
+                                <p style="margin:0;color:#92400e;font-size:14px;line-height:24px;">
+                                    หากต้องการเปิดคำร้องเพื่อขอรับบริการทางด้าน IT โปรด Login เข้าสู่ระบบ
+                                    และไปที่เมนู <strong>IT Request Form</strong> เพื่อสร้างคำขอที่
+                                    <a href="{{BaseUrl}}" style="color:#b45309;">{{BaseUrl}}</a>
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Signature -->
+                    <tr>
+                        <td style="padding:0 35px 35px;">
+                            <p style="margin:0;color:#6b7280;">ด้วยความเคารพ,</p>
+                            <p style="margin:4px 0 0;color:#374151;font-weight:600;">ฝ่ายทรัพยากรบุคคล</p>
                         </td>
                     </tr>
 

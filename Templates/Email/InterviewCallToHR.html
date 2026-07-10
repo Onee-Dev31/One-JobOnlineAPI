@@ -19,10 +19,10 @@
                     <tr>
                         <td bgcolor="#111827" style="padding:30px;text-align:center;">
                             <h1 style="color:#ffffff;margin:20px 0 0;font-size:26px;font-weight:700;">
-                                New Candidate Application
+                                Interview Call Request
                             </h1>
                             <p style="color:#d1d5db;margin-top:8px;font-size:15px;">
-                                มีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณา
+                                ต้นสังกัดขอให้ทำการนัดหมายสัมภาษณ์ผู้สมัคร
                             </p>
                         </td>
                     </tr>
@@ -31,67 +31,64 @@
                     <tr>
                         <td style="padding:35px 35px 0;">
                             <p style="margin:0;font-size:16px;color:#374151;">
-                                เรียน คุณ<strong>{{ManagerName}}</strong>
+                                เรียน <strong>ฝ่ายทรัพยากรบุคคล</strong>
                             </p>
                             <p style="margin-top:15px;color:#6b7280;line-height:26px;">
-                                ขอแจ้งให้ทราบว่ามีผู้สมัครคนใหม่ส่งประวัติเข้ามาเพื่อรับการพิจารณาในตำแหน่ง
-                                <strong>{{JobTitle}}</strong> โดยมีรายละเอียดเบื้องต้นดังนี้
+                                หลังจากที่พิจารณาคุณสมบัติของผู้สมัครในตำแหน่ง <strong>{{JobTitle}}</strong> แล้วนั้น
+                                ทางต้นสังกัดใคร่ขอให้ทางฝ่ายทรัพยากรบุคคลติดต่อผู้สมัครเพื่อนัดหมายการสัมภาษณ์ รายละเอียดดังนี้
                             </p>
                         </td>
                     </tr>
 
-                    <!-- Candidate Card -->
+                    <!-- Candidate List -->
                     <tr>
                         <td style="padding:20px 35px 25px;">
                             <table width="100%" cellpadding="0" cellspacing="0"
                                    style="border:1px solid #e5e7eb;border-radius:10px;">
                                 <tr>
-                                    <td colspan="2"
-                                        style="padding:16px 20px;background:#f9fafb;font-size:18px;font-weight:bold;color:#111827;">
-                                        👤 Candidate Information
+                                    <td style="padding:16px 20px;background:#f9fafb;font-size:18px;font-weight:bold;color:#111827;">
+                                        📋 รายชื่อผู้สมัคร
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Name - Surname</td>
-                                    <td style="padding:14px 20px;font-weight:600;">{{FullNameThai}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Position</td>
-                                    <td style="padding:14px 20px;">{{JobTitle}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Applied Date</td>
-                                    <td style="padding:14px 20px;">{{CreateDate}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Phone</td>
-                                    <td style="padding:14px 20px;">{{MobilePhone}}</td>
-                                </tr>
-                                <tr>
-                                    <td style="padding:14px 20px;color:#6b7280;">Email</td>
-                                    <td style="padding:14px 20px;">{{Email}}</td>
-                                </tr>
-                                <tr bgcolor="#fafafa">
-                                    <td style="padding:14px 20px;color:#6b7280;">Resume/Portfolio</td>
-                                    <td style="padding:14px 20px;">{{FileList}}</td>
+                                    <td style="padding:16px 20px;color:#374151;line-height:28px;">
+                                        {{CandidateList}}
+                                    </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
 
-                    <!-- Button -->
+                    <!-- Contact Card -->
                     <tr>
-                        <td align="center" style="padding:10px 40px 40px;">
-                            <a href="{{BaseUrl}}"
-                               style="background:#111827;color:#ffffff;padding:16px 40px;text-decoration:none;
-                                border-radius:8px;font-size:16px;font-weight:bold;display:inline-block;">
-                                View Candidate →
-                            </a>
-                            <p style="margin-top:18px;font-size:13px;color:#9ca3af;">
-                                หากปุ่มด้านบนไม่สามารถใช้งานได้ กรุณาเปิดลิงก์ด้านล่าง
-                            </p>
-                            <p style="font-size:13px;word-break:break-all;">
-                                <a href="{{BaseUrl}}" style="color:#2563eb;">{{BaseUrl}}</a>
+                        <td style="padding:0 35px 30px;">
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border:1px solid #e5e7eb;border-radius:10px;">
+                                <tr>
+                                    <td colspan="2"
+                                        style="padding:16px 20px;background:#f9fafb;font-size:18px;font-weight:bold;color:#111827;">
+                                        ☎️ ผู้ติดต่อประสานงาน
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">ชื่อ-สกุล</td>
+                                    <td style="padding:14px 20px;font-weight:600;">{{ContactName}}</td>
+                                </tr>
+                                <tr bgcolor="#fafafa">
+                                    <td style="padding:14px 20px;color:#6b7280;">ตำแหน่ง</td>
+                                    <td style="padding:14px 20px;">{{ContactPosition}}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">โทร</td>
+                                    <td style="padding:14px 20px;">{{ContactPhone}}</td>
+                                </tr>
+                                <tr bgcolor="#fafafa">
+                                    <td style="padding:14px 20px;color:#6b7280;">อีเมล</td>
+                                    <td style="padding:14px 20px;">{{ContactEmail}}</td>
+                                </tr>
+                            </table>
+                            <p style="margin-top:15px;color:#6b7280;font-size:14px;">
+                                หากท่านมีข้อสงสัยประการใด กรุณาติดต่อได้ที่ข้อมูลด้านบน
                             </p>
                         </td>
                     </tr>

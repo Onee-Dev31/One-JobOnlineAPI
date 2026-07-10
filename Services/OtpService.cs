@@ -22,13 +22,7 @@ namespace JobOnlineAPI.Services
             if (result == null || result!.Status != 1)
                 return (false, (string)(result?.Message ?? "มี OTP ที่ใช้งานอยู่สำหรับ user นี้"));
 
-            var body = $@"
-                <div style='font-family:Arial,sans-serif;padding:20px;'>
-                    <p>รหัส OTP ของคุณคือ</p>
-                    <h2 style='letter-spacing:8px;color:#2E86C1;'>{otp}</h2>
-                    <p style='color:#999;'>หมดอายุใน <strong>5 นาที</strong> และใช้ได้เพียงครั้งเดียว</p>
-                    <p style='color:red;font-weight:bold;'>*อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ*</p>
-                </div>";
+            var body = LoadEmailTemplate("RequestOtp.html").Replace("{{otp}}", otp);
 
             await _emailService.SendEmailAsync(emailToSend, "ONEE Jobs - รหัส OTP สำหรับเข้าสู่ระบบ", body, true, "OTP", null, bypassTestMode: true);
 
@@ -48,5 +42,15 @@ namespace JobOnlineAPI.Services
 
         private static string GenerateOtp() =>
             Random.Shared.Next(100000, 999999).ToString();
+
+        private static string LoadEmailTemplate(string templateName)
+        {
+            var templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "Email", templateName);
+
+            if (!File.Exists(templatePath))
+                throw new FileNotFoundException($"Email template not found: {templatePath}");
+
+            return File.ReadAllText(templatePath);
+        }
     }
 }
