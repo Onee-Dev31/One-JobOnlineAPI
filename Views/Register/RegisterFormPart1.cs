@@ -221,27 +221,20 @@ namespace JobOnlineAPI.Views.Register
 
                     content.Item().Row(row =>
                     {
-                        row.RelativeItem(3).Text(t =>
-                        {
-                            t.Span("Name-Surname: ").Bold();
-                            t.Span($"{GetValue("FirstNameEng")} {GetValue("LastNameEng")}");
-                        });
 
-                        row.RelativeItem(2).Text(t =>
+                        row.RelativeItem(3).Text(t =>
                         {
                             t.Span("Email: ").Bold();
                             t.Span(GetValue("Email"));
                         });
-                    });
 
-                    content.Item().Row(row =>
-                    {
                         row.RelativeItem(2).Text(t =>
                         {
                             t.Span("โทรศัพท์: ").Bold();
                             t.Span(GetValue("MobilePhone"));
                         });
                     });
+
                 });
             });
         }
