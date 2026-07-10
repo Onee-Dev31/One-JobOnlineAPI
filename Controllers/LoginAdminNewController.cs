@@ -59,6 +59,7 @@ namespace JobOnlineAPI.Controllers
 
                 userDict["accessToken"] = localToken;
                 userDict["refreshToken"] = refreshToken;
+                await AttachFullCompanyDepartmentListsIfSuperUserAsync(connection, userDict);
                 Response.Cookies.Append("token", localToken, new CookieOptions
                 {
                     HttpOnly = true,
@@ -201,12 +202,33 @@ namespace JobOnlineAPI.Controllers
                 userDict["accessToken"] = localToken;
                 userDict["refreshToken"] = "";
                 userDict["roleName"] = roleName;
+                await AttachFullCompanyDepartmentListsIfSuperUserAsync(connection, userDict);
                 return Ok(user);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Internal Server error", detail = ex.Message });
             }
+        }
+
+        private static async Task AttachFullCompanyDepartmentListsIfSuperUserAsync(IDbConnection connection, IDictionary<string, object> userDict)
+        {
+            var canViewAll = userDict.TryGetValue("CanViewAllCompanies", out var flagObj)
+                && flagObj is bool flag && flag;
+            if (!canViewAll)
+                return;
+
+            var companies = await connection.QueryAsync(
+                "sp_GetCompanyInfo",
+                commandType: CommandType.StoredProcedure);
+
+            var departments = await connection.QueryAsync(
+                "sp_GetDepartmentByComCodeNew",
+                new { comCode = (string?)null },
+                commandType: CommandType.StoredProcedure);
+
+            userDict["Companies"] = companies;
+            userDict["Departments"] = departments;
         }
 
         private async Task<(string accessToken, string refreshToken)> LoginWithADAsync(string username, string password)
