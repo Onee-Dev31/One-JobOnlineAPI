@@ -574,6 +574,7 @@ namespace JobOnlineAPI.Controllers
                         updates = requestData.Candidates!.Select(c => new ApplicantRequestData
                         {
                             ApplicantID = c.ApplicantID,
+                            ApplicationID = c.ApplicationID,
                             Status = requestData.Status,
                             JobID = requestData.JobID,
                             Remark = c.Remark
@@ -584,6 +585,7 @@ namespace JobOnlineAPI.Controllers
                         updates = requestData.Candidates!.Select(c => new ApplicantRequestData
                         {
                             ApplicantID = c.ApplicantID,
+                            ApplicationID = c.ApplicationID,
                             Status = typeMail == "Hire" ? requestData.Status : c.Status,
                             Remark = c.Remark,
                             RankOfSelect = c.RankOfSelect,
