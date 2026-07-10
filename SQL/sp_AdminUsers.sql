@@ -11,7 +11,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT au.AdminID, au.Username, au.HRID, au.EMAIL, au.Department, au.EmpNo, au.NameThai,
            au.Mobile, au.Position, au.CompanyName, au.RoleID, au.IsActive, au.CreatedDate, au.UpdatedDate, au.Role,
-           au.ReportsToAdminID, boss.NameThai AS ReportsToName
+           au.ReportsToAdminID, boss.NameThai AS ReportsToName, au.CanViewAllCompanies
     FROM AdminUsers au
     LEFT JOIN AdminUsers boss ON boss.AdminID = au.ReportsToAdminID
     ORDER BY au.AdminID;
@@ -26,7 +26,7 @@ BEGIN
     SET NOCOUNT ON;
     SELECT au.AdminID, au.Username, au.HRID, au.EMAIL, au.Department, au.EmpNo, au.NameThai,
            au.Mobile, au.Position, au.CompanyName, au.RoleID, au.IsActive, au.CreatedDate, au.UpdatedDate, au.Role,
-           au.ReportsToAdminID, boss.NameThai AS ReportsToName
+           au.ReportsToAdminID, boss.NameThai AS ReportsToName, au.CanViewAllCompanies
     FROM AdminUsers au
     LEFT JOIN AdminUsers boss ON boss.AdminID = au.ReportsToAdminID
     WHERE au.AdminID = @AdminID;
@@ -44,12 +44,13 @@ CREATE OR ALTER PROCEDURE sp_CreateAdminUser
     @Mobile     NVARCHAR(20) = NULL,
     @Position   NVARCHAR(100) = NULL,
     @CompanyName NVARCHAR(100) = NULL,
-    @RoleID     INT = NULL
+    @RoleID     INT = NULL,
+    @CanViewAllCompanies BIT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
-    INSERT INTO AdminUsers (Username, HRID, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID)
-    VALUES (@Username, @HRID, @EMAIL, @Department, @EmpNo, @NameThai, @Mobile, @Position, @CompanyName, @RoleID);
+    INSERT INTO AdminUsers (Username, HRID, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID, CanViewAllCompanies)
+    VALUES (@Username, @HRID, @EMAIL, @Department, @EmpNo, @NameThai, @Mobile, @Position, @CompanyName, @RoleID, COALESCE(@CanViewAllCompanies, 0));
     SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewAdminID;
 END
 GO
@@ -68,7 +69,8 @@ CREATE OR ALTER PROCEDURE sp_UpdateAdminUser
     @CompanyName    NVARCHAR(100) = NULL,
     @RoleID         INT = NULL,
     @IsActive       BIT = NULL,
-    @ReportsToEmpNo NVARCHAR(50) = NULL
+    @ReportsToEmpNo NVARCHAR(50) = NULL,
+    @CanViewAllCompanies BIT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -98,6 +100,7 @@ BEGIN
         RoleID           = @RoleID,
         IsActive         = @IsActive,
         ReportsToAdminID = CASE WHEN @ReportsToEmpNo IS NOT NULL THEN @BossAdminID ELSE ReportsToAdminID END,
+        CanViewAllCompanies = COALESCE(@CanViewAllCompanies, CanViewAllCompanies),
         UpdatedDate      = GETDATE()
     WHERE AdminID = @AdminID;
 

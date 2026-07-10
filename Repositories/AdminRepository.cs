@@ -150,6 +150,55 @@ namespace JobOnlineAPI.Repositories
             await db.ExecuteAsync("sp_UpdateRoutesSortOrder", parameters, commandType: CommandType.StoredProcedure);
         }
 
+        public async Task<IEnumerable<RolePermissionItem>> GetAllRolePermissionsDetailAsync()
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            return await db.QueryAsync<RolePermissionItem>("sp_GetAllRolePermissionsDetail", commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<RolePermissionItem?> GetRolePermissionByRoleAndRouteAsync(int roleId, string routePath)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@RoleID", roleId);
+            parameters.Add("@RoutePath", routePath);
+            return await db.QuerySingleOrDefaultAsync<RolePermissionItem>("sp_GetRolePermissionByRoleAndRoute", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<int> CreateRolePermissionAsync(RolePermissionCreateRequest request)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@RoleID", request.RoleID);
+            parameters.Add("@RoutePath", request.RoutePath);
+            parameters.Add("@Label", request.Label);
+            parameters.Add("@Icon", request.Icon);
+            parameters.Add("@IsVisible", request.IsVisible);
+            parameters.Add("@SortOrder", request.SortOrder);
+            return await db.QuerySingleAsync<int>("sp_CreateRolePermission", parameters, commandType: CommandType.StoredProcedure);
+        }
+
+        public async Task<bool> UpdateRolePermissionAsync(int id, RolePermissionUpdateRequest request)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@ID", id);
+            parameters.Add("@Label", request.Label);
+            parameters.Add("@Icon", request.Icon);
+            parameters.Add("@IsVisible", request.IsVisible);
+            var rows = await db.QuerySingleAsync<int>("sp_UpdateRolePermission", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
+
+        public async Task<bool> DeleteRolePermissionAsync(int id)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var parameters = new DynamicParameters();
+            parameters.Add("@ID", id);
+            var rows = await db.QuerySingleAsync<int>("sp_DeleteRolePermission", parameters, commandType: CommandType.StoredProcedure);
+            return rows > 0;
+        }
+
         public async Task<AdminUserDetail?> GetAdminUserByIdAsync(int id)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
@@ -172,6 +221,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@Position", string.IsNullOrEmpty(request.Position) ? null : request.Position);
             parameters.Add("@CompanyName", string.IsNullOrEmpty(request.CompanyName) ? null : request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             return await db.QuerySingleAsync<int>("sp_CreateAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
 
@@ -190,6 +240,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@CompanyName", string.IsNullOrEmpty(request.CompanyName) ? null : request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
             parameters.Add("@ReportsToEmpNo", request.ReportsToEmpNo);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             return await db.QuerySingleAsync<SecretaryCreateResult>("sp_CreateSecretaryAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
 
@@ -207,6 +258,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@RoleID", request.RoleID);
             parameters.Add("@IsActive", request.IsActive);
             parameters.Add("@ReportsToEmpNo", string.IsNullOrWhiteSpace(request.ReportsToEmpNo) ? null : request.ReportsToEmpNo);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             var rows = await db.QuerySingleAsync<int>("sp_UpdateAdminUser", parameters, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }
