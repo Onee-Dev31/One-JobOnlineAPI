@@ -51,8 +51,8 @@ namespace JobOnlineAPI.Controllers
             return Ok(result);
         }
 
-        [HttpGet("{assignmentID:int}")]
-        public async Task<IActionResult> GetById(int assignmentID, [FromQuery] int applicationId = 0)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> GetById(int assignmentID, int applicationId)
         {
             using var conn = _context.CreateConnection();
             using var multi = await conn.QueryMultipleAsync(
