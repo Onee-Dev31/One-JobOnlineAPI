@@ -143,7 +143,8 @@ namespace JobOnlineAPI.Repositories
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td style='background-color: #2E86C1; padding: 10px; text-align: center; color: #ffffff;'>
+                                            <td style=' padding: 10px; text-align: center; color: #ffffff;'>
+				                                <span style='color: red'>**อีเมลนี้คือข้อความอัตโนมัติ กรุณาอย่าตอบกลับ**</span>
                                             </td>
                                         </tr>
                                     </table>
