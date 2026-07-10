@@ -583,7 +583,15 @@ namespace JobOnlineAPI.Controllers
                     }
                     else
                     {
-                        updates = new[] { requestData };
+                        updates = requestData.Candidates?.Count > 0
+                            ? requestData.Candidates.Select(c => new ApplicantRequestData
+                              {
+                                  ApplicantID = c.ApplicantID,
+                                  Status = requestData.Status,
+                                  Remark = c.Remark,
+                                  JobID = c.JobID != 0 ? c.JobID : requestData.JobID
+                              })
+                            : [requestData];
                     }
 
                     foreach (var update in updates)
