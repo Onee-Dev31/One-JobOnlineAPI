@@ -599,6 +599,7 @@ namespace JobOnlineAPI.Controllers
                             ? requestData.Candidates.Select(c => new ApplicantRequestData
                               {
                                   ApplicantID = c.ApplicantID,
+                                  ApplicationID = c.ApplicationID,
                                   Status = requestData.Status,
                                   Remark = c.Remark,
                                   JobID = c.JobID != 0 ? c.JobID : requestData.JobID
