@@ -470,6 +470,12 @@ namespace JobOnlineAPI.Controllers
         {
             var token = Request.Cookies["auth_token"];
             if (string.IsNullOrWhiteSpace(token))
+            {
+                var authHeader = Request.Headers.Authorization.ToString();
+                if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    token = authHeader["Bearer ".Length..].Trim();
+            }
+            if (string.IsNullOrWhiteSpace(token))
                 return Unauthorized(new { message = "ไม่พบ token" });
 
             try
