@@ -42,7 +42,7 @@ namespace JobOnlineAPI.Controllers
         public async Task<IActionResult> GetAll([FromQuery] string? status)
         {
             using var conn = _context.CreateConnection();
-            var result = await conn.QueryAsync<TraineeApplication>(
+            var result = await conn.QueryAsync<JobSlotAssignment>(
                 "sp_GetTraineeApplications",
                 new { Status = status },
                 commandType: CommandType.StoredProcedure);
