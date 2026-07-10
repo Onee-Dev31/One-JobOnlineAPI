@@ -172,6 +172,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@Position", string.IsNullOrEmpty(request.Position) ? null : request.Position);
             parameters.Add("@CompanyName", string.IsNullOrEmpty(request.CompanyName) ? null : request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             return await db.QuerySingleAsync<int>("sp_CreateAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
 
@@ -190,6 +191,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@CompanyName", string.IsNullOrEmpty(request.CompanyName) ? null : request.CompanyName);
             parameters.Add("@RoleID", request.RoleID);
             parameters.Add("@ReportsToEmpNo", request.ReportsToEmpNo);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             return await db.QuerySingleAsync<SecretaryCreateResult>("sp_CreateSecretaryAdminUser", parameters, commandType: CommandType.StoredProcedure);
         }
 
@@ -207,6 +209,7 @@ namespace JobOnlineAPI.Repositories
             parameters.Add("@RoleID", request.RoleID);
             parameters.Add("@IsActive", request.IsActive);
             parameters.Add("@ReportsToEmpNo", string.IsNullOrWhiteSpace(request.ReportsToEmpNo) ? null : request.ReportsToEmpNo);
+            parameters.Add("@CanViewAllCompanies", request.CanViewAllCompanies);
             var rows = await db.QuerySingleAsync<int>("sp_UpdateAdminUser", parameters, commandType: CommandType.StoredProcedure);
             return rows > 0;
         }

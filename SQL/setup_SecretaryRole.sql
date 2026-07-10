@@ -93,7 +93,8 @@ CREATE OR ALTER PROCEDURE sp_CreateSecretaryAdminUser
     @Position       NVARCHAR(100) = NULL,
     @CompanyName    NVARCHAR(100) = NULL,
     @RoleID         INT,
-    @ReportsToEmpNo NVARCHAR(50)
+    @ReportsToEmpNo NVARCHAR(50),
+    @CanViewAllCompanies BIT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -109,8 +110,8 @@ BEGIN
         @BossNameThai = @BossNameThai OUTPUT,
         @BossWasNewlyCreated = @BossWasNewlyCreated OUTPUT;
 
-    INSERT INTO AdminUsers (Username, HRID, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID, ReportsToAdminID)
-    VALUES (@Username, @HRID, @EMAIL, @Department, @EmpNo, @NameThai, @Mobile, @Position, @CompanyName, @RoleID, @BossAdminID);
+    INSERT INTO AdminUsers (Username, HRID, EMAIL, Department, EmpNo, NameThai, Mobile, Position, CompanyName, RoleID, ReportsToAdminID, CanViewAllCompanies)
+    VALUES (@Username, @HRID, @EMAIL, @Department, @EmpNo, @NameThai, @Mobile, @Position, @CompanyName, @RoleID, @BossAdminID, COALESCE(@CanViewAllCompanies, 0));
 
     DECLARE @NewAdminID INT = CAST(SCOPE_IDENTITY() AS INT);
 

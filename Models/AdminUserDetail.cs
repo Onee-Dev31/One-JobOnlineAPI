@@ -19,6 +19,7 @@ namespace JobOnlineAPI.Models
         public string? Role { get; set; }
         public int? ReportsToAdminID { get; set; }
         public string? ReportsToName { get; set; }
+        public bool? CanViewAllCompanies { get; set; }
     }
 
     public class AdminUserCreateRequest
@@ -35,6 +36,7 @@ namespace JobOnlineAPI.Models
         public int? RoleID { get; set; }
         // Required only when RoleID resolves to the "Secretary" role — the boss's EmpNo.
         public string? ReportsToEmpNo { get; set; }
+        public bool? CanViewAllCompanies { get; set; }
     }
 
     public class AdminUserUpdateRequest
@@ -50,6 +52,8 @@ namespace JobOnlineAPI.Models
         // Boss's EmpNo. Omit the field entirely to leave the existing ReportsToAdminID relationship untouched
         // (sent only when RoleID is "Secretary"); a non-empty value repoints ReportsToAdminID at that boss.
         public string? ReportsToEmpNo { get; set; }
+        // Omit (null) to leave the existing CanViewAllCompanies value untouched.
+        public bool? CanViewAllCompanies { get; set; }
     }
 
     public class AdminRole
