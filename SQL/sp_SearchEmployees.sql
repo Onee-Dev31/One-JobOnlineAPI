@@ -23,6 +23,7 @@ BEGIN
         t.CODEMPID      AS EmpNo,
         t.AD_USER       AS AdUser,
         t.NAMETHAI      AS NameThai,
+        t.NICKNAME      AS NickName,
         t.EMAIL         AS Email,
         COALESCE(NULLIF(t.USR_MOBILE, ''), NULLIF(t.MOBILE, '-')) AS Mobile,
         t.TELOFF        AS Telephone,
@@ -42,7 +43,10 @@ BEGIN
             OR t.CODEMPID LIKE @SearchPattern
             OR LOWER(t.AD_USER) LIKE LOWER(@SearchPattern)
             OR t.NAMETHAI LIKE @SearchPattern
+            OR t.NICKNAME LIKE @SearchPattern
             OR LOWER(t.EMAIL) LIKE LOWER(@SearchPattern)
+            OR t.COSTCENT LIKE @SearchPattern
+            OR LOWER(t.NAMECOSTCENT) LIKE LOWER(@SearchPattern)
           )
     ORDER BY t.NAMETHAI
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;

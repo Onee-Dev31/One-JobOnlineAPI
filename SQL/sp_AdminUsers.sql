@@ -55,31 +55,57 @@ END
 GO
 
 -- sp_UpdateAdminUser
+-- @ReportsToEmpNo: boss's EmpNo (HRMS CODEMPID). NULL (field omitted) leaves the existing
+-- ReportsToAdminID relationship untouched; a non-NULL value resolves/auto-creates the boss's
+-- AdminUsers row via sp_ResolveBossAdminUser (see setup_SecretaryRole.sql) and repoints ReportsToAdminID at it.
 CREATE OR ALTER PROCEDURE sp_UpdateAdminUser
-    @AdminID     INT,
-    @EMAIL       NVARCHAR(255) = NULL,
-    @Department  NVARCHAR(100) = NULL,
-    @NameThai    NVARCHAR(100) = NULL,
-    @Mobile      NVARCHAR(20) = NULL,
-    @Position    NVARCHAR(100) = NULL,
-    @CompanyName NVARCHAR(100) = NULL,
-    @RoleID      INT = NULL,
-    @IsActive    BIT = NULL
+    @AdminID        INT,
+    @EMAIL          NVARCHAR(255) = NULL,
+    @Department     NVARCHAR(100) = NULL,
+    @NameThai       NVARCHAR(100) = NULL,
+    @Mobile         NVARCHAR(20) = NULL,
+    @Position       NVARCHAR(100) = NULL,
+    @CompanyName    NVARCHAR(100) = NULL,
+    @RoleID         INT = NULL,
+    @IsActive       BIT = NULL,
+    @ReportsToEmpNo NVARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRANSACTION;
+
+    DECLARE @BossAdminID INT;
+
+    IF @ReportsToEmpNo IS NOT NULL
+    BEGIN
+        DECLARE @BossNameThai NVARCHAR(100), @BossWasNewlyCreated BIT;
+        EXEC sp_ResolveBossAdminUser
+            @ReportsToEmpNo = @ReportsToEmpNo,
+            @BossAdminID = @BossAdminID OUTPUT,
+            @BossNameThai = @BossNameThai OUTPUT,
+            @BossWasNewlyCreated = @BossWasNewlyCreated OUTPUT;
+    END
+
     UPDATE AdminUsers SET
-        EMAIL        = @EMAIL,
-        Department   = @Department,
-        NameThai     = @NameThai,
-        Mobile       = @Mobile,
-        Position     = @Position,
-        CompanyName  = @CompanyName,
-        RoleID       = @RoleID,
-        IsActive     = @IsActive,
-        UpdatedDate  = GETDATE()
+        EMAIL            = @EMAIL,
+        Department       = @Department,
+        NameThai         = @NameThai,
+        Mobile           = @Mobile,
+        Position         = @Position,
+        CompanyName      = @CompanyName,
+        RoleID           = @RoleID,
+        IsActive         = @IsActive,
+        ReportsToAdminID = CASE WHEN @ReportsToEmpNo IS NOT NULL THEN @BossAdminID ELSE ReportsToAdminID END,
+        UpdatedDate      = GETDATE()
     WHERE AdminID = @AdminID;
-    SELECT @@ROWCOUNT AS AffectedRows;
+
+    DECLARE @Rows INT = @@ROWCOUNT;
+
+    COMMIT TRANSACTION;
+
+    SELECT @Rows AS AffectedRows;
 END
 GO
 

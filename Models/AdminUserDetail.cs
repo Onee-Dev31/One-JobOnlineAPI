@@ -47,6 +47,9 @@ namespace JobOnlineAPI.Models
         public string? CompanyName { get; set; }
         public int? RoleID { get; set; }
         public bool? IsActive { get; set; }
+        // Boss's EmpNo. Omit the field entirely to leave the existing ReportsToAdminID relationship untouched
+        // (sent only when RoleID is "Secretary"); a non-empty value repoints ReportsToAdminID at that boss.
+        public string? ReportsToEmpNo { get; set; }
     }
 
     public class AdminRole

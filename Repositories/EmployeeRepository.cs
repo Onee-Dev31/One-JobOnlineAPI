@@ -30,6 +30,7 @@ namespace JobOnlineAPI.Repositories
                     EmpNo = r.EmpNo,
                     AdUser = r.AdUser,
                     NameThai = r.NameThai,
+                    Nickname = r.NickName,
                     Email = r.Email,
                     Mobile = r.Mobile,
                     Telephone = r.Telephone,
