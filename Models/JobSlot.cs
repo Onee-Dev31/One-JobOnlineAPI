@@ -106,6 +106,5 @@ namespace JobOnlineAPI.Models
         public bool? CanTravelOutside { get; set; }
         public bool? FlexibleWork { get; set; }
         public string? ReasonForInterest { get; set; }
-        public int? UserID { get; set; }
     }
 }

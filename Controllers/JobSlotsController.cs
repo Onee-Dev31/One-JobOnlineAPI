@@ -14,6 +14,7 @@ namespace JobOnlineAPI.Controllers
         IConfiguration configuration,
         INetworkShareService networkShareService,
         IEmailNotificationService emailNotificationService,
+        IJwtTokenService jwtTokenService,
         ILogger<ApplicantNewController> logger
         ) : ControllerBase
     {
@@ -21,6 +22,7 @@ namespace JobOnlineAPI.Controllers
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
         private readonly INetworkShareService _networkShareService = networkShareService;
         private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
         private readonly ILogger _logger = logger;
         private static readonly string[] AllowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"];
@@ -177,6 +179,8 @@ namespace JobOnlineAPI.Controllers
             if (request == null)
                 return BadRequest(new { message = "jsonData ไม่ถูกต้อง" });
 
+            var userId = await GetCandidateUserIdAsync();
+
             await _networkShareService.ConnectAsync();
             try
             {
@@ -212,7 +216,7 @@ namespace JobOnlineAPI.Controllers
                             ManualCanTravelOutside = request.CanTravelOutside,
                             ManualFlexibleWork = request.FlexibleWork,
                             ManualReasonForInterest = request.ReasonForInterest,
-                            UserID = request.UserID
+                            UserID = userId
                         },
                         commandType: CommandType.StoredProcedure);
 
@@ -249,6 +253,26 @@ namespace JobOnlineAPI.Controllers
             finally
             {
                 _networkShareService.Disconnect();
+            }
+        }
+
+        // Candidate's Users.UserId, read from the auth_token JWT/cookie if the caller is a logged-in
+        // candidate (self-apply). Returns null for staff manual/walk-in entries, which have no such cookie.
+        private async Task<int?> GetCandidateUserIdAsync()
+        {
+            var token = Request.Cookies["auth_token"];
+            if (string.IsNullOrWhiteSpace(token))
+                return null;
+
+            try
+            {
+                var validated = await _jwtTokenService.ValidateTokenAsync(token);
+                var claim = validated.Claims.FirstOrDefault(c => c.Type == "user_id");
+                return claim != null && int.TryParse(claim.Value, out var userId) && userId > 0 ? userId : null;
+            }
+            catch
+            {
+                return null;
             }
         }
 

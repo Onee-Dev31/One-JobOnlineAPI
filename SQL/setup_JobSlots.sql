@@ -85,6 +85,7 @@ BEGIN
         AssignmentID                  INT IDENTITY(1,1) PRIMARY KEY,
         SlotID                        INT NULL FOREIGN KEY REFERENCES JobSlots(SlotID), -- NULL until an admin assigns this application into a batch
         ApplicationID                 INT NULL FOREIGN KEY REFERENCES JobApplications(ApplicationID), -- which application (job + applicant) this is for; NULL for a pure manual/walk-in entry
+        UserID                        INT NULL FOREIGN KEY REFERENCES Users(UserId), -- candidate's login account (Users.UserId), from the auth_token JWT/cookie; NULL for a staff manual/walk-in entry with no candidate login
         ManualTitle                   NVARCHAR(20) NULL,
         ManualFirstNameThai           NVARCHAR(200) NULL,
         ManualLastNameThai            NVARCHAR(200) NULL,
@@ -221,6 +222,22 @@ END
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'ApplicationID')
 BEGIN
     ALTER TABLE JobSlotAssignments ADD ApplicationID INT NULL FOREIGN KEY REFERENCES JobApplications(ApplicationID)
+END
+
+-- Add UserID to link a row back to the candidate's login account (Users.UserId), captured from the
+-- auth_token JWT/cookie at submission time. NULL for staff manual/walk-in entries with no candidate login.
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'UserID')
+BEGIN
+    ALTER TABLE JobSlotAssignments ADD UserID INT NULL FOREIGN KEY REFERENCES Users(UserId)
+END
+
+-- Allow UserID to be NULL — a staff manual/walk-in entry has no candidate login to attach.
+IF EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID('JobSlotAssignments') AND name = 'UserID' AND is_nullable = 0
+)
+BEGIN
+    ALTER TABLE JobSlotAssignments ALTER COLUMN UserID INT NULL
 END
 
 -- Migrate existing seat assignments from the old table into JobSlotAssignments. The old schema has
@@ -444,7 +461,8 @@ CREATE OR ALTER PROCEDURE sp_AssignApplicantToSlot
     @ManualCanTravelOutside        BIT = NULL,
     @ManualFlexibleWork            BIT = NULL,
     @ManualReasonForInterest       NVARCHAR(1000) = NULL,
-    @AssignedByAdminID             INT = NULL
+    @AssignedByAdminID             INT = NULL,
+    @UserID                        INT = NULL -- candidate's Users.UserId (auth_token JWT/cookie); NULL for a staff manual/walk-in entry
 AS
 BEGIN
     DECLARE @ExistingAssignmentID INT = NULL, @ExistingSlotID INT = NULL;
@@ -545,7 +563,7 @@ BEGIN
         ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
         ManualCanCommute, ManualCanTravelOutside, ManualFlexibleWork,
         ManualReasonForInterest,
-        AssignedByAdminID
+        AssignedByAdminID, UserID
     )
     VALUES (
         @SlotID, @ApplicationID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
@@ -554,7 +572,7 @@ BEGIN
         @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
         @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork,
         @ManualReasonForInterest,
-        @AssignedByAdminID
+        @AssignedByAdminID, @UserID
     )
 
     DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
