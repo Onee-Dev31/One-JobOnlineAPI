@@ -26,7 +26,8 @@ BEGIN
         A.ManualInternStartDate         AS StartDate,
         A.ManualInternEndDate           AS EndDate,
         A.ManualPreferredPosition       AS DesiredField1,
-        A.ManualPreferredPositionBackup AS DesiredField2
+        A.ManualPreferredPositionBackup AS DesiredField2,
+        A.ManualInternshipType          AS InternshipType
     FROM JobSlotAssignments A
     WHERE A.AssignmentID = @AssignmentID
 

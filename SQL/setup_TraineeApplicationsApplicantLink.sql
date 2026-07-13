@@ -108,6 +108,9 @@ GO
 IF COL_LENGTH('T_APPLICANTS', 'InfoSourceOther') IS NULL
     ALTER TABLE T_APPLICANTS ADD InfoSourceOther NVARCHAR(200) NULL
 GO
+IF COL_LENGTH('T_APPLICANTS', 'InternshipType') IS NULL
+    ALTER TABLE T_APPLICANTS ADD InternshipType NVARCHAR(50) NULL
+GO
 
 IF OBJECT_ID('T_APPLICANT_FILES', 'U') IS NULL
 BEGIN
@@ -133,6 +136,7 @@ CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
     @DesiredField1 NVARCHAR(200) = NULL,
     @DesiredField2 NVARCHAR(200) = NULL,
     @DesiredField3 NVARCHAR(200) = NULL,
+    @InternshipType NVARCHAR(50) = NULL,
     @Reason NVARCHAR(500) = NULL,
     @ReasonOther NVARCHAR(500) = NULL,
     @PrefixT NVARCHAR(100) = NULL,
@@ -215,7 +219,7 @@ BEGIN
             CurrentSubDistrictID = @SubDistrictID, CurrentPostalCode = @PostalCode,
             MobilePhone = @Mobile, Email = @Email, HomePhone = @Telephone,
             ReasonPosition = @Reason, ReasonOther = @ReasonOther,
-            InternshipStartDate = @StartDate, InternshipEndDate = @EndDate,
+            InternshipStartDate = @StartDate, InternshipEndDate = @EndDate, InternshipType = @InternshipType,
             DesiredField1 = @DesiredField1, DesiredField2 = @DesiredField2, DesiredField3 = @DesiredField3,
             PlaceOfBirth = @PlaceOfBirth, Nationality = @Nationality, Race = @Race, Religion = @Religion,
             FatherName = @FatherName, FatherOccupation = @FatherOccupation, FatherStatus = @FatherStatus,
@@ -237,7 +241,7 @@ BEGIN
             Gender, BirthDate, Height, Weight, CitizenID, CitizenIDIssuedBy, CitizenIDExpiresON,
             CurrentAddress, CurrentProvinceID, CurrentDistrictID, CurrentSubDistrictID, CurrentPostalCode,
             MobilePhone, Email, HomePhone, ReasonPosition, ReasonOther,
-            InternshipStartDate, InternshipEndDate, DesiredField1, DesiredField2, DesiredField3,
+            InternshipStartDate, InternshipEndDate, InternshipType, DesiredField1, DesiredField2, DesiredField3,
             PlaceOfBirth, Nationality, Race, Religion,
             FatherName, FatherOccupation, FatherStatus, MotherName, MotherOccupation, MotherStatus,
             SiblingsAll, SiblingOrder,
@@ -250,7 +254,7 @@ BEGIN
             @GenderCode, @DateOfBirth, @Height, @Weight, @IDCardNo, @IDIssuedBy, @IDExpiredDate,
             @Address, @ProvinceID, @DistrictID, @SubDistrictID, @PostalCode,
             @Mobile, @Email, @Telephone, @Reason, @ReasonOther,
-            @StartDate, @EndDate, @DesiredField1, @DesiredField2, @DesiredField3,
+            @StartDate, @EndDate, @InternshipType, @DesiredField1, @DesiredField2, @DesiredField3,
             @PlaceOfBirth, @Nationality, @Race, @Religion,
             @FatherName, @FatherOccupation, @FatherStatus, @MotherName, @MotherOccupation, @MotherStatus,
             @SiblingCount, @SiblingOrder,

@@ -10,6 +10,7 @@ namespace JobOnlineAPI.Models
         public string? DesiredField1 { get; set; }
         public string? DesiredField2 { get; set; }
         public string? DesiredField3 { get; set; }
+        public string? InternshipType { get; set; }
         public string? Reason { get; set; }
         public string? ReasonOther { get; set; }
 

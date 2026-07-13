@@ -105,6 +105,7 @@ namespace JobOnlineAPI.Controllers
                         request.DesiredField1,
                         request.DesiredField2,
                         request.DesiredField3,
+                        request.InternshipType,
                         request.Reason,
                         request.ReasonOther,
                         request.PrefixT,
