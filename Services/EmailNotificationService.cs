@@ -485,7 +485,7 @@ namespace JobOnlineAPI.Services
                   ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
             string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
             string hrBody = GenerateManagerNegotiationResultBody(recipientName, requestData!.JobTitle!, candidateNamesString);
-            var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
+            var subjectEmail = $"Onee Jobs - ผลเจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
             // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
             var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
             .Distinct(StringComparer.OrdinalIgnoreCase)
