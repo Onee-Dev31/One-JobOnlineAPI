@@ -127,6 +127,7 @@ END
 GO
 
 CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
+    @AssignmentID INT = NULL, -- Part1 JobSlotAssignments.AssignmentID, when this submission continues one
     @StartDate DATE = NULL,
     @EndDate DATE = NULL,
     @DesiredField1 NVARCHAR(200) = NULL,
@@ -261,19 +262,33 @@ BEGIN
         SET @ApplicantID = CAST(SCOPE_IDENTITY() AS INT)
     END
 
+    -- If this submission continues a Part1 assignment, reuse the JobApplications row already
+    -- linked from JobSlotAssignments (created ApplicantID = NULL by sp_AssignApplicantToSlot's
+    -- self-apply path) instead of the ApplicantID+JobID dedupe below, which would never match it
+    -- and would leave that row's ApplicantID NULL forever while creating an orphaned duplicate.
     DECLARE @ApplicationID INT
-    SELECT @ApplicationID = ApplicationID FROM JobApplications WHERE ApplicantID = @ApplicantID AND JobID = @JobID
+    IF @AssignmentID IS NOT NULL
+        SELECT @ApplicationID = ApplicationID FROM JobSlotAssignments WHERE AssignmentID = @AssignmentID
 
     IF @ApplicationID IS NOT NULL
     BEGIN
-        UPDATE JobApplications SET Status = @Status WHERE ApplicationID = @ApplicationID
+        UPDATE JobApplications SET ApplicantID = @ApplicantID, JobID = @JobID, Status = @Status WHERE ApplicationID = @ApplicationID
     END
     ELSE
     BEGIN
-        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
-        VALUES (@ApplicantID, @JobID, @Status, GETDATE())
+        SELECT @ApplicationID = ApplicationID FROM JobApplications WHERE ApplicantID = @ApplicantID AND JobID = @JobID
 
-        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+        IF @ApplicationID IS NOT NULL
+        BEGIN
+            UPDATE JobApplications SET Status = @Status WHERE ApplicationID = @ApplicationID
+        END
+        ELSE
+        BEGIN
+            INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+            VALUES (@ApplicantID, @JobID, @Status, GETDATE())
+
+            SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+        END
     END
 
     SELECT @ApplicantID AS ApplicantID, @ApplicationID AS ApplicationID

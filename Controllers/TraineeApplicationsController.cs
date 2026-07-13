@@ -99,6 +99,7 @@ namespace JobOnlineAPI.Controllers
                     "usp_TraineeApplicant_Upsert",
                     new
                     {
+                        request.AssignmentID,
                         request.StartDate,
                         request.EndDate,
                         request.DesiredField1,
