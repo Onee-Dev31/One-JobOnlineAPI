@@ -251,7 +251,7 @@ namespace JobOnlineAPI.Views.Register
                             });
                             col.RelativeItem(6).PaddingTop(4).Row(row =>
                             {
-                                RenderCheckBox(row, _form["MinitaryService"]?.ToString() ?? "", "exempted", $"ได้รับการยกเว้น เนื่องจาก: {_form["ReasonMinitary"] ?? "............................."}", "Exemted,Please specific");
+                                RenderCheckBox(row, _form["MinitaryService"]?.ToString() ?? "", "exempted", $"ได้รับการยกเว้น เนื่องจาก: {_form["ReasonMinitary"] ?? "............................."}", "Exempted,Please specific");
                             });
                         });
                         //----------------------- สถานภาพสมรส -----------------------
