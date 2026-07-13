@@ -127,6 +127,7 @@ namespace JobOnlineAPI.Models
         public DateTime? EndDate { get; set; }
         public string? DesiredField1 { get; set; }
         public string? DesiredField2 { get; set; }
+        public string? InternshipType { get; set; }
         public List<JobSlotAssignmentFile> Files { get; set; } = [];
     }
 }
