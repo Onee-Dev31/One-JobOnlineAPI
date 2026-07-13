@@ -422,7 +422,7 @@ namespace JobOnlineAPI.Services
                 .ToList() ?? [];
             var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             string candidateNamesString = string.Join("<br>", candidateNames);
-            string tel = requestData.Tel ?? "-";
+            string tel = requestData.TelOff ?? "-";
 
             string hrBody = GenerateNegotiateCandidateToHRBody(requestData.NameCon, requestData.RequesterName, tel, requestData.RequesterMail, requestData.JobTitle, candidateNamesString, applicationFormUri);
             var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData.JobTitle}";
@@ -548,7 +548,9 @@ namespace JobOnlineAPI.Services
                 $"{SentToName!.NAMFIRSTT} {SentToName.NAMLASTT}".Trim(),
                 (string?)SentToName.POST ?? "",
                 (string?)SentToName.TELOFF ?? "",
-                (string?)SentToName.EMAIL ?? "");
+                (string?)SentToName.EMAIL ?? "",
+                (string?)SentToName.NAMECOSTCENT ?? "",
+                (string?)SentToName.COMPANY_NAME ?? "");
             var subjectEmail = $"Onee Jobs เรียกผู้สมัครสัมภาษณ์งาน - ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
@@ -739,7 +741,7 @@ namespace JobOnlineAPI.Services
             });
         }
 
-        private static string GenerateInterviewCallToHRBody(string jobTitle, string candidateList, string contactName, string contactPosition, string contactPhone, string contactEmail)
+        private static string GenerateInterviewCallToHRBody(string jobTitle, string candidateList, string contactName, string contactPosition, string contactPhone, string contactEmail, string department, string company)
         {
             var template = LoadEmailTemplate("InterviewCallToHR.html");
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
@@ -749,7 +751,9 @@ namespace JobOnlineAPI.Services
                 { "ContactName", contactName },
                 { "ContactPosition", contactPosition },
                 { "ContactPhone", contactPhone },
-                { "ContactEmail", contactEmail }
+                { "ContactEmail", contactEmail },
+                { "Department", department },
+                { "Company", company }
             });
         }
 
