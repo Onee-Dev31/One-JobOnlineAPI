@@ -242,7 +242,7 @@ namespace JobOnlineAPI.Views.Register
                                                                         });
                                                             col.RelativeItem(6).PaddingTop(4).Row(row =>
                                                                         {
-                                                                            RenderCheckBox(row, _form["Marital_Status1"]?.ToString() ?? "", "exemted", "ได้รับการยกเว้น", "Exemted,Please specific");
+                                                                            RenderCheckBox(row, _form["Marital_Status1"]?.ToString() ?? "", "exempted", "ได้รับการยกเว้น", "Exemted,Please specific");
                                                                             row.RelativeItem().Text(
                                                         text =>
                                                                                             {
