@@ -342,13 +342,16 @@ namespace JobOnlineAPI.Controllers
         public async Task<IActionResult> GetAssignmentSeedData(int assignmentId)
         {
             using var conn = new SqlConnection(_connectionString);
-            var seed = await conn.QueryFirstOrDefaultAsync<JobSlotAssignmentSeedData>(
+            using var multi = await conn.QueryMultipleAsync(
                 "sp_GetJobSlotAssignmentSeedData",
                 new { AssignmentID = assignmentId },
                 commandType: CommandType.StoredProcedure);
 
+            var seed = await multi.ReadFirstOrDefaultAsync<JobSlotAssignmentSeedData>();
             if (seed == null)
                 return NotFound();
+
+            seed.Files = (await multi.ReadAsync<JobSlotAssignmentFile>()).ToList();
 
             return Ok(seed);
         }
