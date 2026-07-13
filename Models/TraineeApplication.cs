@@ -70,7 +70,7 @@ namespace JobOnlineAPI.Models
         public string? InfoSourceStaffName { get; set; }
         public string? InfoSourceDepartment { get; set; }
         public string? InfoSourceOther { get; set; }
-        public string Status { get; set; } = "pending";
+        public string Status { get; set; } = "Pending HR Screening";
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
         public int JobID { get; set; }
