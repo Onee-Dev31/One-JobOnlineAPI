@@ -451,7 +451,7 @@ namespace JobOnlineAPI.Services
                         ? $" <span style='color: red;'>(หมายเหตุ: {candidate.Remark})</span>"
                         : "";
 
-                    return $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai} สถานะ {statusText}{remarkText}".Trim();
+                    return $"ลำดับที่ {index + 1}: {candidate.Title} {candidate.FirstNameThai} {candidate.LastNameThai} <strong>สถานะ {statusText}{remarkText}</strong> ".Trim();
                 }).ToList() ?? [];
 
             string candidateNamesString = string.Join("<br>", candidateNames);
@@ -484,7 +484,8 @@ namespace JobOnlineAPI.Services
             var SentToName = result.FirstOrDefault(x => x.DATATYPE == "Openfor")
                   ?? result.FirstOrDefault(x => x.DATATYPE == "Create");
             string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
-            string hrBody = GenerateManagerNegotiationResultBody(recipientName, requestData!.JobTitle!, candidateNamesString);
+            bool hasSuccess = requestData.Candidates?.Any(candidate => candidate.Status == "Nagotiate Success") ?? false;
+            string hrBody = GenerateManagerNegotiationResultBody(recipientName, requestData!.JobTitle!, candidateNamesString, hasSuccess);
             var subjectEmail = $"Onee Jobs - ผลเจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData!.JobTitle}";
             // var recipients = await GetEmailRecipientsAsync(null,requestData.JobID);
             var recipients = (await GetEmailRecipientsAsync(null, requestData.JobID))
@@ -730,14 +731,27 @@ namespace JobOnlineAPI.Services
             });
         }
 
-        private static string GenerateManagerNegotiationResultBody(string recipientName, string jobTitle, string candidateList)
+        private static string GenerateManagerNegotiationResultBody(string recipientName, string jobTitle, string candidateList, bool hasSuccess)
         {
             var template = LoadEmailTemplate("ManagerNegotiationResult.html");
+            const string successNotice = @"
+                    <tr>
+                        <td style=""padding:0 35px 35px;"">
+                            <div style=""background:#f9fafb;border-left:4px solid #111827;padding:18px 20px;border-radius:8px;"">
+                                <p style=""margin:0;color:#4b5563;font-size:14px;line-height:24px;"">
+                                    สำหรับผู้สมัครที่ต่อรองสำเร็จ ทางฝ่ายฯ จะดำเนินการตามกระบวนการถัดไป
+                                    เพื่อรับผู้สมัครเข้าเป็นพนักงานและกำหนดวันที่เริ่มงานต่อไป
+                                </p>
+                            </div>
+                        </td>
+                    </tr>";
+
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
             {
                 { "RecipientName", recipientName },
                 { "JobTitle", jobTitle },
-                { "CandidateList", candidateList }
+                { "CandidateList", candidateList },
+                { "SuccessNotice", hasSuccess ? successNotice : "" }
             });
         }
 
