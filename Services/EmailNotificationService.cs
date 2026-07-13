@@ -757,11 +757,12 @@ namespace JobOnlineAPI.Services
             });
         }
 
-        private static string GenerateHRRequestReceivedBody(string recipientName, string? applicationFormUri)
+        private static string GenerateHRRequestReceivedBody(string jobtile, string recipientName, string? applicationFormUri)
         {
             var template = LoadEmailTemplate("HRRequestReceived.html");
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
             {
+                { "Jobtile", jobtile},
                 { "RecipientName", recipientName },
                 { "BaseUrl", applicationFormUri ?? "" }
             });
@@ -872,7 +873,7 @@ namespace JobOnlineAPI.Services
 
 
             string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
-            string hrBody = GenerateHRRequestReceivedBody(recipientName, applicationFormUri);
+            string hrBody = GenerateHRRequestReceivedBody(requestData!.JobTitle!, recipientName, applicationFormUri);
             string SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
 
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
