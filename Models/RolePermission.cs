@@ -67,4 +67,16 @@ namespace JobOnlineAPI.Models
         public string? Icon { get; set; }
         public bool? IsVisible { get; set; }
     }
+
+    // Syncs one route's role assignments in a single call: roles not in RoleIDs are
+    // unassigned, roles already assigned are updated, roles newly listed are added.
+    // Used for both create (route has no rows yet) and edit (route already has some).
+    public class RolePermissionSyncRequest
+    {
+        public required string RoutePath { get; set; }
+        public string? Label { get; set; }
+        public string? Icon { get; set; }
+        public bool IsVisible { get; set; } = true;
+        public required List<int> RoleIDs { get; set; }
+    }
 }

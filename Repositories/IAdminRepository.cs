@@ -23,6 +23,7 @@ namespace JobOnlineAPI.Repositories
         Task<int> CreateRolePermissionAsync(RolePermissionCreateRequest request);
         Task<bool> UpdateRolePermissionAsync(int id, RolePermissionUpdateRequest request);
         Task<bool> DeleteRolePermissionAsync(int id);
+        Task SyncRolePermissionByRouteAsync(RolePermissionSyncRequest request);
         Task<AdminUserDetail?> GetAdminUserByIdAsync(int id);
         Task<int> CreateAdminUserAsync(AdminUserCreateRequest request);
         Task<SecretaryCreateResult> CreateSecretaryAdminUserAsync(AdminUserCreateRequest request);

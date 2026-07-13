@@ -171,5 +171,26 @@ namespace JobOnlineAPI.Controllers
                 return StatusCode(500, "Internal Server error");
             }
         }
+
+        [HttpPut("by-route")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> SyncRolePermissionByRoute([FromBody] RolePermissionSyncRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.RoutePath))
+                return BadRequest("RoutePath is required.");
+
+            if (request.RoleIDs == null || request.RoleIDs.Count == 0)
+                return BadRequest("At least one RoleID is required.");
+
+            try
+            {
+                await _adminRepository.SyncRolePermissionByRouteAsync(request);
+                return NoContent();
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Internal Server error");
+            }
+        }
     }
 }

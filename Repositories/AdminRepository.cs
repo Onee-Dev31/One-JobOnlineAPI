@@ -199,6 +199,19 @@ namespace JobOnlineAPI.Repositories
             return rows > 0;
         }
 
+        public async Task SyncRolePermissionByRouteAsync(RolePermissionSyncRequest request)
+        {
+            using IDbConnection db = new SqlConnection(_connectionString);
+            var json = System.Text.Json.JsonSerializer.Serialize(request.RoleIDs);
+            var parameters = new DynamicParameters();
+            parameters.Add("@RoutePath", request.RoutePath);
+            parameters.Add("@Label", request.Label);
+            parameters.Add("@Icon", request.Icon);
+            parameters.Add("@IsVisible", request.IsVisible);
+            parameters.Add("@RoleIDsJson", json);
+            await db.ExecuteAsync("sp_SyncRolePermissionByRoute", parameters, commandType: CommandType.StoredProcedure);
+        }
+
         public async Task<AdminUserDetail?> GetAdminUserByIdAsync(int id)
         {
             using IDbConnection db = new SqlConnection(_connectionString);
