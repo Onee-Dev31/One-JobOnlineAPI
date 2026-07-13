@@ -115,7 +115,7 @@ namespace JobOnlineAPI.Repositories
                 }
 
                 string requesterInfo = job.Role == "1" || job.Role == "2"
-                    ? $"<tr><td style='padding:14px 20px;color:#6b7280;'>ฝ่ายทรัพยากรบุคคล</td><td style='padding:14px 20px;font-weight:600;'>{job.NAMETHAI} {roleSendMail}</td></tr>"
+                    ? $"<tr><td style='padding:14px 20px;color:#6b7280;'>ฝ่ายทรัพยากรบุคคล</td><td style='padding:14px 20px;font-weight:600;'>{job.NAMETHAI}</td></tr>"
                     : $"<tr><td style='padding:14px 20px;color:#6b7280;'>ผู้ขอ</td><td style='padding:14px 20px;font-weight:600;'>{job.NAMETHAI}</td></tr>";
 
                 // Role "2" = HR created the job themself, so greet the person it's opened for (looked up by CODEMPID == OpenFor)
