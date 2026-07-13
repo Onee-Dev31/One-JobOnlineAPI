@@ -95,11 +95,10 @@ namespace JobOnlineAPI.Controllers
             {
                 using var conn = _context.CreateConnection();
 
-                var id = await conn.ExecuteScalarAsync<int>(
-                    "usp_TraineeApplications_Upsert",
+                var upsertResult = await conn.QueryFirstAsync<dynamic>(
+                    "usp_TraineeApplicant_Upsert",
                     new
                     {
-                        request.TraineeApplicationID,
                         request.StartDate,
                         request.EndDate,
                         request.DesiredField1,
@@ -117,7 +116,6 @@ namespace JobOnlineAPI.Controllers
                         request.NicknameE,
                         request.Gender,
                         request.DateOfBirth,
-                        request.Age,
                         request.PlaceOfBirth,
                         request.Nationality,
                         request.Race,
@@ -164,6 +162,9 @@ namespace JobOnlineAPI.Controllers
                     },
                     commandType: CommandType.StoredProcedure);
 
+                int applicantId = upsertResult.ApplicantID;
+                int applicationId = upsertResult.ApplicationID;
+
                 var fileGroups = new[]
                 {
                     (Files: idCardFiles,   Section: "idCard"),
@@ -174,23 +175,10 @@ namespace JobOnlineAPI.Controllers
                 foreach (var (files, section) in fileGroups)
                 {
                     if (files == null || files.Count == 0) continue;
-                    await SaveFilesAsync(conn, files, id, section);
+                    await SaveFilesAsync(conn, files, applicantId, applicationId, section);
                 }
-                if (request.TraineeApplicationID == 0) {
-                    try
-                    {
-                        // ฟอร์ม Email ใหม่
-                        //await _emailNotificationService.SendEmailsTraineeRegisterAsync(id, request.JobID);
-                        //await _emailNotificationService.SendEmailsNotiHrAfterApplyAsync(id, request.JobID, true);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", request.TraineeApplicationID);
-                    }
-                }
-                
 
-                return Ok(new { TraineeApplicationID = id });
+                return Ok(new { ApplicantID = applicantId, ApplicationID = applicationId });
             }
             finally
             {
@@ -198,9 +186,9 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
-        private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int traineeId, string section)
+        private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int applicantId, int applicationId, string section)
         {
-            var folder = Path.Combine(_basePath, $"trainee_{traineeId}");
+            var folder = Path.Combine(_basePath, $"applicant_{applicantId}");
             Directory.CreateDirectory(folder);
 
             foreach (var file in files)
@@ -224,17 +212,18 @@ namespace JobOnlineAPI.Controllers
                     await file.CopyToAsync(stream);
 
                 await conn.ExecuteAsync(
-                    @"INSERT INTO TraineeFiles (TraineeApplicationID, FilePath, FileName, FileSize, FileType, SectionFile)
-                      VALUES (@TraineeApplicationID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)",
+                    "usp_ApplicantFile_Insert",
                     new
                     {
-                        TraineeApplicationID = traineeId,
+                        ApplicantID = applicantId,
+                        ApplicationID = applicationId,
                         FilePath = filePath.Replace('\\', '/'),
                         FileName = fileName,
                         FileSize = file.Length,
                         FileType = file.ContentType,
                         SectionFile = section
-                    });
+                    },
+                    commandType: CommandType.StoredProcedure);
             }
         }
     }

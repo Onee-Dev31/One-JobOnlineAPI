@@ -336,6 +336,23 @@ namespace JobOnlineAPI.Controllers
             return Ok(assignments);
         }
 
+        // Read-only: lets Part2 (/apply/trainee/part2) prefill its form from the Part1
+        // JobSlotAssignments row the applicant already filled out.
+        [HttpGet("assignments/{assignmentId:int}/seed")]
+        public async Task<IActionResult> GetAssignmentSeedData(int assignmentId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var seed = await conn.QueryFirstOrDefaultAsync<JobSlotAssignmentSeedData>(
+                "sp_GetJobSlotAssignmentSeedData",
+                new { AssignmentID = assignmentId },
+                commandType: CommandType.StoredProcedure);
+
+            if (seed == null)
+                return NotFound();
+
+            return Ok(seed);
+        }
+
         [HttpDelete("assignments/{assignmentId}")]
         public async Task<IActionResult> UnassignApplicant(int assignmentId)
         {

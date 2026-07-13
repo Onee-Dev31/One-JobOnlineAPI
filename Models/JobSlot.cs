@@ -107,4 +107,25 @@ namespace JobOnlineAPI.Models
         public bool? FlexibleWork { get; set; }
         public string? ReasonForInterest { get; set; }
     }
+
+    // Seed data for prefilling Part2 (TraineeApplication) from a Part1 JobSlotAssignments row.
+    // Column aliases in sp_GetJobSlotAssignmentSeedData match these property names directly.
+    public class JobSlotAssignmentSeedData
+    {
+        public int AssignmentID { get; set; }
+        public string? PrefixT { get; set; }
+        public string? NameFirstT { get; set; }
+        public string? NameLastT { get; set; }
+        public string? NicknameT { get; set; }
+        public string? Mobile { get; set; }
+        public string? Email { get; set; }
+        public string? YearOfStudy { get; set; }
+        public string? Major { get; set; }
+        public string? Faculty { get; set; }
+        public string? School { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string? DesiredField1 { get; set; }
+        public string? DesiredField2 { get; set; }
+    }
 }
