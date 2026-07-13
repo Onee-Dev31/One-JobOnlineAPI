@@ -13,13 +13,24 @@ namespace JobOnlineAPI.Services
         private readonly EmailSettings _emailSettings = emailSettings.Value;
         private readonly IDbConnection _dbConnection = new SqlConnection(configuration.GetConnectionString("DefaultConnection"));
 
-        public async Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode = false)
+        public Task SendEmailAsync(string to, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode = false)
+            => SendEmailCoreAsync(to, null, subject, body, isHtml, typeMail, JobsId, bypassTestMode);
+
+        public Task SendEmailWithCcAsync(string to, string? cc, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode = false)
+            => SendEmailCoreAsync(to, cc, subject, body, isHtml, typeMail, JobsId, bypassTestMode);
+
+        private async Task SendEmailCoreAsync(string to, string? cc, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode)
         {
             var (isTestMode, testRecipients) = await GetEmailConfigAsync();
             var redirectToTestMode = isTestMode && !bypassTestMode;
 
             var recipients = redirectToTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
-            var finalSubject = redirectToTestMode ? $"[TEST] {subject} To {to}" : subject;
+            var ccRecipients = string.IsNullOrWhiteSpace(cc)
+                ? []
+                : redirectToTestMode ? testRecipients : cc.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
+            var finalSubject = redirectToTestMode
+                ? (string.IsNullOrWhiteSpace(cc) ? $"[TEST] {subject} To {to}" : $"[TEST] {subject} To {to} Cc {cc}")
+                : subject;
 
             var emailMessage = new MimeMessage();
             emailMessage.From.Add(new MailboxAddress(_emailSettings.SenderName, _emailSettings.FromEmail));
@@ -27,6 +38,11 @@ namespace JobOnlineAPI.Services
             foreach (var address in recipients)
             {
                 emailMessage.To.Add(new MailboxAddress("", address));
+            }
+
+            foreach (var address in ccRecipients)
+            {
+                emailMessage.Cc.Add(new MailboxAddress("", address));
             }
 
             emailMessage.Subject = finalSubject;

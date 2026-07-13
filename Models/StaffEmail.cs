@@ -22,4 +22,13 @@
         public string? DATATYPE { get; set; }
 
     }
+
+    public class EmailGroup
+    {
+        public int Id { get; set; }
+        public string? Email { get; set; }
+        public string? Group_Name { get; set; }
+        public string? COSTCENT { get; set; }
+        public string? Department_Name { get; set; }
+    }
 }

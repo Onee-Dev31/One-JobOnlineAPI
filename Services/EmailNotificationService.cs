@@ -115,45 +115,49 @@ namespace JobOnlineAPI.Services
             }
             else if (!string.IsNullOrWhiteSpace(typeMail) && typeMail == "HRConfirmed")
             {
-                string managerBody = GenerateManagerEmailBody(fullNameThai, jobTitle);
-                var resultsNewlist = resultsNew.Where(staff => staff.DATATYPE == "Openfor").ToList();
-                string fullName = string.Empty;
-                // ถ้าไม่มี DATATYPE == "Openfor" ให้ใช้ results เดิม
-                if (resultsNewlist.Count != 0)
+                var openForStaff = resultsWithOpenFor.FirstOrDefault(staff => staff.SourceType == "OpenFor");
+                string fullName;
+                string? toEmail;
+
+                if (openForStaff != null)
                 {
-                    var openForStaff = resultsNewlist.First(); 
-                    fullName = $"{openForStaff.NAMFIRSTT} {openForStaff.NAMLASTT}".Trim();
+                    fullName = $"{openForStaff.NAMETHAI}".Trim();
+                    toEmail = openForStaff.Email?.Trim();
                 }
                 else
                 {
                     var createStaff = resultsNew.FirstOrDefault(staff => staff.DATATYPE == "Create");
-                    if (createStaff != null)
-                    {
-                        fullName = $"{createStaff.NAMFIRSTT} {createStaff.NAMLASTT}".Trim();
-                    }
-                    else
-                    {
-                        fullName = "ไม่พบข้อมูลผู้สมัคร";
-                    }
-                    resultsNewlist = [.. resultsNew]; 
+                    fullName = createStaff != null
+                        ? $"{createStaff.NAMFIRSTT} {createStaff.NAMLASTT}".Trim()
+                        : "ไม่พบข้อมูลผู้สมัคร";
+                    toEmail = createStaff?.Email?.Trim();
                 }
-                foreach (var staff in resultsNewlist)
-                {
-                    var emailStaff = staff.Email?.Trim();
-                    if (string.IsNullOrWhiteSpace(emailStaff))
-                        continue;
 
+                // อีเมลกลุ่มทั้งหมดจาก GetEmailGroup ให้แนบไปเป็น CC แทนที่จะส่งแยกทีละฉบับ
+                var ccgroup = await connection.QueryAsync<EmailGroup>(
+                    "GetEmailGroup",
+                    commandType: CommandType.StoredProcedure);
+
+                var ccEmails = ccgroup
+                    .Select(group => group.Email?.Trim())
+                    .Where(email => !string.IsNullOrWhiteSpace(email) && !string.Equals(email, toEmail, StringComparison.OrdinalIgnoreCase))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (!string.IsNullOrWhiteSpace(toEmail))
+                {
                     try
                     {
-                        managerBody = GenerateRegistrationConfirmedToHRBody(fullName, fullNameThai, CodeMPID, JobStartDate, applicationFormUri);
+                        string managerBody = GenerateRegistrationConfirmedToHRBody(fullName, fullNameThai, CodeMPID, JobStartDate, applicationFormUri);
                         string SubjectMail = $@"แจ้งผลการสรรหา - คุณ {fullNameThai}";
-                        await _emailService.SendEmailAsync(emailStaff, SubjectMail, managerBody, true, "Register", null);
+                        string? ccEmail = ccEmails.Count != 0 ? string.Join(";", ccEmails) : null;
+                        await _emailService.SendEmailWithCcAsync(toEmail, ccEmail, SubjectMail, managerBody, true, "Register", null);
                         successCount++;
-                        _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
+                        _logger.LogInformation("Successfully sent email to {Email} (cc: {Cc})", toEmail, ccEmail);
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogError(ex, "Failed to send email to {Email}: {Message}", emailStaff, ex.Message);
+                        _logger.LogError(ex, "Failed to send email to {Email}: {Message}", toEmail, ex.Message);
                     }
                 }
             }
@@ -165,7 +169,7 @@ namespace JobOnlineAPI.Services
                     ? GenerateApplicantPart2EmailBody(fullNameThai, jobTitle, dbResult.CompanyName)
                     : GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, dbResult.ApplicantId, applicationFormUri);
                     string applicantSubject = typeMail == "Part2"
-                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน รอบ 2 ตำแหน่ง - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
+                    ? $"ยืนยันการได้รับข้อมูลประวัติประกอบการทำสัญญาจ้างงาน ตำแหน่ง - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} "
                     : $"ยืนยันการได้รับข้อมูลประวัติประกอบการสมัครงาน - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
@@ -180,7 +184,7 @@ namespace JobOnlineAPI.Services
                 }
 
                 if (typeMail == "Part2") {
-                    foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
+                    foreach (var staff in resultsWithOpenFor)
                     {
                         var emailStaff = staff.Email?.Trim();
                         if (string.IsNullOrWhiteSpace(emailStaff))
@@ -188,11 +192,11 @@ namespace JobOnlineAPI.Services
 
                         //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
                         string managerBody = typeMail == "Part2"
-                       ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle)
+                       ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle, staff!.NAMETHAI!)
                        : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
                         //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                         string applicantSubject = typeMail == "Part2"
-                        ? "แจ้งการกรอกข้อมูลประวัติประกอบการทำสัญญาจ้างงาน"
+                        ? $"Onee Jobs - ผู้สมัครงาน ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} ได้กรอกข้อมูลประวัติประกอบการทำสัญญาจ้างงานเรียบร้อยแล้ว"
                         : $"Onee Jobs - มีผู้สมัครงานเข้ามาใหม่  {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                         try
                         {
@@ -904,14 +908,15 @@ namespace JobOnlineAPI.Services
                 { "CompanyName", companyname }
             });
         }
-        private static string GenerateApplicantPart2ToHREmailBody(string fullNameThai, string jobTitle)
+        private static string GenerateApplicantPart2ToHREmailBody(string fullNameThai, string jobTitle, string staffName)
         {
             var template = LoadEmailTemplate("ApplicantPart2ToHR.html");
 
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
             {
                 { "FullNameThai", fullNameThai },
-                { "JobTitle", jobTitle }
+                { "JobTitle", jobTitle },
+                { "StaffName", staffName }
             });
         }
         private static async Task<string> GenerateApplicantPart1ToHREmailBody(
