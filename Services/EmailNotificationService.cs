@@ -547,9 +547,9 @@ namespace JobOnlineAPI.Services
                 candidateNamesString,
                 $"{SentToName!.NAMFIRSTT} {SentToName.NAMLASTT}".Trim(),
                 (string?)SentToName.POST ?? "",
-                (string?)SentToName.TelOff ?? "",
+                (string?)SentToName.TELOFF ?? "",
                 (string?)SentToName.EMAIL ?? "");
-            var subjectEmail = $"Onee Jobs - เรียกผู้สมัครสัมภาษณ์งาน ตำแหน่ง {requestData!.JobTitle}";
+            var subjectEmail = $"Onee Jobs เรียกผู้สมัครสัมภาษณ์งาน - ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
         }
