@@ -26,6 +26,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IEmailNotificationService _emailNotificationService;
         private readonly IJwtTokenService _jwtTokenService;
         private readonly string _applicationFormUri;
+        private const string TraineePath2CanFillFormSuccessMessage = "สามารถเข้าไปกรอกใบสมัครได้";
         private const string JobTitleKey = "JobTitle";
         private const string JobIdKey = "JobID";
         private const string ApplicantIdKey = "ApplicantID";
@@ -1384,6 +1385,51 @@ namespace JobOnlineAPI.Controllers
                     "Failed to check applicant can fill form for ApplicantID {ApplicantID}, JobID {JobID}: {Message}",
                     applicantId,
                     jobId,
+                    ex.Message
+                );
+
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpGet("CheckTraineePath2CanFillForm")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        public async Task<IActionResult> CheckTraineePath2CanFillForm([FromQuery] int assignmentId)
+        {
+            var userIdClaim = HttpContext.User.FindFirst("user_id")?.Value;
+            if (!int.TryParse(userIdClaim, out int userId) || userId <= 0)
+            {
+                return StatusCode(StatusCodes.Status401Unauthorized, new { message = "Unauthorized" });
+            }
+
+            try
+            {
+                using var connection = _context.CreateConnection();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@AssignmentID", assignmentId);
+                parameters.Add("@UserID", userId);
+
+                var result = await connection.QueryFirstOrDefaultAsync(
+                    "sp_CheckTraineePath2CanFillForm",
+                    parameters,
+                    commandType: CommandType.StoredProcedure
+                );
+
+                string message = result?.Message
+                    ?? "ไม่สามารถดำเนินการได้ เนื่องจากไม่พบข้อมูลใบสมัครนี้ หรือท่านไม่มีสิทธิ์เข้าถึง";
+                bool canFill = message == TraineePath2CanFillFormSuccessMessage;
+
+                return Ok(new { CanFill = canFill, Message = message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to check trainee path2 can fill form for AssignmentID {AssignmentID}, UserID {UserID}: {Message}",
+                    assignmentId,
+                    userId,
                     ex.Message
                 );
 
