@@ -593,11 +593,13 @@ namespace JobOnlineAPI.Services
                     ? candidateApplicantIDs.First()
                     : 0;
                 int jobId = requestData?.JobID ?? 0;
+                int applicationId = requestData?.ApplicationID ?? 0;
 
                 using var connection = _context.CreateConnection();
                 var url = new DynamicParameters();
                 url.Add("@ApplicantID", candidateApplicantID, DbType.Int32);
                 url.Add("@JobID", jobId, DbType.Int32);
+                url.Add("@ApplicationID", applicationId, DbType.Int32);
                 var urllist = await connection.QueryAsync<dynamic>(
                     "GetDataForEmailNotiSelectCandidate",
                     url,
