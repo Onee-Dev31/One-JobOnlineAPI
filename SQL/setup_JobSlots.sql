@@ -592,7 +592,8 @@ AS
 BEGIN
     DECLARE @SlotID INT = (SELECT SlotID FROM JobSlotAssignments WHERE AssignmentID = @AssignmentID);
 
-    UPDATE JobSlotAssignments SET Status = 'Cancelled', ModifiedAt = GETDATE() WHERE AssignmentID = @AssignmentID
+    --UPDATE JobSlotAssignments SET Status = 'Cancelled', ModifiedAt = GETDATE() WHERE AssignmentID = @AssignmentID
+	UPDATE JobSlotAssignments SET Status = 'Assigned', SlotID = null, ModifiedAt = GETDATE() WHERE AssignmentID = @AssignmentID --แก้
 
     UPDATE JobSlots SET Status = 'Open', ModifiedAt = GETDATE()
     WHERE SlotID = @SlotID AND Status = 'Filled'
