@@ -669,6 +669,23 @@ BEGIN
         A.ManualCanTravelOutside AS CanTravelOutside,
         A.ManualFlexibleWork AS FlexibleWork,
         A.ManualReasonForInterest AS ReasonForInterest
+
+        ,
+		(
+			SELECT
+				F.FileID,
+				F.FilePath,
+				F.FileName,
+				F.FileSize,
+				F.FileType,
+				F.SectionFile,
+				F.UploadedDate
+			FROM JobSlotAssignmentFiles F
+			WHERE F.AssignmentID = A.AssignmentID
+			FOR JSON PATH
+		) AS FilesList
+
+
     FROM JobSlotAssignments A
     LEFT JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
     LEFT JOIN Jobs J ON J.JobID = JA.JobID
