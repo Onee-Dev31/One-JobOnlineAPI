@@ -59,6 +59,7 @@ namespace JobOnlineAPI.Controllers
 
                 userDict["accessToken"] = localToken;
                 userDict["refreshToken"] = refreshToken;
+                userDict["essToken"] = accessToken;
                 await AttachFullCompanyDepartmentListsIfSuperUserAsync(connection, userDict);
                 Response.Cookies.Append("token", localToken, new CookieOptions
                 {
