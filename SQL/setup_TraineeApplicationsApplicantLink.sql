@@ -191,7 +191,7 @@ CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
     @InfoSourceDepartment NVARCHAR(200) = NULL,
     @InfoSourceOther NVARCHAR(200) = NULL,
     @Status NVARCHAR(50) = 'pending',
-    @JobID INT
+    @JobID INT = NULL -- NULL for walk-in entries not tied to a specific job posting
 AS
 BEGIN
     SET NOCOUNT ON

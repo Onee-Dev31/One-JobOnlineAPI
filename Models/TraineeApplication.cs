@@ -74,7 +74,9 @@ namespace JobOnlineAPI.Models
         public string Status { get; set; } = "Pending HR Screening";
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public int JobID { get; set; }
+        // Null for walk-in entries not tied to a specific job posting (e.g. manual entry
+        // straight into a department via TraineeManagement, not applying to a listed job).
+        public int? JobID { get; set; }
     }
 
     public class TraineeFile
