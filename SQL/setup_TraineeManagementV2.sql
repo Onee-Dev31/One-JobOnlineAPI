@@ -1,0 +1,494 @@
+-- Trainee intake management v2: department-fixed-quota model, running in parallel to the
+-- existing JobSlots/JobSlotAssignments (time-boxed batch) system. Neither JobSlots,
+-- JobSlotAssignments, nor any procedure that reads them (sp_GetCandidateAllForJobsV2,
+-- usp_TraineeApplicant_Upsert, sp_GetJobSlotAssignmentSeedData, sp_GetDepartmentDashboard) is
+-- touched here — the old system keeps working untouched while this one is built out and tested.
+-- No data migration from the old tables happens in this script; that is a separate follow-up
+-- once this new system is verified end-to-end.
+
+-- Table: TraineeQuota
+-- Fixed headcount per (CompanyCode, DepartmentCode) — not tied to any time window, unlike the
+-- old JobSlots.NumberOfPositions which was set per recruiting batch. DepartmentCode matches
+-- HRMS_LINKED_SERVER..T_EMPLOYEE_SSO.COSTCENT (the same value JobSlots.Department stores) —
+-- there is no local Department table in this DB to add a quota column to instead.
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TraineeQuota')
+BEGIN
+    CREATE TABLE TraineeQuota (
+        QuotaID              INT IDENTITY(1,1) PRIMARY KEY,
+        CompanyCode           NVARCHAR(50)  NOT NULL,
+        DepartmentCode        NVARCHAR(200) NOT NULL,
+        DepartmentName        NVARCHAR(400) NULL, -- cached NAMECOSTCENT snapshot
+        Quota                 INT NOT NULL DEFAULT 0,
+        IsAcceptingTrainees   BIT NOT NULL DEFAULT 1,
+        Notes                 NVARCHAR(500) NULL,
+        CreatedAt             DATETIME2 NOT NULL DEFAULT GETDATE(),
+        CreatedByAdminID      INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        ModifiedAt            DATETIME2 NULL,
+        ModifiedByAdminID     INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        CONSTRAINT UQ_TraineeQuota_Company_Dept UNIQUE (CompanyCode, DepartmentCode)
+    )
+    PRINT 'Created TraineeQuota'
+END
+
+GO
+-- Table: TraineeAssignments
+-- Replaces JobSlotAssignments for the new flow: no SlotID, tied directly to a department.
+-- CompanyCode/DepartmentCode stay NULL for a self-submitted application still awaiting an admin
+-- to place it into a department (mirrors the old SlotID-NULL "pending" state).
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TraineeAssignments')
+BEGIN
+    CREATE TABLE TraineeAssignments (
+        AssignmentID                  INT IDENTITY(1,1) PRIMARY KEY,
+        CompanyCode                   NVARCHAR(50) NULL,
+        DepartmentCode                NVARCHAR(200) NULL,
+        ApplicationID                 INT NULL FOREIGN KEY REFERENCES JobApplications(ApplicationID),
+        UserID                        INT NULL FOREIGN KEY REFERENCES Users(UserId),
+        ManualTitle                   NVARCHAR(20) NULL,
+        ManualFirstNameThai           NVARCHAR(200) NULL,
+        ManualLastNameThai            NVARCHAR(200) NULL,
+        ManualNickname                NVARCHAR(50) NULL,
+        ManualAge                     INT NULL,
+        ManualYear                    NVARCHAR(10) NULL,
+        ManualGPA                     DECIMAL(3, 2) NULL,
+        ManualMajor                   NVARCHAR(200) NULL,
+        ManualFaculty                 NVARCHAR(200) NULL,
+        ManualUniversity              NVARCHAR(200) NULL,
+        ManualInternshipType          NVARCHAR(50) NULL,
+        ManualInternStartDate         DATE NULL,
+        ManualInternEndDate           DATE NULL,
+        ManualDurationMonths          NVARCHAR(20) NULL,
+        ManualPreferredPosition       NVARCHAR(100) NULL,
+        ManualPreferredPositionBackup NVARCHAR(100) NULL,
+        ManualMobilePhone             NVARCHAR(20) NULL,
+        ManualEmail                   NVARCHAR(150) NULL,
+        ManualCanCommute              BIT NULL,
+        ManualCanTravelOutside        BIT NULL,
+        ManualFlexibleWork            BIT NULL,
+        ManualReasonForInterest       NVARCHAR(1000) NULL,
+        Status                        NVARCHAR(50) NOT NULL DEFAULT 'Assigned', -- Assigned / Cancelled
+        AssignedDate                  DATETIME2 NOT NULL DEFAULT GETDATE(),
+        AssignedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        ModifiedAt                    DATETIME2 NULL,
+        ModifiedByAdminID             INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
+        -- Composite FK is only enforced once both columns are non-null, so a pending
+        -- (CompanyCode/DepartmentCode both NULL) row is unaffected.
+        CONSTRAINT FK_TraineeAssignments_Quota
+            FOREIGN KEY (CompanyCode, DepartmentCode) REFERENCES TraineeQuota (CompanyCode, DepartmentCode)
+    )
+    PRINT 'Created TraineeAssignments'
+END
+
+GO
+-- Table: TraineeAssignmentFiles
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'TraineeAssignmentFiles')
+BEGIN
+    CREATE TABLE TraineeAssignmentFiles (
+        FileID          INT IDENTITY(1,1) PRIMARY KEY,
+        AssignmentID    INT NOT NULL FOREIGN KEY REFERENCES TraineeAssignments(AssignmentID),
+        FilePath        NVARCHAR(500) NOT NULL,
+        FileName        NVARCHAR(300) NOT NULL,
+        FileSize        BIGINT NOT NULL,
+        FileType        NVARCHAR(100) NULL,
+        SectionFile     NVARCHAR(20) NOT NULL,
+        UploadedDate    DATETIME2 NOT NULL DEFAULT GETDATE()
+    )
+    PRINT 'Created TraineeAssignmentFiles'
+END
+
+GO
+CREATE OR ALTER PROCEDURE sp_UpsertTraineeQuota
+    @CompanyCode          NVARCHAR(50),
+    @DepartmentCode       NVARCHAR(200),
+    @DepartmentName       NVARCHAR(400) = NULL,
+    @Quota                INT,
+    @IsAcceptingTrainees  BIT = 1,
+    @Notes                NVARCHAR(500) = NULL,
+    @AdminID              INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF EXISTS (SELECT 1 FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode)
+    BEGIN
+        UPDATE TraineeQuota
+        SET DepartmentName = COALESCE(@DepartmentName, DepartmentName),
+            Quota = @Quota,
+            IsAcceptingTrainees = @IsAcceptingTrainees,
+            Notes = @Notes,
+            ModifiedAt = GETDATE(),
+            ModifiedByAdminID = @AdminID
+        WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+    END
+    ELSE
+    BEGIN
+        INSERT INTO TraineeQuota (CompanyCode, DepartmentCode, DepartmentName, Quota, IsAcceptingTrainees, Notes, CreatedByAdminID)
+        VALUES (@CompanyCode, @DepartmentCode, @DepartmentName, @Quota, @IsAcceptingTrainees, @Notes, @AdminID)
+    END
+
+    SELECT QuotaID, CompanyCode, DepartmentCode, DepartmentName, Quota, IsAcceptingTrainees, Notes,
+           CreatedAt, CreatedByAdminID, ModifiedAt, ModifiedByAdminID
+    FROM TraineeQuota
+    WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+END
+
+GO
+CREATE OR ALTER PROCEDURE sp_DeleteTraineeQuota
+    @CompanyCode    NVARCHAR(50),
+    @DepartmentCode NVARCHAR(200)
+AS
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM TraineeAssignments
+        WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode AND Status <> 'Cancelled'
+    )
+    BEGIN
+        RAISERROR('มี assignment ที่ยัง active อยู่ในแผนกนี้ ลบโควตาไม่ได้', 16, 1);
+        RETURN;
+    END
+
+    DELETE FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+END
+
+GO
+-- Lists every company/department that exists in HRMS (so unconfigured departments still show up,
+-- with Quota = 0 / IsAcceptingTrainees = 1 as defaults), LEFT JOINed to the local quota row —
+-- same "show everything, not just configured rows" approach as sp_GetTraineeOverview's dept list.
+CREATE OR ALTER PROCEDURE sp_GetTraineeQuota
+    @CompanyCode NVARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        Q.QuotaID,
+        EMP.COMPANY_CODE AS CompanyCode,
+        EMP.COSTCENT AS DepartmentCode,
+        COALESCE(Q.DepartmentName, EMP.NAMECOSTCENT) AS DepartmentName,
+        ISNULL(Q.Quota, 0) AS Quota,
+        ISNULL(Q.IsAcceptingTrainees, 1) AS IsAcceptingTrainees,
+        Q.Notes,
+        Q.CreatedAt,
+        Q.CreatedByAdminID,
+        Q.ModifiedAt,
+        Q.ModifiedByAdminID
+    FROM (
+        SELECT DISTINCT COSTCENT, COMPANY_CODE, NAMECOSTCENT
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
+          AND NAMECOSTCENT IS NOT NULL AND NAMECOSTCENT <> ''
+    ) EMP
+    LEFT JOIN TraineeQuota Q
+        ON Q.CompanyCode = EMP.COMPANY_CODE AND Q.DepartmentCode = EMP.COSTCENT
+    WHERE (@CompanyCode IS NULL OR EMP.COMPANY_CODE = @CompanyCode)
+    ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT
+END
+
+GO
+-- Result set 1: every department that exists in HRMS (so the landing page shows everything
+-- immediately, not just departments an admin has already configured a quota for), LEFT JOINed
+-- to the local quota row. Result set 2: every active assignment already placed into a department.
+CREATE OR ALTER PROCEDURE sp_GetTraineeOverview
+    @Year INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        EMP.COMPANY_CODE AS CompanyCode,
+        COALESCE(CI.Company_nameth, CI.company_name, EMP.COMPANY_CODE) AS CompanyName,
+        EMP.COSTCENT AS DepartmentCode,
+        EMP.NAMECOSTCENT AS DepartmentName,
+        ISNULL(Q.Quota, 0) AS Quota,
+        ISNULL(Q.IsAcceptingTrainees, 1) AS IsAcceptingTrainees
+    FROM (
+        SELECT DISTINCT COSTCENT, COMPANY_CODE, NAMECOSTCENT
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
+          AND NAMECOSTCENT IS NOT NULL AND NAMECOSTCENT <> ''
+    ) EMP
+    LEFT JOIN TraineeQuota Q
+        ON Q.CompanyCode = EMP.COMPANY_CODE AND Q.DepartmentCode = EMP.COSTCENT
+    LEFT JOIN CompanyInfo CI
+        ON CI.Company_Code = EMP.COMPANY_CODE
+    ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT
+
+    SELECT
+        A.AssignmentID,
+        A.CompanyCode,
+        A.DepartmentCode,
+        A.ApplicationID,
+        JA.ApplicantID,
+        A.ManualTitle AS Title,
+        A.ManualFirstNameThai AS FirstNameThai,
+        A.ManualLastNameThai AS LastNameThai,
+        A.ManualInternStartDate AS InternStartDate,
+        A.ManualInternEndDate AS InternEndDate,
+        A.Status,
+        A.AssignedDate
+    FROM TraineeAssignments A
+    LEFT JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
+    WHERE A.Status <> 'Cancelled'
+      AND A.CompanyCode IS NOT NULL AND A.DepartmentCode IS NOT NULL
+      AND (
+            @Year IS NULL
+            OR YEAR(A.ManualInternStartDate) = @Year
+            OR YEAR(A.ManualInternEndDate) = @Year
+          )
+    ORDER BY A.ManualInternStartDate
+END
+
+GO
+-- Creates a new assignment (CompanyCode/DepartmentCode given) or places an existing pending
+-- self-submitted one (matched by ApplicationID, CompanyCode/DepartmentCode both still NULL) into
+-- a department. Quota is enforced as a soft warning: exceeding it does not block the call unless
+-- @ForceOverQuota = 0, in which case it raises an error the caller can retry with the flag set
+-- after the admin confirms. "Exceeding" is computed per overlapping date range within the
+-- department, not a running total, since each assignment now carries its own start/end dates.
+CREATE OR ALTER PROCEDURE sp_CreateOrPlaceTraineeAssignment
+    @CompanyCode                   NVARCHAR(50) = NULL,  -- NULL only for a direct/self-submitted application with no department chosen yet
+    @DepartmentCode                NVARCHAR(200) = NULL,
+    @ApplicationID                 INT = NULL,
+    @JobID                         INT = NULL,
+    @ManualTitle                   NVARCHAR(20) = NULL,
+    @ManualFirstNameThai           NVARCHAR(200) = NULL,
+    @ManualLastNameThai            NVARCHAR(200) = NULL,
+    @ManualNickname                NVARCHAR(50) = NULL,
+    @ManualAge                     INT = NULL,
+    @ManualYear                    NVARCHAR(10) = NULL,
+    @ManualGPA                     DECIMAL(3, 2) = NULL,
+    @ManualMajor                   NVARCHAR(200) = NULL,
+    @ManualFaculty                 NVARCHAR(200) = NULL,
+    @ManualUniversity              NVARCHAR(200) = NULL,
+    @ManualInternshipType          NVARCHAR(50) = NULL,
+    @ManualInternStartDate         DATE = NULL,
+    @ManualInternEndDate           DATE = NULL,
+    @ManualDurationMonths          NVARCHAR(20) = NULL,
+    @ManualPreferredPosition       NVARCHAR(100) = NULL,
+    @ManualPreferredPositionBackup NVARCHAR(100) = NULL,
+    @ManualMobilePhone             NVARCHAR(20) = NULL,
+    @ManualEmail                   NVARCHAR(150) = NULL,
+    @ManualCanCommute              BIT = NULL,
+    @ManualCanTravelOutside        BIT = NULL,
+    @ManualFlexibleWork            BIT = NULL,
+    @ManualReasonForInterest       NVARCHAR(1000) = NULL,
+    @AssignedByAdminID             INT = NULL,
+    @UserID                        INT = NULL,
+    @ForceOverQuota                BIT = 0
+AS
+BEGIN
+    DECLARE @ExistingAssignmentID INT = NULL, @ExistingCompanyCode NVARCHAR(50) = NULL, @ExistingDepartmentCode NVARCHAR(200) = NULL;
+
+    IF @ApplicationID IS NOT NULL
+    BEGIN
+        SELECT TOP 1 @ExistingAssignmentID = AssignmentID, @ExistingCompanyCode = CompanyCode, @ExistingDepartmentCode = DepartmentCode
+        FROM TraineeAssignments
+        WHERE ApplicationID = @ApplicationID AND Status <> 'Cancelled'
+    END
+
+    IF @ExistingAssignmentID IS NOT NULL AND @ExistingCompanyCode IS NOT NULL AND @ExistingDepartmentCode IS NOT NULL
+    BEGIN
+        RAISERROR('Application ใบนี้ถูกมอบหมายให้แผนกไปแล้ว', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @Quota INT = NULL, @ActiveOverlapCount INT = 0, @IsOverQuota BIT = 0;
+
+    IF @CompanyCode IS NOT NULL AND @DepartmentCode IS NOT NULL
+    BEGIN
+        IF @ManualInternStartDate IS NULL OR @ManualInternEndDate IS NULL
+        BEGIN
+            RAISERROR('ต้องระบุวันที่เริ่ม-สิ้นสุดฝึกงาน ก่อนมอบหมายเข้าแผนก', 16, 1);
+            RETURN;
+        END
+
+        SELECT @Quota = Quota FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
+        IF @Quota IS NULL
+        BEGIN
+            RAISERROR('ยังไม่ได้ตั้งโควตาให้แผนกนี้ ตั้งโควตาก่อน (ต่อให้เป็น 0)', 16, 1);
+            RETURN;
+        END
+
+        SELECT @ActiveOverlapCount = COUNT(*)
+        FROM TraineeAssignments
+        WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+          AND Status <> 'Cancelled'
+          AND (@ExistingAssignmentID IS NULL OR AssignmentID <> @ExistingAssignmentID)
+          AND ManualInternStartDate <= @ManualInternEndDate
+          AND ManualInternEndDate >= @ManualInternStartDate;
+
+        IF (@ActiveOverlapCount + 1) > @Quota
+        BEGIN
+            SET @IsOverQuota = 1;
+            IF @ForceOverQuota = 0
+            BEGIN
+                RAISERROR('เกินโควตาของแผนกในช่วงเวลานี้ (มอบหมายแล้ว %d จากโควตา %d คน) ส่ง ForceOverQuota เพื่อยืนยันรับเกินโควตา', 16, 1, @ActiveOverlapCount, @Quota);
+                RETURN;
+            END
+        END
+    END
+
+    IF @ExistingAssignmentID IS NOT NULL
+    BEGIN
+        -- Existing self-submitted application (no department chosen yet): place it, don't touch its data.
+        UPDATE TraineeAssignments
+        SET CompanyCode = @CompanyCode, DepartmentCode = @DepartmentCode,
+            ModifiedAt = GETDATE(), ModifiedByAdminID = @AssignedByAdminID
+        WHERE AssignmentID = @ExistingAssignmentID
+
+        SELECT @ExistingAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota
+        RETURN
+    END
+
+    IF @ApplicationID IS NULL AND @ManualFirstNameThai IS NULL
+    BEGIN
+        RAISERROR('ต้องมี ApplicationID หรือกรอกชื่อ Manual อย่างใดอย่างหนึ่ง', 16, 1);
+        RETURN;
+    END
+
+    IF @ApplicationID IS NULL
+    BEGIN
+        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+        VALUES (NULL, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'pending'), GETDATE())
+
+        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+    END
+
+    INSERT INTO TraineeAssignments (
+        CompanyCode, DepartmentCode, ApplicationID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
+        ManualAge, ManualYear, ManualGPA, ManualMajor, ManualFaculty, ManualUniversity,
+        ManualInternshipType, ManualInternStartDate, ManualInternEndDate, ManualDurationMonths,
+        ManualPreferredPosition, ManualPreferredPositionBackup, ManualMobilePhone, ManualEmail,
+        ManualCanCommute, ManualCanTravelOutside, ManualFlexibleWork,
+        ManualReasonForInterest,
+        AssignedByAdminID, UserID
+    )
+    VALUES (
+        @CompanyCode, @DepartmentCode, @ApplicationID, @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname,
+        @ManualAge, @ManualYear, @ManualGPA, @ManualMajor, @ManualFaculty, @ManualUniversity,
+        @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
+        @ManualPreferredPosition, @ManualPreferredPositionBackup, @ManualMobilePhone, @ManualEmail,
+        @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork,
+        @ManualReasonForInterest,
+        @AssignedByAdminID, @UserID
+    )
+
+    DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
+
+    SELECT @NewAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota
+END
+
+GO
+-- Returns an assignment to the unassigned pool (mirrors sp_UnassignApplicantFromSlot's current
+-- behavior: clears the placement rather than cancelling the record outright).
+CREATE OR ALTER PROCEDURE sp_UnassignTraineeAssignment
+    @AssignmentID INT
+AS
+BEGIN
+    UPDATE TraineeAssignments
+    SET Status = 'Assigned', CompanyCode = NULL, DepartmentCode = NULL, ModifiedAt = GETDATE()
+    WHERE AssignmentID = @AssignmentID
+END
+
+GO
+-- Self-submitted trainee applications sitting in TraineeAssignments with no department chosen yet.
+CREATE OR ALTER PROCEDURE sp_GetUnassignedTraineeAssignments
+    @Department NVARCHAR(200) = NULL
+AS
+BEGIN
+    SELECT
+        A.AssignmentID,
+        A.ApplicationID,
+        JA.JobID,
+        J.JobTitle,
+        J.Department,
+        JA.Status AS ApplicationStatus,
+        JA.SubmissionDate,
+        A.ManualTitle AS Title,
+        A.ManualFirstNameThai AS FirstNameThai,
+        A.ManualLastNameThai AS LastNameThai,
+        A.ManualNickname AS Nickname,
+        A.ManualAge AS Age,
+        A.ManualYear AS Year,
+        A.ManualGPA AS GPA,
+        A.ManualMajor AS Major,
+        A.ManualFaculty AS Faculty,
+        A.ManualUniversity AS University,
+        A.ManualInternshipType AS InternshipType,
+        A.ManualInternStartDate AS InternStartDate,
+        A.ManualInternEndDate AS InternEndDate,
+        A.ManualDurationMonths AS DurationMonths,
+        A.ManualPreferredPosition AS PreferredPosition,
+        A.ManualPreferredPositionBackup AS PreferredPositionBackup,
+        A.ManualMobilePhone AS MobilePhone,
+        A.ManualEmail AS Email,
+        A.ManualCanCommute AS CanCommute,
+        A.ManualCanTravelOutside AS CanTravelOutside,
+        A.ManualFlexibleWork AS FlexibleWork,
+        A.ManualReasonForInterest AS ReasonForInterest,
+        (
+            SELECT F.FileID, F.FilePath, F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
+            FROM TraineeAssignmentFiles F
+            WHERE F.AssignmentID = A.AssignmentID
+            FOR JSON PATH
+        ) AS FilesList
+    FROM TraineeAssignments A
+    LEFT JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
+    LEFT JOIN Jobs J ON J.JobID = JA.JobID
+    WHERE A.DepartmentCode IS NULL
+      AND A.Status <> 'Cancelled'
+      AND J.EmployeeType = N'นักศึกษาฝึกงาน'
+      AND JA.Status = 'Employment confirm'
+      AND (@Department IS NULL OR J.Department = @Department)
+    ORDER BY JA.SubmissionDate
+END
+
+GO
+CREATE OR ALTER PROCEDURE sp_AddTraineeAssignmentFile
+    @AssignmentID INT,
+    @FilePath     NVARCHAR(500),
+    @FileName     NVARCHAR(300),
+    @FileSize     BIGINT,
+    @FileType     NVARCHAR(100) = NULL,
+    @SectionFile  NVARCHAR(20)
+AS
+BEGIN
+    INSERT INTO TraineeAssignmentFiles (AssignmentID, FilePath, FileName, FileSize, FileType, SectionFile)
+    VALUES (@AssignmentID, @FilePath, @FileName, @FileSize, @FileType, @SectionFile)
+END
+
+GO
+-- Read-only: prefill for a Part2-style continuation form from a TraineeAssignments row.
+-- Not wired to usp_TraineeApplicant_Upsert yet (that proc still only reads JobSlotAssignments) —
+-- kept here for parity so the new controller has the same surface as the old one.
+CREATE OR ALTER PROCEDURE sp_GetTraineeAssignmentSeedData
+    @AssignmentID INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        A.AssignmentID,
+        A.ManualTitle                   AS PrefixT,
+        A.ManualFirstNameThai           AS NameFirstT,
+        A.ManualLastNameThai            AS NameLastT,
+        A.ManualNickname                AS NicknameT,
+        A.ManualMobilePhone             AS Mobile,
+        A.ManualEmail                   AS Email,
+        A.ManualYear                    AS YearOfStudy,
+        A.ManualMajor                   AS Major,
+        A.ManualFaculty                 AS Faculty,
+        A.ManualUniversity              AS School,
+        A.ManualInternStartDate         AS StartDate,
+        A.ManualInternEndDate           AS EndDate,
+        A.ManualPreferredPosition       AS DesiredField1,
+        A.ManualPreferredPositionBackup AS DesiredField2,
+        A.ManualInternshipType          AS InternshipType
+    FROM TraineeAssignments A
+    WHERE A.AssignmentID = @AssignmentID
+
+    SELECT
+        F.FileID, F.AssignmentID, F.FilePath, F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
+    FROM TraineeAssignmentFiles F
+    WHERE F.AssignmentID = @AssignmentID
+END
+GO
