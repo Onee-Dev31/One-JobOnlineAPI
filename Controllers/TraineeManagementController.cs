@@ -50,6 +50,11 @@ namespace JobOnlineAPI.Controllers
             return Ok(companies);
         }
 
+        // DEPRECATED: required/isOpen in GET /overview are now derived from live Job postings
+        // (JobGroup "นักศึกษาฝึกงาน" x NumberOfPositions — see vw_TraineeDepartmentRequired /
+        // sp_GetTraineeManagementOverview), not from the TraineeQuota row this endpoint writes.
+        // Calling this no longer affects what /overview returns. Left in place (not removed) in
+        // case something else still depends on it; candidate for removal once confirmed unused.
         [HttpPut("departments/{departmentCode}/quota")]
         public async Task<IActionResult> UpdateDepartmentQuota(string departmentCode, [FromBody] UpdateDepartmentQuotaRequest request)
         {

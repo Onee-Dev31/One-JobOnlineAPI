@@ -500,6 +500,54 @@ GO
 -- purpose-shaped read/write surface for that one page.
 -- ============================================================================
 
+-- Required/IsOpen no longer come from the manually-edited TraineeQuota table (deprecated below —
+-- see sp_UpsertTraineeQuotaByDepartment). Instead they're derived from live Job postings: "required"
+-- per department = SUM(NumberOfPositions) of Jobs in the "นักศึกษาฝึกงาน" JobGroup that are still
+-- open for intake; "isOpen" = at least one such posting exists. TraineeAssignments no longer needs a
+-- TraineeQuota row to exist before it can be inserted, so the old composite FK is dropped: with
+-- TraineeQuota no longer populated going forward, that FK would otherwise reject every new
+-- assignment. TraineeQuota itself is left in place (not dropped) — historical data, harmless if unused.
+IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_TraineeAssignments_Quota')
+BEGIN
+    ALTER TABLE TraineeAssignments DROP CONSTRAINT FK_TraineeAssignments_Quota
+    PRINT 'Dropped FK_TraineeAssignments_Quota'
+END
+
+GO
+-- One row per (CompanyCode, DepartmentCode) that currently has at least one open "นักศึกษาฝึกงาน"
+-- job posting. JobGroupID is resolved by GroupName (not hardcoded) since the ID can differ across
+-- environments. "Open for intake" mirrors sp_GetAllJobsV2's active-job filter (JobStatus <> 'Time
+-- Up', ClosingDate NULL-or-future), plus ApprovalStatus = 'Approved' so a still-pending-approval
+-- posting doesn't count as an open trainee slot yet.
+CREATE OR ALTER VIEW vw_TraineeDepartmentRequired
+AS
+    SELECT
+        HR.COMPANY_CODE AS CompanyCode,
+        J.Department AS DepartmentCode,
+        SUM(J.NumberOfPositions) AS Required,
+        COUNT(*) AS OpenJobCount
+    FROM Jobs J
+    INNER JOIN JobGroups JG ON JG.JobGroupID = J.JobGroupID AND JG.GroupName = N'นักศึกษาฝึกงาน'
+    -- T_EMPLOYEE_SSO has many rows (one per employee) per COSTCENT, so it must be de-duplicated
+    -- to one row per COSTCENT before joining, or the SUM/COUNT below fan out and over-count.
+    LEFT JOIN (
+        SELECT DISTINCT COSTCENT, COMPANY_CODE
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
+    ) HR ON HR.COSTCENT = J.Department
+    WHERE J.JobStatus <> 'Time Up'
+      AND J.ApprovalStatus = 'Approved'
+      AND (J.ClosingDate IS NULL OR J.ClosingDate >= GETDATE())
+      AND J.Department IS NOT NULL
+    GROUP BY HR.COMPANY_CODE, J.Department
+
+GO
+-- DEPRECATED (as of the Jobs-derived Required/IsOpen pivot): required/isOpen are no longer read
+-- from TraineeQuota — see vw_TraineeDepartmentRequired and sp_GetTraineeManagementOverview below.
+-- Left functional (still safe to call, still writes TraineeQuota) only so nothing currently pointed
+-- at PUT /TraineeManagement/departments/{code}/quota breaks immediately; not called by the overview
+-- read path anymore. Candidate for removal once confirmed nothing external still calls it.
+--
 -- DepartmentCode (HRMS COSTCENT) is globally unique across companies (verified: 175 distinct
 -- COSTCENT == 175 distinct COMPANY_CODE+COSTCENT pairs in T_EMPLOYEE_SSO), so quota can be
 -- addressed by DepartmentCode alone; CompanyCode is resolved server-side from HRMS.
@@ -543,10 +591,12 @@ BEGIN
 END
 
 GO
--- Result set 1: every HRMS company/department (Required/IsOpen default to 0/true when
--- unconfigured), optionally narrowed by @CompanyCode/@DepartmentCode. Result set 2: placed,
--- non-cancelled trainees whose internship period overlaps @Year, same optional filters.
--- Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
+-- Result set 1: every HRMS company/department. Required/IsOpen are derived from live Job postings
+-- via vw_TraineeDepartmentRequired (Required defaults to 0 / IsOpen to false when no qualifying
+-- posting exists for that department), optionally narrowed by @CompanyCode/@DepartmentCode. Result
+-- set 2: placed, non-cancelled trainees whose internship period overlaps @Year, same optional
+-- filters (unchanged — still sourced from TraineeAssignments, unaffected by the Required/IsOpen
+-- pivot). Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
 CREATE OR ALTER PROCEDURE sp_GetTraineeManagementOverview
     @Year           INT = NULL,
     @CompanyCode    NVARCHAR(50) = NULL,
@@ -560,16 +610,16 @@ BEGIN
         COALESCE(CI.Company_nameth, CI.company_name, EMP.COMPANY_CODE) AS CompanyName,
         EMP.COSTCENT AS DepartmentCode,
         EMP.NAMECOSTCENT AS DepartmentName,
-        ISNULL(Q.Quota, 0) AS Required,
-        ISNULL(Q.IsAcceptingTrainees, 1) AS IsOpen
+        ISNULL(R.Required, 0) AS Required,
+        CASE WHEN ISNULL(R.OpenJobCount, 0) > 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS IsOpen
     FROM (
         SELECT DISTINCT COSTCENT, COMPANY_CODE, NAMECOSTCENT
         FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
         WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
           AND NAMECOSTCENT IS NOT NULL AND NAMECOSTCENT <> ''
     ) EMP
-    LEFT JOIN TraineeQuota Q
-        ON Q.CompanyCode = EMP.COMPANY_CODE AND Q.DepartmentCode = EMP.COSTCENT
+    LEFT JOIN vw_TraineeDepartmentRequired R
+        ON R.CompanyCode = EMP.COMPANY_CODE AND R.DepartmentCode = EMP.COSTCENT
     LEFT JOIN CompanyInfo CI
         ON CI.Company_Code = EMP.COMPANY_CODE
     WHERE (@CompanyCode IS NULL OR EMP.COMPANY_CODE = @CompanyCode)
@@ -654,7 +704,7 @@ BEGIN
     END
 
     DECLARE @Quota INT;
-    SELECT @Quota = Quota FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
+    SELECT @Quota = Required FROM vw_TraineeDepartmentRequired WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
     SET @Quota = ISNULL(@Quota, 0);
 
     DECLARE @ActiveOverlapCount INT, @IsOverQuota BIT = 0;
