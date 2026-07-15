@@ -75,7 +75,8 @@ namespace JobOnlineAPI.Controllers
             [FromForm] string jsonData,
             [FromForm] List<IFormFile>? idCardFiles,
             [FromForm] List<IFormFile>? houseRegFiles,
-            [FromForm] List<IFormFile>? resumeFiles)
+            [FromForm] List<IFormFile>? resumeFiles,
+            [FromForm] List<IFormFile>? transcriptFiles)
         {
             TraineeApplication? request;
             try
@@ -172,6 +173,7 @@ namespace JobOnlineAPI.Controllers
                     (Files: idCardFiles,   Section: "idCard"),
                     (Files: houseRegFiles, Section: "houseReg"),
                     (Files: resumeFiles,   Section: "resume"),
+                    (Files: transcriptFiles, Section: "transcript"),
                 };
 
                 foreach (var (files, section) in fileGroups)
