@@ -64,6 +64,10 @@ namespace JobOnlineAPI.Controllers
             return Ok(companies);
         }
 
+        // DEPRECATED: Quota/IsAcceptingTrainees on GET /overview no longer come from TraineeQuota —
+        // they're derived from live Job postings (see sp_GetTraineeOverview). These three quota
+        // endpoints still read/write TraineeQuota directly but no longer affect what either
+        // overview endpoint returns. Left in place, not removed.
         [HttpGet("quota")]
         public async Task<IActionResult> GetQuota([FromQuery] string? companyCode)
         {

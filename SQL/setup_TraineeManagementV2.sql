@@ -96,6 +96,11 @@ BEGIN
 END
 
 GO
+-- DEPRECATED (TraineeQuota retired): Quota/IsAcceptingTrainees in both overview endpoints are now
+-- derived from live Job postings (vw_TraineeDepartmentRequired), not this table. This proc still
+-- writes TraineeQuota — harmless, just no longer read by anything. Left in place, not removed, in
+-- case something external still calls GET/PUT/DELETE /Trainee/quota; candidate for removal once
+-- confirmed unused.
 CREATE OR ALTER PROCEDURE sp_UpsertTraineeQuota
     @CompanyCode          NVARCHAR(50),
     @DepartmentCode       NVARCHAR(200),
@@ -132,6 +137,7 @@ BEGIN
 END
 
 GO
+-- DEPRECATED (TraineeQuota retired) — see sp_UpsertTraineeQuota above.
 CREATE OR ALTER PROCEDURE sp_DeleteTraineeQuota
     @CompanyCode    NVARCHAR(50),
     @DepartmentCode NVARCHAR(200)
@@ -150,6 +156,10 @@ BEGIN
 END
 
 GO
+-- DEPRECATED (TraineeQuota retired) — see sp_UpsertTraineeQuota above. Still returns whatever rows
+-- happen to be in TraineeQuota (frozen at whatever admins last saved); no longer what either
+-- overview endpoint's Quota/Required actually reflects.
+--
 -- Lists every company/department that exists in HRMS (so unconfigured departments still show up,
 -- with Quota = 0 / IsAcceptingTrainees = 1 as defaults), LEFT JOINed to the local quota row —
 -- same "show everything, not just configured rows" approach as sp_GetTraineeOverview's dept list.
@@ -185,8 +195,10 @@ END
 
 GO
 -- Result set 1: every department that exists in HRMS (so the landing page shows everything
--- immediately, not just departments an admin has already configured a quota for), LEFT JOINed
--- to the local quota row. Result set 2: every active assignment already placed into a department.
+-- immediately, not just departments with an open trainee posting). Quota/IsAcceptingTrainees are
+-- derived from live Job postings via vw_TraineeDepartmentRequired (TraineeQuota is retired — see
+-- sp_UpsertTraineeQuota below), same source sp_GetTraineeManagementOverview uses. Result set 2:
+-- every active assignment already placed into a department.
 CREATE OR ALTER PROCEDURE sp_GetTraineeOverview
     @Year INT = NULL
 AS
@@ -198,16 +210,16 @@ BEGIN
         COALESCE(CI.Company_nameth, CI.company_name, EMP.COMPANY_CODE) AS CompanyName,
         EMP.COSTCENT AS DepartmentCode,
         EMP.NAMECOSTCENT AS DepartmentName,
-        ISNULL(Q.Quota, 0) AS Quota,
-        ISNULL(Q.IsAcceptingTrainees, 1) AS IsAcceptingTrainees
+        ISNULL(R.Required, 0) AS Quota,
+        CASE WHEN ISNULL(R.OpenJobCount, 0) > 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS IsAcceptingTrainees
     FROM (
         SELECT DISTINCT COSTCENT, COMPANY_CODE, NAMECOSTCENT
         FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
         WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
           AND NAMECOSTCENT IS NOT NULL AND NAMECOSTCENT <> ''
     ) EMP
-    LEFT JOIN TraineeQuota Q
-        ON Q.CompanyCode = EMP.COMPANY_CODE AND Q.DepartmentCode = EMP.COSTCENT
+    LEFT JOIN vw_TraineeDepartmentRequired R
+        ON R.CompanyCode = EMP.COMPANY_CODE AND R.DepartmentCode = EMP.COSTCENT
     LEFT JOIN CompanyInfo CI
         ON CI.Company_Code = EMP.COMPANY_CODE
     ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT
@@ -301,12 +313,11 @@ BEGIN
             RETURN;
         END
 
-        SELECT @Quota = Quota FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
-        IF @Quota IS NULL
-        BEGIN
-            RAISERROR('ยังไม่ได้ตั้งโควตาให้แผนกนี้ ตั้งโควตาก่อน (ต่อให้เป็น 0)', 16, 1);
-            RETURN;
-        END
+        -- Quota is derived from live Job postings (vw_TraineeDepartmentRequired), not a
+        -- pre-configured TraineeQuota row (retired) — a department with no qualifying posting
+        -- yet just resolves to 0, same soft-warn-only behavior as sp_CreateTraineeManagementAssignment.
+        SELECT @Quota = Required FROM vw_TraineeDepartmentRequired WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
+        SET @Quota = ISNULL(@Quota, 0);
 
         SELECT @ActiveOverlapCount = COUNT(*)
         FROM TraineeAssignments
