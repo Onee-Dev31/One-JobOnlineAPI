@@ -492,3 +492,213 @@ BEGIN
     WHERE F.AssignmentID = @AssignmentID
 END
 GO
+
+-- ============================================================================
+-- Procs below back the /admin/trainee-management frontend page's exact
+-- CompanyGroup[]/DepartmentGroup/Trainee contract (Controllers/TraineeManagementController.cs).
+-- Same TraineeQuota/TraineeAssignments tables as above — no new tables, this is just a
+-- purpose-shaped read/write surface for that one page.
+-- ============================================================================
+
+-- DepartmentCode (HRMS COSTCENT) is globally unique across companies (verified: 175 distinct
+-- COSTCENT == 175 distinct COMPANY_CODE+COSTCENT pairs in T_EMPLOYEE_SSO), so quota can be
+-- addressed by DepartmentCode alone; CompanyCode is resolved server-side from HRMS.
+CREATE OR ALTER PROCEDURE sp_UpsertTraineeQuotaByDepartment
+    @DepartmentCode      NVARCHAR(200),
+    @Quota                INT,
+    @IsAcceptingTrainees  BIT,
+    @AdminID              INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @CompanyCode NVARCHAR(50), @DepartmentName NVARCHAR(400);
+    SELECT TOP 1 @CompanyCode = COMPANY_CODE, @DepartmentName = NAMECOSTCENT
+    FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+    WHERE COSTCENT = @DepartmentCode;
+
+    IF @CompanyCode IS NULL
+    BEGIN
+        RAISERROR('ไม่พบแผนกนี้ใน HRMS', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM TraineeQuota WHERE DepartmentCode = @DepartmentCode)
+    BEGIN
+        UPDATE TraineeQuota
+        SET Quota = @Quota, IsAcceptingTrainees = @IsAcceptingTrainees,
+            ModifiedAt = GETDATE(), ModifiedByAdminID = @AdminID
+        WHERE DepartmentCode = @DepartmentCode
+    END
+    ELSE
+    BEGIN
+        INSERT INTO TraineeQuota (CompanyCode, DepartmentCode, DepartmentName, Quota, IsAcceptingTrainees, CreatedByAdminID)
+        VALUES (@CompanyCode, @DepartmentCode, @DepartmentName, @Quota, @IsAcceptingTrainees, @AdminID)
+    END
+
+    SELECT QuotaID, CompanyCode, DepartmentCode, DepartmentName, Quota, IsAcceptingTrainees, Notes,
+           CreatedAt, CreatedByAdminID, ModifiedAt, ModifiedByAdminID
+    FROM TraineeQuota
+    WHERE DepartmentCode = @DepartmentCode
+END
+
+GO
+-- Result set 1: every HRMS company/department (Required/IsOpen default to 0/true when
+-- unconfigured), optionally narrowed by @CompanyCode/@DepartmentCode. Result set 2: placed,
+-- non-cancelled trainees whose internship period overlaps @Year, same optional filters.
+-- Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
+CREATE OR ALTER PROCEDURE sp_GetTraineeManagementOverview
+    @Year           INT = NULL,
+    @CompanyCode    NVARCHAR(50) = NULL,
+    @DepartmentCode NVARCHAR(200) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        EMP.COMPANY_CODE AS CompanyCode,
+        COALESCE(CI.Company_nameth, CI.company_name, EMP.COMPANY_CODE) AS CompanyName,
+        EMP.COSTCENT AS DepartmentCode,
+        EMP.NAMECOSTCENT AS DepartmentName,
+        ISNULL(Q.Quota, 0) AS Required,
+        ISNULL(Q.IsAcceptingTrainees, 1) AS IsOpen
+    FROM (
+        SELECT DISTINCT COSTCENT, COMPANY_CODE, NAMECOSTCENT
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
+          AND NAMECOSTCENT IS NOT NULL AND NAMECOSTCENT <> ''
+    ) EMP
+    LEFT JOIN TraineeQuota Q
+        ON Q.CompanyCode = EMP.COMPANY_CODE AND Q.DepartmentCode = EMP.COSTCENT
+    LEFT JOIN CompanyInfo CI
+        ON CI.Company_Code = EMP.COMPANY_CODE
+    WHERE (@CompanyCode IS NULL OR EMP.COMPANY_CODE = @CompanyCode)
+      AND (@DepartmentCode IS NULL OR EMP.COSTCENT = @DepartmentCode)
+    ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT;
+
+    SELECT
+        A.AssignmentID AS Id,
+        A.CompanyCode,
+        A.DepartmentCode,
+        LTRIM(RTRIM(CONCAT(A.ManualFirstNameThai, N' ', A.ManualLastNameThai))) AS Name,
+        A.ManualNickname AS Nickname,
+        A.ManualUniversity AS University,
+        CONVERT(char(10), A.ManualInternStartDate, 23) AS StartDate,
+        CONVERT(char(10), A.ManualInternEndDate, 23) AS EndDate
+    FROM TraineeAssignments A
+    WHERE A.Status <> 'Cancelled'
+      AND A.CompanyCode IS NOT NULL AND A.DepartmentCode IS NOT NULL
+      AND (@CompanyCode IS NULL OR A.CompanyCode = @CompanyCode)
+      AND (@DepartmentCode IS NULL OR A.DepartmentCode = @DepartmentCode)
+      AND (
+            @Year IS NULL
+            OR (A.ManualInternStartDate <= DATEFROMPARTS(@Year, 12, 31)
+                AND A.ManualInternEndDate >= DATEFROMPARTS(@Year, 1, 1))
+          )
+    ORDER BY A.CompanyCode, A.DepartmentCode, A.ManualInternStartDate;
+END
+
+GO
+-- Creates a trainee assignment directly into a department (no pending/unassigned state — that
+-- concept belongs to the separate self-apply flow in sp_CreateOrPlaceTraineeAssignment above).
+-- @ApplicantID pulls name/nickname/university from an existing T_APPLICANTS row (a candidate who
+-- already applied to one of the "นักศึกษาฝึกงาน" job postings); otherwise the manual name fields
+-- are used. Quota is always a soft warning (IsOverQuota flag in the result) — creation is never
+-- blocked, per the frontend spec.
+CREATE OR ALTER PROCEDURE sp_CreateTraineeManagementAssignment
+    @CompanyCode        NVARCHAR(50),
+    @DepartmentCode     NVARCHAR(200),
+    @ApplicantID        INT = NULL,
+    @FirstNameThai      NVARCHAR(200) = NULL,
+    @LastNameThai       NVARCHAR(200) = NULL,
+    @Nickname           NVARCHAR(50) = NULL,
+    @University         NVARCHAR(200) = NULL,
+    @StartDate          DATE,
+    @EndDate            DATE,
+    @AssignedByAdminID  INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COMPANY_CODE = @CompanyCode AND COSTCENT = @DepartmentCode
+    )
+    BEGIN
+        RAISERROR('ไม่พบแผนกนี้ในบริษัทที่ระบุ', 16, 1);
+        RETURN;
+    END
+
+    IF @ApplicantID IS NULL AND (@FirstNameThai IS NULL OR @LastNameThai IS NULL)
+    BEGIN
+        RAISERROR('ต้องระบุ applicantId หรือกรอกชื่อ-นามสกุลนักศึกษา', 16, 1);
+        RETURN;
+    END
+
+    DECLARE @Title NVARCHAR(20) = NULL, @FName NVARCHAR(200) = @FirstNameThai,
+            @LName NVARCHAR(200) = @LastNameThai, @Nick NVARCHAR(50) = @Nickname,
+            @Univ NVARCHAR(200) = @University;
+
+    IF @ApplicantID IS NOT NULL
+    BEGIN
+        SELECT @Title = Title, @FName = FirstNameThai, @LName = LastNameThai,
+               @Nick = Nickname, @Univ = University
+        FROM T_APPLICANTS
+        WHERE ApplicantID = @ApplicantID;
+
+        IF @FName IS NULL
+        BEGIN
+            RAISERROR('ไม่พบผู้สมัคร ApplicantID ที่ระบุ', 16, 1);
+            RETURN;
+        END
+    END
+
+    DECLARE @Quota INT;
+    SELECT @Quota = Quota FROM TraineeQuota WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
+    SET @Quota = ISNULL(@Quota, 0);
+
+    DECLARE @ActiveOverlapCount INT, @IsOverQuota BIT = 0;
+    SELECT @ActiveOverlapCount = COUNT(*)
+    FROM TraineeAssignments
+    WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+      AND Status <> 'Cancelled'
+      AND ManualInternStartDate <= @EndDate AND ManualInternEndDate >= @StartDate;
+
+    IF (@ActiveOverlapCount + 1) > @Quota
+        SET @IsOverQuota = 1;
+
+    INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+    VALUES (@ApplicantID, NULL, 'Employment confirm', GETDATE());
+
+    DECLARE @ApplicationID INT = CAST(SCOPE_IDENTITY() AS INT);
+
+    INSERT INTO TraineeAssignments (
+        CompanyCode, DepartmentCode, ApplicationID,
+        ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname, ManualUniversity,
+        ManualInternStartDate, ManualInternEndDate,
+        AssignedByAdminID
+    )
+    VALUES (
+        @CompanyCode, @DepartmentCode, @ApplicationID,
+        @Title, @FName, @LName, @Nick, @Univ,
+        @StartDate, @EndDate,
+        @AssignedByAdminID
+    )
+
+    DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
+
+    SELECT @NewAssignmentID AS Id, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota
+END
+
+GO
+-- True cancel (not the "return to unassigned pool" behavior of sp_UnassignTraineeAssignment
+-- above) — this page has no unassigned-pool concept, DELETE means remove from the department.
+CREATE OR ALTER PROCEDURE sp_DeleteTraineeManagementAssignment
+    @AssignmentID INT
+AS
+BEGIN
+    UPDATE TraineeAssignments
+    SET Status = 'Cancelled', ModifiedAt = GETDATE()
+    WHERE AssignmentID = @AssignmentID
+END
+GO

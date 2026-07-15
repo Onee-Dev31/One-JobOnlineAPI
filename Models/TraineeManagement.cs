@@ -134,4 +134,81 @@ namespace JobOnlineAPI.Models
         public string? InternshipType { get; set; }
         public List<TraineeAssignmentFile> Files { get; set; } = [];
     }
+
+    // ========================================================================================
+    // DTOs below match /admin/trainee-management's TypeScript types exactly (property-for-property,
+    // camelCase over the wire via the default ASP.NET Core JSON naming policy), so the frontend can
+    // swap its mockCompanies array for a fetch() of GET /TraineeManagement/overview with no other
+    // changes. See Controllers/TraineeManagementController.cs.
+    // ========================================================================================
+
+    public class TraineeManagementTrainee
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string? Nickname { get; set; }
+        public string? University { get; set; }
+        public string StartDate { get; set; } = string.Empty; // "YYYY-MM-DD"
+        public string EndDate { get; set; } = string.Empty;   // "YYYY-MM-DD"
+
+        // Not part of the frontend Trainee type; used only to bucket rows into their
+        // DepartmentGroup while mapping the stored proc's two result sets in the controller.
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? CompanyCode { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? DepartmentCode { get; set; }
+    }
+
+    public class TraineeManagementDepartment
+    {
+        public string DepartmentCode { get; set; } = string.Empty;
+        public string? DepartmentName { get; set; }
+        public int Required { get; set; }
+        public bool IsOpen { get; set; }
+        public List<TraineeManagementTrainee> Trainees { get; set; } = [];
+
+        // Not part of the frontend DepartmentGroup type; used only to group into
+        // TraineeManagementCompany while mapping the stored proc's result set in the controller.
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string CompanyCode { get; set; } = string.Empty;
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? CompanyName { get; set; }
+    }
+
+    public class TraineeManagementCompany
+    {
+        public string CompanyCode { get; set; } = string.Empty;
+        public string? CompanyName { get; set; }
+        public List<TraineeManagementDepartment> Departments { get; set; } = [];
+    }
+
+    public class UpdateDepartmentQuotaRequest
+    {
+        public int Required { get; set; }
+        public bool IsOpen { get; set; }
+    }
+
+    public class CreateTraineeManagementTraineeRequest
+    {
+        public string CompanyCode { get; set; } = string.Empty;
+        public string DepartmentCode { get; set; } = string.Empty;
+        // Existing candidate (T_APPLICANTS.ApplicantID) who already applied to one of the
+        // "นักศึกษาฝึกงาน" job postings. Omit and fill FirstName/LastName/Nickname/University
+        // instead for a manual (walk-in) entry.
+        public int? ApplicantID { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Nickname { get; set; }
+        public string? University { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+    }
+
+    public class CreateTraineeManagementTraineeResult
+    {
+        public int Id { get; set; }
+        public bool IsOverQuota { get; set; }
+        public int ActiveOverlapCount { get; set; }
+        public int Quota { get; set; }
+    }
 }
