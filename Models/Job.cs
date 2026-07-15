@@ -36,7 +36,6 @@ namespace JobOnlineAPI.Models
         public int? ApplicantCount { get; set; }
         public DateTime? PostedDate { get; set; }
 
-        [Required(ErrorMessage = "Closing date is required.")]
         public DateTime? ClosingDate { get; set; }
 
         public int? CreatedBy { get; set; }
