@@ -728,10 +728,36 @@ BEGIN
     IF (@ActiveOverlapCount + 1) > @Quota
         SET @IsOverQuota = 1;
 
-    INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
-    VALUES (@ApplicantID, NULL, 'Employment confirm', GETDATE());
+    -- If this applicant already has a JobApplications row not yet claimed by another
+    -- TraineeAssignments (e.g. one created by usp_TraineeApplicant_Upsert's rich-form
+    -- submission), reuse it instead of inserting a duplicate — otherwise the files
+    -- attached to that submission (T_APPLICANT_FILES, keyed by ApplicationID) end up
+    -- orphaned from the assignment this proc creates.
+    DECLARE @ApplicationID INT = NULL;
 
-    DECLARE @ApplicationID INT = CAST(SCOPE_IDENTITY() AS INT);
+    IF @ApplicantID IS NOT NULL
+    BEGIN
+        SELECT TOP 1 @ApplicationID = JA.ApplicationID
+        FROM JobApplications JA
+        WHERE JA.ApplicantID = @ApplicantID
+          AND NOT EXISTS (
+              SELECT 1 FROM TraineeAssignments TA
+              WHERE TA.ApplicationID = JA.ApplicationID AND TA.Status <> 'Cancelled'
+          )
+        ORDER BY JA.SubmissionDate DESC;
+    END
+
+    IF @ApplicationID IS NOT NULL
+    BEGIN
+        UPDATE JobApplications SET Status = 'Employment confirm' WHERE ApplicationID = @ApplicationID;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+        VALUES (@ApplicantID, NULL, 'Employment confirm', GETDATE());
+
+        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT);
+    END
 
     INSERT INTO TraineeAssignments (
         CompanyCode, DepartmentCode, ApplicationID,
