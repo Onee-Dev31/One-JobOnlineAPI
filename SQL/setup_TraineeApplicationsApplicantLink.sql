@@ -4,7 +4,7 @@
 -- 1) เพิ่มคอลัมน์เฉพาะของ trainee ใน T_APPLICANTS (nullable ทั้งหมด)
 -- 2) สร้างตาราง T_APPLICANT_FILES เก็บไฟล์แนบ (idCard/houseReg/resume) คีย์ด้วย ApplicantID
 -- 3) สร้าง usp_TraineeApplicant_Upsert เขียนตรงเข้า T_APPLICANTS + JobApplications
---    dedupe ด้วย CitizenID, resubmit JobID เดิม = update แถว JobApplications เดิม
+--    dedupe ด้วย CitizenID ก่อน แล้ว fallback เป็น Mobile+Email, resubmit JobID เดิม = update แถว JobApplications เดิม
 
 IF COL_LENGTH('T_APPLICANTS', 'InternshipStartDate') IS NULL
     ALTER TABLE T_APPLICANTS ADD InternshipStartDate DATE NULL
@@ -213,6 +213,12 @@ BEGIN
 
     IF @IDCardNo IS NOT NULL AND LTRIM(RTRIM(@IDCardNo)) <> ''
         SELECT @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE CitizenID = @IDCardNo
+
+    -- No CitizenID match (often because IDCardNo wasn't submitted at all) — fall back to
+    -- Mobile+Email so re-applying to a different job doesn't insert a second T_APPLICANTS row
+    -- for the same person.
+    IF @ApplicantID IS NULL
+        SELECT TOP 1 @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE MobilePhone = @Mobile AND Email = @Email ORDER BY ApplicantID DESC
 
     IF @ApplicantID IS NOT NULL
     BEGIN
