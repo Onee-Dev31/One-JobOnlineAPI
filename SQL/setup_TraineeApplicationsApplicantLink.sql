@@ -129,6 +129,17 @@ BEGIN
 END
 GO
 
+-- Backstop for usp_TraineeApplicant_Upsert's ApplicantID+JobID reuse check below: that check is a
+-- SELECT-then-INSERT, not atomic on its own, so two near-simultaneous submits for the same
+-- applicant+job can both miss the existing row and both insert. This closes the race window.
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_JobApplications_ApplicantID_JobID')
+BEGIN
+    CREATE UNIQUE NONCLUSTERED INDEX UQ_JobApplications_ApplicantID_JobID
+    ON JobApplications (ApplicantID, JobID)
+    WHERE ApplicantID IS NOT NULL
+END
+GO
+
 -- T_APPLICANTS has a filtered unique index (UQ_T_APPLICANTS_CodeMPID), so any proc that
 -- INSERT/UPDATE/DELETEs it must be compiled with QUOTED_IDENTIFIER ON (this setting is captured
 -- at CREATE PROCEDURE time and baked into the proc regardless of the caller's session).
