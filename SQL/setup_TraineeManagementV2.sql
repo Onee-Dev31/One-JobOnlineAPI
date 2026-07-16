@@ -695,9 +695,12 @@ END
 GO
 -- Result set 1: HRMS company/department with an actual trainee quota (Required <> 0, derived from
 -- live Job postings via vw_TraineeDepartmentRequired), optionally narrowed by
--- @CompanyCode/@DepartmentCode. Result set 2: placed, non-cancelled trainees whose internship
--- period overlaps @Year, same optional filters (unchanged — still sourced from TraineeAssignments,
--- unaffected by the Required filter). Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
+-- @CompanyCode/@DepartmentCode. Result set 2: open "นักศึกษาฝึกงาน" job postings per department,
+-- same criteria as sp_GetOpenTraineeJobsByDepartment. Result set 3: placed, non-cancelled trainees
+-- whose internship period overlaps @Year, attributed to the specific job they applied under
+-- (TraineeAssignments -> JobApplications.JobID) — a trainee with no JobID, or whose job isn't one
+-- of the currently-open postings in result set 2, is intentionally left out (nowhere to nest it).
+-- Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Job[] -> Trainee[].
 CREATE OR ALTER PROCEDURE sp_GetTraineeManagementOverview
     @Year           INT = NULL,
     @CompanyCode    NVARCHAR(50) = NULL,
@@ -729,30 +732,6 @@ BEGIN
     ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT;
 
     SELECT
-        A.AssignmentID AS Id,
-        A.CompanyCode,
-        A.DepartmentCode,
-        LTRIM(RTRIM(CONCAT(A.ManualFirstNameThai, N' ', A.ManualLastNameThai))) AS Name,
-        A.ManualNickname AS Nickname,
-        A.ManualUniversity AS University,
-        CONVERT(char(10), A.ManualInternStartDate, 23) AS StartDate,
-        CONVERT(char(10), A.ManualInternEndDate, 23) AS EndDate
-    FROM TraineeAssignments A
-    WHERE A.Status <> 'Cancelled'
-      AND A.CompanyCode IS NOT NULL AND A.DepartmentCode IS NOT NULL
-      AND (@CompanyCode IS NULL OR A.CompanyCode = @CompanyCode)
-      AND (@DepartmentCode IS NULL OR A.DepartmentCode = @DepartmentCode)
-      AND (
-            @Year IS NULL
-            OR (A.ManualInternStartDate <= DATEFROMPARTS(@Year, 12, 31)
-                AND A.ManualInternEndDate >= DATEFROMPARTS(@Year, 1, 1))
-          )
-    ORDER BY A.CompanyCode, A.DepartmentCode, A.ManualInternStartDate;
-
-    -- Result set 3: open "นักศึกษาฝึกงาน" job postings per department, same criteria as
-    -- sp_GetOpenTraineeJobsByDepartment, so the frontend can list them under each department
-    -- without a separate round-trip per department.
-    SELECT
         HR.COSTCENT AS DepartmentCode,
         J.JobID, J.JobTitle, J.NumberOfPositions
     FROM Jobs J
@@ -768,6 +747,32 @@ BEGIN
       AND (@CompanyCode IS NULL OR HR.COMPANY_CODE = @CompanyCode)
       AND (@DepartmentCode IS NULL OR HR.COSTCENT = @DepartmentCode)
     ORDER BY HR.COSTCENT, J.PostedDate DESC;
+
+    SELECT
+        A.AssignmentID AS Id,
+        J.JobID,
+        LTRIM(RTRIM(CONCAT(A.ManualFirstNameThai, N' ', A.ManualLastNameThai))) AS Name,
+        A.ManualNickname AS Nickname,
+        A.ManualUniversity AS University,
+        CONVERT(char(10), A.ManualInternStartDate, 23) AS StartDate,
+        CONVERT(char(10), A.ManualInternEndDate, 23) AS EndDate
+    FROM TraineeAssignments A
+    INNER JOIN JobApplications JA ON JA.ApplicationID = A.ApplicationID
+    INNER JOIN Jobs J ON J.JobID = JA.JobID
+    INNER JOIN JobGroups JG ON JG.JobGroupID = J.JobGroupID AND JG.GroupName = N'นักศึกษาฝึกงาน'
+    WHERE A.Status <> 'Cancelled'
+      AND A.CompanyCode IS NOT NULL AND A.DepartmentCode IS NOT NULL
+      AND (@CompanyCode IS NULL OR A.CompanyCode = @CompanyCode)
+      AND (@DepartmentCode IS NULL OR A.DepartmentCode = @DepartmentCode)
+      AND J.JobStatus <> 'Time Up'
+      AND J.ApprovalStatus = 'Approved'
+      AND (J.ClosingDate IS NULL OR J.ClosingDate >= GETDATE())
+      AND (
+            @Year IS NULL
+            OR (A.ManualInternStartDate <= DATEFROMPARTS(@Year, 12, 31)
+                AND A.ManualInternEndDate >= DATEFROMPARTS(@Year, 1, 1))
+          )
+    ORDER BY J.JobID, A.ManualInternStartDate;
 END
 
 GO

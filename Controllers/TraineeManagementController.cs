@@ -55,15 +55,14 @@ namespace JobOnlineAPI.Controllers
                 commandType: CommandType.StoredProcedure);
 
             var departments = (await multi.ReadAsync<TraineeManagementDepartment>()).ToList();
-            var trainees = (await multi.ReadAsync<TraineeManagementTrainee>()).ToList();
             var jobs = (await multi.ReadAsync<TraineeManagementOpenJob>()).ToList();
+            var trainees = (await multi.ReadAsync<TraineeManagementTrainee>()).ToList();
+
+            foreach (var job in jobs)
+                job.Trainees = [.. trainees.Where(t => t.JobID == job.JobID)];
 
             foreach (var dept in departments)
-            {
-                dept.Trainees = [.. trainees.Where(t =>
-                    t.CompanyCode == dept.CompanyCode && t.DepartmentCode == dept.DepartmentCode)];
                 dept.Jobs = [.. jobs.Where(j => j.DepartmentCode == dept.DepartmentCode)];
-            }
 
             var companies = departments
                 .GroupBy(d => d.CompanyCode)
