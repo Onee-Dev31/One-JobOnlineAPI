@@ -358,8 +358,42 @@ BEGIN
 
     IF @ApplicationID IS NULL
     BEGIN
+        -- Self-apply has no CitizenID to dedupe on (unlike usp_TraineeApplicant_Upsert), so match
+        -- an existing applicant by Mobile+Email instead of always leaving ApplicantID NULL — lets
+        -- the same person apply to a different JobID later without a second T_APPLICANTS row.
+        DECLARE @ResolvedApplicantID INT = NULL
+        IF @ManualMobilePhone IS NOT NULL AND @ManualEmail IS NOT NULL
+        BEGIN
+            SELECT TOP 1 @ResolvedApplicantID = ApplicantID
+            FROM T_APPLICANTS
+            WHERE MobilePhone = @ManualMobilePhone AND Email = @ManualEmail
+            ORDER BY ApplicantID DESC
+
+            IF @ResolvedApplicantID IS NULL AND @ManualFirstNameThai IS NOT NULL AND @ManualLastNameThai IS NOT NULL
+            BEGIN
+                INSERT INTO T_APPLICANTS (
+                    Title, FirstNameThai, LastNameThai, Nickname, MobilePhone, Email,
+                    Age, YearOfStudy, GPA, Major, Faculty, University,
+                    InternshipType, InternshipStartDate, InternshipEndDate, DurationMonths,
+                    PreferredPosition, PreferredPositionBackup,
+                    CanCommute, CanTravelOutside, FlexibleWork, ReasonForInterest,
+                    CreatedDate
+                )
+                VALUES (
+                    @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname, @ManualMobilePhone, @ManualEmail,
+                    @ManualAge, @ManualYear, @ManualGPA, @ManualMajor, @ManualFaculty, @ManualUniversity,
+                    @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
+                    @ManualPreferredPosition, @ManualPreferredPositionBackup,
+                    @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork, @ManualReasonForInterest,
+                    GETDATE()
+                )
+
+                SET @ResolvedApplicantID = CAST(SCOPE_IDENTITY() AS INT)
+            END
+        END
+
         INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
-        VALUES (NULL, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'pending'), GETDATE())
+        VALUES (@ResolvedApplicantID, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'pending'), GETDATE())
 
         SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
     END
