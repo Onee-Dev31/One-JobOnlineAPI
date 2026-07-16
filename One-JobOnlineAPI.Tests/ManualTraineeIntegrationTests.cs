@@ -86,6 +86,20 @@ public class ManualTraineeIntegrationTests
     }
 
     [Fact]
+    public async Task ManualTrainee_JobID_IsForwardedToService()
+    {
+        ManualTraineeRequest? captured = null;
+        var service = SuccessfulService((r, _) => captured = r);
+        var controller = CreateController(service.Object, "Admin");
+        var json = ValidJson(new { JobID = 42 });
+
+        var response = await Call(controller, json, null, null, null, null);
+
+        Assert.IsType<OkObjectResult>(response);
+        Assert.Equal(42, captured?.JobID);
+    }
+
+    [Fact]
     public async Task ManualTrainee_MissingRequiredField_ReturnsFieldError_NotGenericInvalidJson()
     {
         var service = SuccessfulService();
@@ -105,6 +119,17 @@ public class ManualTraineeIntegrationTests
         Assert.Contains("Mobile", errors.Keys);
         Assert.Contains("Email", errors.Keys);
         service.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task ManualTrainee_HR_IsAllowed()
+    {
+        var service = SuccessfulService();
+        var controller = CreateController(service.Object, "HR");
+
+        var response = await Call(controller, ValidJson(), null, null, null, null);
+
+        Assert.IsType<OkObjectResult>(response);
     }
 
     [Fact]

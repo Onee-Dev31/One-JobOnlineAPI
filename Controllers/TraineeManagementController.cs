@@ -110,6 +110,19 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        // Options for the manual-trainee form's optional "attribute to this posting" dropdown.
+        [HttpGet("departments/{departmentCode}/open-jobs")]
+        public async Task<IActionResult> GetOpenJobsForDepartment(string departmentCode)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var jobs = await conn.QueryAsync<TraineeManagementOpenJob>(
+                "sp_GetOpenTraineeJobsByDepartment",
+                new { DepartmentCode = departmentCode },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(jobs);
+        }
+
         [HttpPost("trainees")]
         public async Task<IActionResult> CreateTrainee([FromBody] CreateTraineeManagementTraineeRequest request)
         {
@@ -151,7 +164,7 @@ namespace JobOnlineAPI.Controllers
             [FromForm] List<IFormFile>? transcriptFiles,
             CancellationToken cancellationToken)
         {
-            if (!User.IsInRole("Admin"))
+            if (!User.IsInRole("Admin") && !User.IsInRole("HR"))
                 return StatusCode(StatusCodes.Status403Forbidden, new { message = "ไม่มีสิทธิ์เพิ่มนักศึกษาฝึกงาน" });
 
             ManualTraineeRequest? request;

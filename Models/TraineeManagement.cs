@@ -227,4 +227,13 @@ namespace JobOnlineAPI.Models
         public int ActiveOverlapCount { get; set; }
         public int Quota { get; set; }
     }
+
+    // For the manual-trainee form's optional "attribute to this posting" dropdown — the open
+    // "นักศึกษาฝึกงาน" job postings in one department. See sp_GetOpenTraineeJobsByDepartment.
+    public class TraineeManagementOpenJob
+    {
+        public int JobID { get; set; }
+        public string JobTitle { get; set; } = string.Empty;
+        public int NumberOfPositions { get; set; }
+    }
 }

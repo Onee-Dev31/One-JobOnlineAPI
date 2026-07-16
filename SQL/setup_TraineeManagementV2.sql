@@ -553,6 +553,25 @@ AS
     GROUP BY HR.COMPANY_CODE, J.Department
 
 GO
+-- Per-posting counterpart to vw_TraineeDepartmentRequired's aggregate: lets the manual-trainee
+-- form offer a dropdown of the individual open "นักศึกษาฝึกงาน" postings in a department, so the
+-- admin can pick which one a walk-in should be attributed to (JobApplications.JobID).
+CREATE OR ALTER PROCEDURE sp_GetOpenTraineeJobsByDepartment
+    @DepartmentCode NVARCHAR(200)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT J.JobID, J.JobTitle, J.NumberOfPositions
+    FROM Jobs J
+    INNER JOIN JobGroups JG ON JG.JobGroupID = J.JobGroupID AND JG.GroupName = N'นักศึกษาฝึกงาน'
+    WHERE J.Department = @DepartmentCode
+      AND J.JobStatus <> 'Time Up'
+      AND J.ApprovalStatus = 'Approved'
+      AND (J.ClosingDate IS NULL OR J.ClosingDate >= GETDATE())
+    ORDER BY J.PostedDate DESC
+END
+GO
 -- DEPRECATED (as of the Jobs-derived Required/IsOpen pivot): required/isOpen are no longer read
 -- from TraineeQuota — see vw_TraineeDepartmentRequired and sp_GetTraineeManagementOverview below.
 -- Left functional (still safe to call, still writes TraineeQuota) only so nothing currently pointed
@@ -793,7 +812,9 @@ GO
 -- Admin-only orchestration target for POST /api/TraineeManagement/trainees/manual.
 -- The API starts the SQL transaction and enlists this procedure plus file metadata inserts in it.
 -- A real T_APPLICANTS row is deliberately created for a walk-in; ApplicantID and ApplicationID
--- remain distinct identifiers. JobID is NULL because this flow is not tied to a posting.
+-- remain distinct identifiers. @JobID is optional and NULL by default (a walk-in isn't required
+-- to be tied to a posting), but the admin can pick one from
+-- sp_GetOpenTraineeJobsByDepartment to attribute the walk-in to a specific open posting.
 CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
     @StartDate DATE, @EndDate DATE,
@@ -815,12 +836,18 @@ CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @YearOfStudy NVARCHAR(20) = NULL, @AdvisorName NVARCHAR(200) = NULL, @AdvisorPhone NVARCHAR(20) = NULL,
     @Activities NVARCHAR(1000) = NULL, @InfoSources NVARCHAR(200) = NULL,
     @InfoSourceStaffName NVARCHAR(200) = NULL, @InfoSourceDepartment NVARCHAR(200) = NULL, @InfoSourceOther NVARCHAR(200) = NULL,
-    @AssignedByAdminID INT = NULL
+    @AssignedByAdminID INT = NULL, @JobID INT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (SELECT 1 FROM T_APPLICANTS WHERE Email = @Email AND (NULLIF(@IDCardNo, '') IS NULL OR ISNULL(CitizenID, '') <> @IDCardNo))
         THROW 51001, N'อีเมลนี้มีอยู่ในระบบแล้ว', 1;
+
+    IF @JobID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Jobs WHERE JobID = @JobID AND Department = @DepartmentCode)
+    BEGIN
+        RAISERROR('ไม่พบตำแหน่งงานนี้ในแผนกที่ระบุ', 16, 1);
+        RETURN;
+    END
 
     DECLARE @ApplicantResult TABLE (ApplicantID INT, ApplicationID INT);
     INSERT INTO @ApplicantResult
@@ -841,7 +868,7 @@ BEGIN
         @YearOfStudy=@YearOfStudy, @AdvisorName=@AdvisorName, @AdvisorPhone=@AdvisorPhone, @Activities=@Activities,
         @InfoSources=@InfoSources, @InfoSourceStaffName=@InfoSourceStaffName,
         @InfoSourceDepartment=@InfoSourceDepartment, @InfoSourceOther=@InfoSourceOther,
-        @Status=N'Employment confirm', @JobID=NULL;
+        @Status=N'Employment confirm', @JobID=@JobID;
 
     DECLARE @ApplicantID INT, @ApplicationID INT;
     SELECT @ApplicantID=ApplicantID, @ApplicationID=ApplicationID FROM @ApplicantResult;

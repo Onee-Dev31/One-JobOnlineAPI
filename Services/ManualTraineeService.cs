@@ -103,7 +103,7 @@ public sealed class ManualTraineeService(
         r.FatherName, r.FatherOccupation, r.FatherStatus, r.MotherName, r.MotherOccupation, r.MotherStatus,
         r.SiblingCount, r.SiblingOrder, r.EmergencyName, r.EmergencyRelation, r.EmergencyAddress, r.EmergencyPhone,
         r.School, r.Faculty, r.Major, r.Minor, r.YearOfStudy, r.AdvisorName, r.AdvisorPhone, r.Activities,
-        r.InfoSources, r.InfoSourceStaffName, r.InfoSourceDepartment, r.InfoSourceOther, AssignedByAdminID = adminId
+        r.InfoSources, r.InfoSourceStaffName, r.InfoSourceDepartment, r.InfoSourceOther, r.JobID, AssignedByAdminID = adminId
     };
 
     private static void Cleanup(IEnumerable<string> paths)
