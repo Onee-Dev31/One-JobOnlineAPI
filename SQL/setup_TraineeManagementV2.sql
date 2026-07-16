@@ -288,6 +288,12 @@ CREATE OR ALTER PROCEDURE sp_CreateOrPlaceTraineeAssignment
     @ForceOverQuota                BIT = 0
 AS
 BEGIN
+    -- @UserID comes straight from the caller (falls back to client-supplied jsonData.UserID when
+    -- there's no auth_token session) and TraineeAssignments.UserID has a real FK to Users, so an
+    -- unrecognized/stale ID would otherwise fail the whole insert. Treat it as informational only.
+    IF @UserID IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Users WHERE UserId = @UserID)
+        SET @UserID = NULL
+
     DECLARE @ExistingAssignmentID INT = NULL, @ExistingCompanyCode NVARCHAR(50) = NULL, @ExistingDepartmentCode NVARCHAR(200) = NULL;
 
     IF @ApplicationID IS NOT NULL
