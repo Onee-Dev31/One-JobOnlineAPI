@@ -5,7 +5,6 @@ using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
-using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -177,7 +176,7 @@ namespace JobOnlineAPI.Controllers
             {
                 logger.LogWarning(ex, "jsonData failed to parse. Length={Length}, Raw={Raw}",
                     jsonData?.Length ?? -1, jsonData ?? "(null)");
-                return ValidationProblemResult(new() { ["jsonData"] = ["jsonData ไม่ใช่ JSON ที่ถูกต้อง"] });
+                return ValidationProblemResult(new() { ["jsonData"] = [$"jsonData ไม่ใช่ JSON ที่ถูกต้อง: {ex.Message}"] });
             }
 
             var errors = ValidateManualRequest(request);
