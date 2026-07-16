@@ -72,6 +72,7 @@ namespace JobOnlineAPI.Models
     {
         // Set on POST /Trainee/assignments (admin, direct-to-department). Left null by the
         // caller on POST /Trainee/apply (public self-apply, placed into a department later).
+        public int? UserID { get; set; }
         public string? CompanyCode { get; set; }
         public string? DepartmentCode { get; set; }
         public int JobID { get; set; }

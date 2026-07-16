@@ -174,7 +174,16 @@ namespace JobOnlineAPI.Controllers
             var companyCode = allowDepartment ? request.CompanyCode : null;
             var departmentCode = allowDepartment ? request.DepartmentCode : null;
 
-            var userId = await GetCandidateUserIdAsync();
+            var tokenUserId = await GetCandidateUserIdAsync();
+            var userId = tokenUserId ?? request.UserID;
+
+            if (!userId.HasValue || userId.Value <= 0)
+            {
+                return Unauthorized(new
+                {
+                    message = "ไม่พบ UserID จาก Token หรือข้อมูลที่ส่งมา"
+                });
+            }
 
             await _networkShareService.ConnectAsync();
             try
