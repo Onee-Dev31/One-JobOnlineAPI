@@ -691,7 +691,11 @@ namespace JobOnlineAPI.Controllers
             int ApplicantID = applicantIdElement.GetInt32();
             int JobID = jobIdElement.GetInt32();
             string status = statusElement.GetString()!;
-
+            int? Role = normalized.TryGetValue("role", out var roleObj) &&
+                        roleObj is JsonElement roleElement &&
+                        roleElement.ValueKind == JsonValueKind.Number
+                ? roleElement.GetInt32()
+                : (int?)null;
             int? applicationId = normalized.TryGetValue("applicationid", out var applicationIdObj) &&
                                  applicationIdObj is JsonElement applicationIdElement &&
                                  applicationIdElement.ValueKind == JsonValueKind.Number
@@ -748,7 +752,8 @@ namespace JobOnlineAPI.Controllers
                 TypeMail = typeMail,
                 NameCon = nameCon,
                 RankOfSelect = rankOfSelect,
-                JobID = JobID
+                JobID = JobID,
+                Role = Role
             };
 
         }
@@ -980,9 +985,9 @@ namespace JobOnlineAPI.Controllers
                 }
                 else
                 {
-                    _logger.LogWarning("sp_UpdateJobApprovalStatus: No rows were affected for JobId = {JobId}", approvalData.JobId);
-                }
+                _logger.LogWarning("sp_UpdateJobApprovalStatus: No rows were affected for JobId = {JobId}", approvalData.JobId);
             }
+        }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error: {ex.Message}");

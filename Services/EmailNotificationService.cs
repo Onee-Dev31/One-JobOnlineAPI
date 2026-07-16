@@ -173,7 +173,7 @@ namespace JobOnlineAPI.Services
                     : $"ยืนยันการได้รับข้อมูลประวัติประกอบการสมัครงาน - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                     try
                     {
-                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null);
+                        await _emailService.SendEmailAsync(dbResult.ApplicantEmail, applicantSubject, applicantBody, true, "Register", null, true);
                         successCount++;
                         _logger.LogInformation("Successfully sent email to {Email}", dbResult.ApplicantEmail);
                     }
@@ -426,9 +426,31 @@ namespace JobOnlineAPI.Services
                 .ToList() ?? [];
             var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
             string candidateNamesString = string.Join("<br>", candidateNames);
-            string tel = requestData.TelOff ?? "-";
+            var tel = "";
+            var recipientNames = "";
+            var recipientDep = "";
+            string? requesterMail = requestData.RequesterMail;
+            if (requestData.Role == 2)
+            {
+                using var connection = _context.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@JobID", requestData.JobID);
+                var result = await connection.QueryAsync<dynamic>(
+                    "sp_GetDataSendMailJobs @JobID",
+                    parameters);
+                var resultList = result.ToList();
+                var firstRecord = resultList.Count == 2
+                    ? resultList.FirstOrDefault(r => (string?)r?.RoleType == "Head") ?? resultList.FirstOrDefault()
+                    : resultList.FirstOrDefault();
 
-            string hrBody = GenerateNegotiateCandidateToHRBody(requestData.NameCon, requestData.RequesterName, tel, requestData.RequesterMail, requestData.JobTitle, candidateNamesString, applicationFormUri);
+                recipientNames = firstRecord?.ApproveNameThai;
+                requesterMail = ((string?)firstRecord?.EMAIL)?.Trim();
+                recipientDep = firstRecord?.NAMECOSTCENT;
+            }
+
+            string? requesterName = requestData.Role == 2 ? recipientNames : requestData.RequesterName;
+            string? requesterDep = requestData.Role == 2 ? recipientDep : requestData.NameCon;
+            string hrBody = GenerateNegotiateCandidateToHRBody(requesterDep, requesterName, tel, requesterMail, requestData.JobTitle, candidateNamesString, applicationFormUri);
             var subjectEmail = $"Onee Jobs - เจรจาต่อรองผู้สมัคร ตำแหน่ง {requestData.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
             return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
@@ -625,10 +647,11 @@ namespace JobOnlineAPI.Services
                 //</div>";
 
                 // return await SendEmailsAsync(candidateEmails, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", reqBody, jobIds.FirstOrDefault());
-                var result = await SendEmailsAsync(candidateEmails, 
-                    "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน", 
-                    reqBody, 
-                    jobIds.FirstOrDefault()
+                var result = await SendEmailsAsync(candidateEmails,
+                    "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน",
+                    reqBody,
+                    jobIds.FirstOrDefault(),
+                    bypassTestMode: true
                 );
 
                 await InsertEmailSendQueueAsync( connection, requestData!, reqBody, "ONEE Jobs - แจ้งผลการสัมภาษณ์งาน" );
@@ -675,7 +698,7 @@ namespace JobOnlineAPI.Services
 
 
 
-        private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body, int? jobIds)
+        private async Task<int> SendEmailsAsync(IEnumerable<string> recipients, string subject, string body, int? jobIds, bool bypassTestMode = false)
         {
             var recipientList = recipients
                 .Where(email => !string.IsNullOrWhiteSpace(email))
@@ -687,7 +710,7 @@ namespace JobOnlineAPI.Services
             {
                 string to = string.Join(";", recipientList);
 
-                await _emailService.SendEmailAsync(to, subject, body, true, "Register", jobIds);
+                await _emailService.SendEmailAsync(to, subject, body, true, "Register", jobIds, bypassTestMode);
 
                 _logger.LogInformation("Successfully sent email to {Count} recipients", recipientList.Count);
                 return recipientList.Count;
