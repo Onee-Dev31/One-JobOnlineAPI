@@ -167,6 +167,7 @@ namespace JobOnlineAPI.Models
         public int Required { get; set; }
         public bool IsOpen { get; set; }
         public List<TraineeManagementTrainee> Trainees { get; set; } = [];
+        public List<TraineeManagementOpenJob> Jobs { get; set; } = [];
 
         // Not part of the frontend DepartmentGroup type; used only to group into
         // TraineeManagementCompany while mapping the stored proc's result set in the controller.
@@ -236,5 +237,10 @@ namespace JobOnlineAPI.Models
         public int JobID { get; set; }
         public string JobTitle { get; set; } = string.Empty;
         public int NumberOfPositions { get; set; }
+
+        // Not part of the frontend Job type; used only to bucket rows into their
+        // DepartmentGroup while mapping sp_GetTraineeManagementOverview's result set in the controller.
+        [System.Text.Json.Serialization.JsonIgnore]
+        public string? DepartmentCode { get; set; }
     }
 }

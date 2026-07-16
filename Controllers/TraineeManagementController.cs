@@ -56,11 +56,13 @@ namespace JobOnlineAPI.Controllers
 
             var departments = (await multi.ReadAsync<TraineeManagementDepartment>()).ToList();
             var trainees = (await multi.ReadAsync<TraineeManagementTrainee>()).ToList();
+            var jobs = (await multi.ReadAsync<TraineeManagementOpenJob>()).ToList();
 
             foreach (var dept in departments)
             {
                 dept.Trainees = [.. trainees.Where(t =>
                     t.CompanyCode == dept.CompanyCode && t.DepartmentCode == dept.DepartmentCode)];
+                dept.Jobs = [.. jobs.Where(j => j.DepartmentCode == dept.DepartmentCode)];
             }
 
             var companies = departments

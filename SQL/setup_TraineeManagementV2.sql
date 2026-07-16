@@ -693,12 +693,11 @@ BEGIN
 END
 
 GO
--- Result set 1: every HRMS company/department. Required/IsOpen are derived from live Job postings
--- via vw_TraineeDepartmentRequired (Required defaults to 0 / IsOpen to false when no qualifying
--- posting exists for that department), optionally narrowed by @CompanyCode/@DepartmentCode. Result
--- set 2: placed, non-cancelled trainees whose internship period overlaps @Year, same optional
--- filters (unchanged — still sourced from TraineeAssignments, unaffected by the Required/IsOpen
--- pivot). Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
+-- Result set 1: HRMS company/department with an actual trainee quota (Required <> 0, derived from
+-- live Job postings via vw_TraineeDepartmentRequired), optionally narrowed by
+-- @CompanyCode/@DepartmentCode. Result set 2: placed, non-cancelled trainees whose internship
+-- period overlaps @Year, same optional filters (unchanged — still sourced from TraineeAssignments,
+-- unaffected by the Required filter). Mapped in C# into nested CompanyGroup[] -> DepartmentGroup[] -> Trainee[].
 CREATE OR ALTER PROCEDURE sp_GetTraineeManagementOverview
     @Year           INT = NULL,
     @CompanyCode    NVARCHAR(50) = NULL,
@@ -726,6 +725,7 @@ BEGIN
         ON CI.Company_Code = EMP.COMPANY_CODE
     WHERE (@CompanyCode IS NULL OR EMP.COMPANY_CODE = @CompanyCode)
       AND (@DepartmentCode IS NULL OR EMP.COSTCENT = @DepartmentCode)
+      AND ISNULL(R.Required, 0) <> 0
     ORDER BY EMP.COMPANY_CODE, EMP.NAMECOSTCENT;
 
     SELECT
@@ -748,6 +748,26 @@ BEGIN
                 AND A.ManualInternEndDate >= DATEFROMPARTS(@Year, 1, 1))
           )
     ORDER BY A.CompanyCode, A.DepartmentCode, A.ManualInternStartDate;
+
+    -- Result set 3: open "นักศึกษาฝึกงาน" job postings per department, same criteria as
+    -- sp_GetOpenTraineeJobsByDepartment, so the frontend can list them under each department
+    -- without a separate round-trip per department.
+    SELECT
+        HR.COSTCENT AS DepartmentCode,
+        J.JobID, J.JobTitle, J.NumberOfPositions
+    FROM Jobs J
+    INNER JOIN JobGroups JG ON JG.JobGroupID = J.JobGroupID AND JG.GroupName = N'นักศึกษาฝึกงาน'
+    INNER JOIN (
+        SELECT DISTINCT COSTCENT, COMPANY_CODE
+        FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COSTCENT IS NOT NULL AND COSTCENT <> ''
+    ) HR ON HR.COSTCENT = J.Department
+    WHERE J.JobStatus <> 'Time Up'
+      AND J.ApprovalStatus = 'Approved'
+      AND (J.ClosingDate IS NULL OR J.ClosingDate >= GETDATE())
+      AND (@CompanyCode IS NULL OR HR.COMPANY_CODE = @CompanyCode)
+      AND (@DepartmentCode IS NULL OR HR.COSTCENT = @DepartmentCode)
+    ORDER BY HR.COSTCENT, J.PostedDate DESC;
 END
 
 GO
