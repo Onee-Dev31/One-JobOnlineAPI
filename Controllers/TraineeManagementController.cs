@@ -176,7 +176,7 @@ namespace JobOnlineAPI.Controllers
             {
                 logger.LogWarning(ex, "jsonData failed to parse. Length={Length}, Raw={Raw}",
                     jsonData?.Length ?? -1, jsonData ?? "(null)");
-                return ValidationProblemResult(new() { ["jsonData"] = ["jsonData ไม่ใช่ JSON ที่ถูกต้อง"] });
+                return ValidationProblemResult(new() { ["jsonData"] = [$"jsonData ไม่ใช่ JSON ที่ถูกต้อง: {ex.Message}"] });
             }
 
             var errors = ValidateManualRequest(request);
@@ -217,7 +217,7 @@ namespace JobOnlineAPI.Controllers
 
         private ObjectResult ValidationProblemResult(Dictionary<string, string[]> errors) => new(new
         {
-            message = "ข้อมูลนักศึกษาฝึกงานไม่ถูกต้อง",
+            message = $"ข้อมูลนักศึกษาฝึกงานไม่ถูกต้อง: {string.Join(", ", errors.Values.SelectMany(messages => messages))}",
             errors
         }) { StatusCode = StatusCodes.Status422UnprocessableEntity };
 
