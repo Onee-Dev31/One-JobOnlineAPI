@@ -393,7 +393,7 @@ BEGIN
         END
 
         INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
-        VALUES (@ResolvedApplicantID, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'pending'), GETDATE())
+        VALUES (@ResolvedApplicantID, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'Pending HR Screening'), GETDATE())
 
         SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
     END
