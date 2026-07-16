@@ -5,6 +5,7 @@ using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -217,7 +218,7 @@ namespace JobOnlineAPI.Controllers
 
         private ObjectResult ValidationProblemResult(Dictionary<string, string[]> errors) => new(new
         {
-            message = "ข้อมูลนักศึกษาฝึกงานไม่ถูกต้อง",
+            message = $"ข้อมูลนักศึกษาฝึกงานไม่ถูกต้อง: {string.Join(", ", errors.Values.SelectMany(messages => messages))}",
             errors
         }) { StatusCode = StatusCodes.Status422UnprocessableEntity };
 
