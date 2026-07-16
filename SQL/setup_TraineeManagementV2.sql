@@ -381,7 +381,7 @@ BEGIN
                     InternshipType = @ManualInternshipType, InternshipStartDate = @ManualInternStartDate, InternshipEndDate = @ManualInternEndDate, DurationMonths = @ManualDurationMonths,
                     PreferredPosition = @ManualPreferredPosition, PreferredPositionBackup = @ManualPreferredPositionBackup,
                     CanCommute = @ManualCanCommute, CanTravelOutside = @ManualCanTravelOutside, FlexibleWork = @ManualFlexibleWork, ReasonForInterest = @ManualReasonForInterest,
-                    ModifiedDate = GETDATE()
+                    UserId = @UserID, ModifiedDate = GETDATE()
                 WHERE ApplicantID = @ResolvedApplicantID
             END
 
@@ -393,7 +393,7 @@ BEGIN
                     InternshipType, InternshipStartDate, InternshipEndDate, DurationMonths,
                     PreferredPosition, PreferredPositionBackup,
                     CanCommute, CanTravelOutside, FlexibleWork, ReasonForInterest,
-                    CreatedDate
+                    UserId, CreatedDate
                 )
                 VALUES (
                     @ManualTitle, @ManualFirstNameThai, @ManualLastNameThai, @ManualNickname, @ManualMobilePhone, @ManualEmail,
@@ -401,7 +401,7 @@ BEGIN
                     @ManualInternshipType, @ManualInternStartDate, @ManualInternEndDate, @ManualDurationMonths,
                     @ManualPreferredPosition, @ManualPreferredPositionBackup,
                     @ManualCanCommute, @ManualCanTravelOutside, @ManualFlexibleWork, @ManualReasonForInterest,
-                    GETDATE()
+                    @UserID, GETDATE()
                 )
 
                 SET @ResolvedApplicantID = CAST(SCOPE_IDENTITY() AS INT)
