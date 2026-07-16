@@ -6,6 +6,7 @@ namespace JobOnlineAPI.Models
     public class TraineeApplication
     {
         public int TraineeApplicationID { get; set; }
+        public int? UserID { get; set; }
         // Part1 JobSlotAssignments.AssignmentID, when this submission continues one.
         public int? AssignmentID { get; set; }
         public DateTime? StartDate { get; set; }

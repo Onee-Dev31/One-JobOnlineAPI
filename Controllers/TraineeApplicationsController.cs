@@ -159,7 +159,8 @@ namespace JobOnlineAPI.Controllers
                         request.InfoSourceDepartment,
                         request.InfoSourceOther,
                         request.Status,
-                        request.JobID
+                        request.JobID,
+                        request.UserID
                     },
                     commandType: CommandType.StoredProcedure);
 
