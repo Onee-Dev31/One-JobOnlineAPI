@@ -1,8 +1,12 @@
 using Dapper;
 using JobOnlineAPI.Models;
+using JobOnlineAPI.Filters;
+using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -12,10 +16,14 @@ namespace JobOnlineAPI.Controllers
     // SQL/setup_TraineeManagementV2.sql for the stored procedures this calls.
     [ApiController]
     [Route("api/[controller]")]
-    public class TraineeManagementController(IConfiguration configuration) : ControllerBase
+    public class TraineeManagementController(
+        IConfiguration configuration,
+        IManualTraineeService manualTraineeService,
+        ILogger<TraineeManagementController> logger) : ControllerBase
     {
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
+        private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview(
@@ -113,6 +121,93 @@ namespace JobOnlineAPI.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+        }
+
+        [HttpPost("trainees/manual")]
+        [Consumes("multipart/form-data")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> CreateManualTrainee(
+            [FromForm] string jsonData,
+            [FromForm] List<IFormFile>? idCardFiles,
+            [FromForm] List<IFormFile>? houseRegFiles,
+            [FromForm] List<IFormFile>? resumeFiles,
+            [FromForm] List<IFormFile>? transcriptFiles,
+            CancellationToken cancellationToken)
+        {
+            if (!User.IsInRole("Admin"))
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "ไม่มีสิทธิ์เพิ่มนักศึกษาฝึกงาน" });
+
+            ManualTraineeRequest? request;
+            try
+            {
+                request = JsonSerializer.Deserialize<ManualTraineeRequest>(jsonData, JsonOptions);
+            }
+            catch (JsonException)
+            {
+                return ValidationProblemResult(new() { ["jsonData"] = ["jsonData ไม่ใช่ JSON ที่ถูกต้อง"] });
+            }
+
+            var errors = ValidateManualRequest(request);
+            if (errors.Count > 0) return ValidationProblemResult(errors);
+
+            var files = new Dictionary<string, IReadOnlyList<IFormFile>>
+            {
+                ["idCard"] = idCardFiles ?? [],
+                ["houseReg"] = houseRegFiles ?? [],
+                ["resume"] = resumeFiles ?? [],
+                ["transcript"] = transcriptFiles ?? []
+            };
+
+            try
+            {
+                int? adminId = int.TryParse(User.FindFirst("admin_id")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var value)
+                    ? value : null;
+                return Ok(await manualTraineeService.CreateAsync(request!, files, adminId, cancellationToken));
+            }
+            catch (ArgumentException ex)
+            {
+                return ValidationProblemResult(new() { ["files"] = [ex.Message] });
+            }
+            catch (ManualTraineeConflictException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+            catch (SqlException ex) when (ex.Number is >= 50000 and < 51000)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Unexpected error creating manual trainee. RequestId: {RequestId}", HttpContext.TraceIdentifier);
+                return StatusCode(500, new { message = "เกิดข้อผิดพลาดภายในระบบ", requestId = HttpContext.TraceIdentifier });
+            }
+        }
+
+        private ObjectResult ValidationProblemResult(Dictionary<string, string[]> errors) => new(new
+        {
+            message = "ข้อมูลนักศึกษาฝึกงานไม่ถูกต้อง",
+            errors
+        }) { StatusCode = StatusCodes.Status422UnprocessableEntity };
+
+        private static Dictionary<string, string[]> ValidateManualRequest(ManualTraineeRequest? request)
+        {
+            var errors = new Dictionary<string, string[]>();
+            if (request == null) { errors["jsonData"] = ["กรุณาระบุข้อมูลนักศึกษาฝึกงาน"]; return errors; }
+            void Required(string key, string? value, string message) { if (string.IsNullOrWhiteSpace(value)) errors[key] = [message]; }
+            Required(nameof(request.CompanyCode), request.CompanyCode, "กรุณาระบุบริษัท");
+            Required(nameof(request.DepartmentCode), request.DepartmentCode, "กรุณาระบุแผนก");
+            Required(nameof(request.NameFirstT), request.NameFirstT, "กรุณาระบุชื่อ");
+            Required(nameof(request.NameLastT), request.NameLastT, "กรุณาระบุนามสกุล");
+            Required(nameof(request.Mobile), request.Mobile, "กรุณาระบุเบอร์มือถือ");
+            Required(nameof(request.Email), request.Email, "กรุณาระบุอีเมล");
+            Required(nameof(request.School), request.School, "กรุณาระบุสถานศึกษา");
+            if (request.StartDate == null) errors[nameof(request.StartDate)] = ["กรุณาระบุวันที่เริ่มฝึกงาน"];
+            if (request.EndDate == null) errors[nameof(request.EndDate)] = ["กรุณาระบุวันที่สิ้นสุดฝึกงาน"];
+            if (request.StartDate != null && request.EndDate != null && request.EndDate < request.StartDate)
+                errors[nameof(request.EndDate)] = ["วันที่สิ้นสุดต้องไม่น้อยกว่าวันที่เริ่ม"];
+            if (!string.IsNullOrWhiteSpace(request.Email) && !System.Net.Mail.MailAddress.TryCreate(request.Email, out _))
+                errors[nameof(request.Email)] = ["รูปแบบอีเมลไม่ถูกต้อง"];
+            return errors;
         }
 
         [HttpDelete("trainees/{id:int}")]

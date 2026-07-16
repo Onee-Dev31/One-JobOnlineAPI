@@ -122,6 +122,7 @@ builder.Services.AddCors(options =>
             "https://10.2.0.11:8111",
             "https://ess.oneeclick.co",
             "https://localhost:5173",
+            "http://localhost:5174",
             "http://localhost:5175",
             "http://10.2.0.11:5248",
             "https://10.2.0.11:5248"
@@ -156,6 +157,7 @@ builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>(
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INetworkShareService, NetworkShareService>();
 builder.Services.AddScoped<FileProcessingService>();
+builder.Services.AddScoped<IManualTraineeService, ManualTraineeService>();
 builder.Services.Configure<FileStorageConfig>(
     builder.Configuration.GetSection("FileStorage"));
 builder.Services.Configure<EmailSettings>(

@@ -789,3 +789,69 @@ BEGIN
     WHERE AssignmentID = @AssignmentID
 END
 GO
+
+-- Admin-only orchestration target for POST /api/TraineeManagement/trainees/manual.
+-- The API starts the SQL transaction and enlists this procedure plus file metadata inserts in it.
+-- A real T_APPLICANTS row is deliberately created for a walk-in; ApplicantID and ApplicationID
+-- remain distinct identifiers. JobID is NULL because this flow is not tied to a posting.
+CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
+    @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
+    @StartDate DATE, @EndDate DATE,
+    @DesiredField1 NVARCHAR(200) = NULL, @DesiredField2 NVARCHAR(200) = NULL, @DesiredField3 NVARCHAR(200) = NULL,
+    @InternshipType NVARCHAR(50) = NULL, @Reason NVARCHAR(500) = NULL, @ReasonOther NVARCHAR(500) = NULL,
+    @PrefixT NVARCHAR(100) = NULL, @NameFirstT NVARCHAR(100), @NameLastT NVARCHAR(100), @NicknameT NVARCHAR(50) = NULL,
+    @PrefixE NVARCHAR(100) = NULL, @NameFirstE NVARCHAR(100) = NULL, @NameLastE NVARCHAR(100) = NULL, @NicknameE NVARCHAR(50) = NULL,
+    @Gender NVARCHAR(20) = NULL, @DateOfBirth DATE = NULL, @PlaceOfBirth NVARCHAR(200) = NULL,
+    @Nationality NVARCHAR(100) = NULL, @Race NVARCHAR(100) = NULL, @Religion NVARCHAR(100) = NULL,
+    @Height DECIMAL(5,2) = NULL, @Weight DECIMAL(5,2) = NULL, @IDCardNo NVARCHAR(20) = NULL,
+    @IDIssuedBy NVARCHAR(200) = NULL, @IDExpiredDate DATE = NULL, @Address NVARCHAR(500) = NULL,
+    @ProvinceID INT = NULL, @DistrictID INT = NULL, @SubDistrictID INT = NULL, @PostalCode NVARCHAR(10) = NULL,
+    @Telephone NVARCHAR(20) = NULL, @Mobile NVARCHAR(20), @Email NVARCHAR(150),
+    @FatherName NVARCHAR(200) = NULL, @FatherOccupation NVARCHAR(200) = NULL, @FatherStatus NVARCHAR(50) = NULL,
+    @MotherName NVARCHAR(200) = NULL, @MotherOccupation NVARCHAR(200) = NULL, @MotherStatus NVARCHAR(50) = NULL,
+    @SiblingCount INT = NULL, @SiblingOrder INT = NULL, @EmergencyName NVARCHAR(200) = NULL,
+    @EmergencyRelation NVARCHAR(100) = NULL, @EmergencyAddress NVARCHAR(500) = NULL, @EmergencyPhone NVARCHAR(20) = NULL,
+    @School NVARCHAR(300), @Faculty NVARCHAR(200) = NULL, @Major NVARCHAR(200) = NULL, @Minor NVARCHAR(200) = NULL,
+    @YearOfStudy NVARCHAR(20) = NULL, @AdvisorName NVARCHAR(200) = NULL, @AdvisorPhone NVARCHAR(20) = NULL,
+    @Activities NVARCHAR(1000) = NULL, @InfoSources NVARCHAR(200) = NULL,
+    @InfoSourceStaffName NVARCHAR(200) = NULL, @InfoSourceDepartment NVARCHAR(200) = NULL, @InfoSourceOther NVARCHAR(200) = NULL,
+    @AssignedByAdminID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    IF EXISTS (SELECT 1 FROM T_APPLICANTS WHERE Email = @Email AND (NULLIF(@IDCardNo, '') IS NULL OR ISNULL(CitizenID, '') <> @IDCardNo))
+        THROW 51001, N'อีเมลนี้มีอยู่ในระบบแล้ว', 1;
+
+    DECLARE @ApplicantResult TABLE (ApplicantID INT, ApplicationID INT);
+    INSERT INTO @ApplicantResult
+    EXEC usp_TraineeApplicant_Upsert
+        @StartDate=@StartDate, @EndDate=@EndDate, @DesiredField1=@DesiredField1, @DesiredField2=@DesiredField2,
+        @DesiredField3=@DesiredField3, @InternshipType=@InternshipType, @Reason=@Reason, @ReasonOther=@ReasonOther,
+        @PrefixT=@PrefixT, @NameFirstT=@NameFirstT, @NameLastT=@NameLastT, @NicknameT=@NicknameT,
+        @PrefixE=@PrefixE, @NameFirstE=@NameFirstE, @NameLastE=@NameLastE, @NicknameE=@NicknameE,
+        @Gender=@Gender, @DateOfBirth=@DateOfBirth, @PlaceOfBirth=@PlaceOfBirth, @Nationality=@Nationality,
+        @Race=@Race, @Religion=@Religion, @Height=@Height, @Weight=@Weight, @IDCardNo=@IDCardNo,
+        @IDIssuedBy=@IDIssuedBy, @IDExpiredDate=@IDExpiredDate, @Address=@Address, @ProvinceID=@ProvinceID,
+        @DistrictID=@DistrictID, @SubDistrictID=@SubDistrictID, @PostalCode=@PostalCode, @Telephone=@Telephone,
+        @Mobile=@Mobile, @Email=@Email, @FatherName=@FatherName, @FatherOccupation=@FatherOccupation,
+        @FatherStatus=@FatherStatus, @MotherName=@MotherName, @MotherOccupation=@MotherOccupation,
+        @MotherStatus=@MotherStatus, @SiblingCount=@SiblingCount, @SiblingOrder=@SiblingOrder,
+        @EmergencyName=@EmergencyName, @EmergencyRelation=@EmergencyRelation, @EmergencyAddress=@EmergencyAddress,
+        @EmergencyPhone=@EmergencyPhone, @School=@School, @Faculty=@Faculty, @Major=@Major, @Minor=@Minor,
+        @YearOfStudy=@YearOfStudy, @AdvisorName=@AdvisorName, @AdvisorPhone=@AdvisorPhone, @Activities=@Activities,
+        @InfoSources=@InfoSources, @InfoSourceStaffName=@InfoSourceStaffName,
+        @InfoSourceDepartment=@InfoSourceDepartment, @InfoSourceOther=@InfoSourceOther,
+        @Status=N'Employment confirm', @JobID=NULL;
+
+    DECLARE @ApplicantID INT, @ApplicationID INT;
+    SELECT @ApplicantID=ApplicantID, @ApplicationID=ApplicationID FROM @ApplicantResult;
+    DECLARE @AssignmentResult TABLE (Id INT, IsOverQuota BIT, ActiveOverlapCount INT, Quota INT);
+    INSERT INTO @AssignmentResult
+    EXEC sp_CreateTraineeManagementAssignment @CompanyCode=@CompanyCode, @DepartmentCode=@DepartmentCode,
+        @ApplicantID=@ApplicantID, @StartDate=@StartDate, @EndDate=@EndDate, @AssignedByAdminID=@AssignedByAdminID;
+
+    SELECT A.Id, @ApplicationID AS TraineeApplicationId, @ApplicantID AS ApplicantId,
+           A.IsOverQuota, A.ActiveOverlapCount, A.Quota
+    FROM @AssignmentResult A;
+END
+GO

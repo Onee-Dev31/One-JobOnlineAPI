@@ -211,4 +211,20 @@ namespace JobOnlineAPI.Models
         public int ActiveOverlapCount { get; set; }
         public int Quota { get; set; }
     }
+
+    public class ManualTraineeRequest : TraineeApplication
+    {
+        public string CompanyCode { get; set; } = string.Empty;
+        public string DepartmentCode { get; set; } = string.Empty;
+    }
+
+    public class CreateManualTraineeResult
+    {
+        public int Id { get; set; }
+        public int TraineeApplicationId { get; set; }
+        public int? ApplicantId { get; set; }
+        public bool IsOverQuota { get; set; }
+        public int ActiveOverlapCount { get; set; }
+        public int Quota { get; set; }
+    }
 }

@@ -222,6 +222,12 @@ END
 
 GO
 
+-- T_APPLICANTS has a filtered unique index (UQ_T_APPLICANTS_CodeMPID), so any proc that
+-- INSERT/UPDATE/DELETEs it must be compiled with QUOTED_IDENTIFIER ON (this setting is captured
+-- at CREATE PROCEDURE time and baked into the proc regardless of the caller's session).
+SET QUOTED_IDENTIFIER ON;
+GO
+
 CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
     @AssignmentID INT = NULL, -- Part1 JobSlotAssignments.AssignmentID, when this submission continues one
     @StartDate DATE = NULL,

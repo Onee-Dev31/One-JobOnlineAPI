@@ -19,14 +19,12 @@ namespace JobOnlineAPI.Controllers
         INetworkShareService networkShareService,
         IOptions<FileStorageConfig> fileStorageConfig,
         IEmailNotificationService emailNotificationService,
-        ILogger<ApplicantNewController> logger) : ControllerBase
+        ILogger<TraineeApplicationsController> logger) : ControllerBase
     {
         private readonly DapperContext _context = context;
         private readonly INetworkShareService _networkShareService = networkShareService;
-        private readonly string _basePath = fileStorageConfig.Value.BasePath;
         private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
-        private readonly ILogger _logger = logger;
-        private readonly IOptions<FileStorageConfig> _fileStorageConfig = fileStorageConfig;
+        private readonly ILogger<TraineeApplicationsController> _logger = logger;
         private readonly string _applicationFormUri = fileStorageConfig.Value.ApplicationFormUri
         ?? throw new InvalidOperationException("Application form URI is not configured.");
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -184,6 +182,17 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(new { ApplicantID = applicantId, ApplicationID = applicationId });
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Trainee application upsert failed. RequestId: {RequestId}, HasIdCard: {HasIdCard}, HasHouseReg: {HasHouseReg}, HasResume: {HasResume}, HasTranscript: {HasTranscript}",
+                    HttpContext.TraceIdentifier,
+                    idCardFiles?.Count > 0,
+                    houseRegFiles?.Count > 0,
+                    resumeFiles?.Count > 0,
+                    transcriptFiles?.Count > 0);
+                throw;
+            }
             finally
             {
                 _networkShareService.Disconnect();
@@ -192,7 +201,7 @@ namespace JobOnlineAPI.Controllers
 
         private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int applicantId, int applicationId, string section)
         {
-            var folder = Path.Combine(_basePath, $"applicant_{applicantId}");
+            var folder = Path.Combine(_networkShareService.GetBasePath(), $"applicant_{applicantId}");
             Directory.CreateDirectory(folder);
 
             foreach (var file in files)
