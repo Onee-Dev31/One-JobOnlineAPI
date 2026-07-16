@@ -408,10 +408,26 @@ BEGIN
             END
         END
 
-        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
-        VALUES (@ResolvedApplicantID, @JobID, IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'Pending HR Screening'), GETDATE())
+        DECLARE @NewStatus NVARCHAR(50) = IIF(@CompanyCode IS NOT NULL, 'Employment confirm', 'Pending HR Screening')
 
-        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+        -- Reuse the existing JobApplications row for this ApplicantID+JobID instead of always
+        -- inserting — re-applying to a job you already applied to should update the existing
+        -- application, not create a duplicate (UQ_JobApplications_ApplicantID_JobID enforces
+        -- this at the DB level too).
+        IF @ResolvedApplicantID IS NOT NULL
+            SELECT @ApplicationID = ApplicationID FROM JobApplications WHERE ApplicantID = @ResolvedApplicantID AND JobID = @JobID
+
+        IF @ApplicationID IS NOT NULL
+        BEGIN
+            UPDATE JobApplications SET Status = @NewStatus WHERE ApplicationID = @ApplicationID
+        END
+        ELSE
+        BEGIN
+            INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+            VALUES (@ResolvedApplicantID, @JobID, @NewStatus, GETDATE())
+
+            SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+        END
     END
 
     INSERT INTO TraineeAssignments (
