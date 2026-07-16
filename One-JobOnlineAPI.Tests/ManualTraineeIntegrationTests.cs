@@ -58,6 +58,56 @@ public class ManualTraineeIntegrationTests
     }
 
     [Fact]
+    public async Task ManualTrainee_InfoSourcesAsArray_IsAcceptedAndFlattenedToJsonString()
+    {
+        ManualTraineeRequest? captured = null;
+        var service = SuccessfulService((r, _) => captured = r);
+        var controller = CreateController(service.Object, "Admin");
+        var json = ValidJson(new { InfoSources = new[] { "website", "friend" } });
+
+        var response = await Call(controller, json, null, null, null, null);
+
+        Assert.IsType<OkObjectResult>(response);
+        Assert.Equal("[\"website\",\"friend\"]", captured?.InfoSources);
+    }
+
+    [Fact]
+    public async Task ManualTrainee_InfoSourcesAsString_IsPassedThroughUnchanged()
+    {
+        ManualTraineeRequest? captured = null;
+        var service = SuccessfulService((r, _) => captured = r);
+        var controller = CreateController(service.Object, "Admin");
+        var json = ValidJson(new { InfoSources = "Facebook" });
+
+        var response = await Call(controller, json, null, null, null, null);
+
+        Assert.IsType<OkObjectResult>(response);
+        Assert.Equal("Facebook", captured?.InfoSources);
+    }
+
+    [Fact]
+    public async Task ManualTrainee_MissingRequiredField_ReturnsFieldError_NotGenericInvalidJson()
+    {
+        var service = SuccessfulService();
+        var controller = CreateController(service.Object, "Admin");
+        var json = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["CompanyCode"] = "OTV", ["DepartmentCode"] = "15707", ["StartDate"] = "2026-07-15", ["EndDate"] = "2026-10-15",
+            ["NameFirstT"] = "ทดสอบ", ["NameLastT"] = "ระบบ", ["School"] = "มหาวิทยาลัยทดสอบ"
+            // Mobile and Email intentionally omitted.
+        });
+
+        var response = await Call(controller, json, null, null, null, null);
+
+        var result = Assert.IsType<ObjectResult>(response);
+        Assert.Equal(422, result.StatusCode);
+        var errors = (Dictionary<string, string[]>)result.Value!.GetType().GetProperty("errors")!.GetValue(result.Value)!;
+        Assert.Contains("Mobile", errors.Keys);
+        Assert.Contains("Email", errors.Keys);
+        service.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task ManualTrainee_NonAdmin_ReturnsForbidden_WithoutWriting()
     {
         var service = SuccessfulService();

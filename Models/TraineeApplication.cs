@@ -1,3 +1,6 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace JobOnlineAPI.Models
 {
     public class TraineeApplication
@@ -67,6 +70,10 @@ namespace JobOnlineAPI.Models
         public string? AdvisorName { get; set; }
         public string? AdvisorPhone { get; set; }
         public string? Activities { get; set; }
+        // Frontend sends this as a checkbox multi-select (JSON array) or, in older flows, a plain
+        // string. The NVARCHAR(200) column stores whichever form was sent as JSON text (see the
+        // ISJSON check on the legacy TraineeApplications table), so both shapes are accepted here.
+        [JsonConverter(typeof(InfoSourcesJsonConverter))]
         public string? InfoSources { get; set; }
         public string? InfoSourceStaffName { get; set; }
         public string? InfoSourceDepartment { get; set; }
@@ -96,5 +103,27 @@ namespace JobOnlineAPI.Models
     public class TraineeApplicationDetail : TraineeApplication
     {
         public List<TraineeFile> Files { get; set; } = [];
+    }
+
+    // Accepts InfoSources as either a JSON string or a JSON array of strings; arrays are
+    // re-encoded to JSON text so the value still fits the single NVARCHAR(200) SP parameter.
+    public sealed class InfoSourcesJsonConverter : JsonConverter<string?>
+    {
+        public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.Null) return null;
+            if (reader.TokenType == JsonTokenType.String) return reader.GetString();
+
+            if (reader.TokenType == JsonTokenType.StartArray)
+            {
+                var items = JsonSerializer.Deserialize<List<string>>(ref reader, options) ?? [];
+                return JsonSerializer.Serialize(items);
+            }
+
+            throw new JsonException($"infoSources: unexpected token {reader.TokenType}, expected string or array of strings.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+            => writer.WriteStringValue(value);
     }
 }

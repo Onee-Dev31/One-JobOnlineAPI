@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Security.Claims;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -23,7 +24,23 @@ namespace JobOnlineAPI.Controllers
     {
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
-        private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+        // ManualTraineeRequest inherits `required` members (Mobile, Email, etc.) from
+        // TraineeApplication. System.Text.Json enforces those at deserialize time with an opaque
+        // exception, which pre-empts ValidateManualRequest's friendlier per-field Thai messages
+        // below. Disabling the check here (only for this controller's options instance) lets
+        // ValidateManualRequest be the single source of truth for required-field errors.
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { static typeInfo =>
+                {
+                    if (typeInfo.Type != typeof(ManualTraineeRequest)) return;
+                    foreach (var property in typeInfo.Properties) property.IsRequired = false;
+                } }
+            }
+        };
 
         [HttpGet("overview")]
         public async Task<IActionResult> GetOverview(
@@ -142,8 +159,10 @@ namespace JobOnlineAPI.Controllers
             {
                 request = JsonSerializer.Deserialize<ManualTraineeRequest>(jsonData, JsonOptions);
             }
-            catch (JsonException)
+            catch (JsonException ex)
             {
+                logger.LogWarning(ex, "jsonData failed to parse. Length={Length}, Raw={Raw}",
+                    jsonData?.Length ?? -1, jsonData ?? "(null)");
                 return ValidationProblemResult(new() { ["jsonData"] = ["jsonData ไม่ใช่ JSON ที่ถูกต้อง"] });
             }
 
