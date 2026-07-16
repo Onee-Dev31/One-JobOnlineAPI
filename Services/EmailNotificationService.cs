@@ -292,10 +292,10 @@ namespace JobOnlineAPI.Services
             if (!string.IsNullOrEmpty(applicantEmail))
             {
                 string applicantBody = GenerateEmailBody(true, companyName, fullNameThai, jobTitle, TraineeApplicationID, applicationFormUri);
-                string applicantSubject = $"Application Received - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
+                string applicantSubject = $"ยืนยันการได้รับข้อมูลประวัติประกอบการสมัครฝึกงาน - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                 try
                 {
-                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null);
+                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, bypassTestMode: true);
                     _logger.LogInformation("Successfully sent email to {Email}", applicantEmail);
                 }
                 catch (Exception ex)
