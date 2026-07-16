@@ -369,6 +369,22 @@ BEGIN
             WHERE MobilePhone = @ManualMobilePhone AND Email = @ManualEmail
             ORDER BY ApplicantID DESC
 
+            IF @ResolvedApplicantID IS NOT NULL AND @ManualFirstNameThai IS NOT NULL AND @ManualLastNameThai IS NOT NULL
+            BEGIN
+                -- Matched an existing applicant by Mobile+Email — refresh their T_APPLICANTS row
+                -- with this submission's data instead of silently keeping the old values, same
+                -- overwrite behavior as usp_TraineeApplicant_Upsert.
+                UPDATE T_APPLICANTS SET
+                    Title = @ManualTitle, FirstNameThai = @ManualFirstNameThai, LastNameThai = @ManualLastNameThai, Nickname = @ManualNickname,
+                    MobilePhone = @ManualMobilePhone, Email = @ManualEmail,
+                    Age = @ManualAge, YearOfStudy = @ManualYear, GPA = @ManualGPA, Major = @ManualMajor, Faculty = @ManualFaculty, University = @ManualUniversity,
+                    InternshipType = @ManualInternshipType, InternshipStartDate = @ManualInternStartDate, InternshipEndDate = @ManualInternEndDate, DurationMonths = @ManualDurationMonths,
+                    PreferredPosition = @ManualPreferredPosition, PreferredPositionBackup = @ManualPreferredPositionBackup,
+                    CanCommute = @ManualCanCommute, CanTravelOutside = @ManualCanTravelOutside, FlexibleWork = @ManualFlexibleWork, ReasonForInterest = @ManualReasonForInterest,
+                    ModifiedDate = GETDATE()
+                WHERE ApplicantID = @ResolvedApplicantID
+            END
+
             IF @ResolvedApplicantID IS NULL AND @ManualFirstNameThai IS NOT NULL AND @ManualLastNameThai IS NOT NULL
             BEGIN
                 INSERT INTO T_APPLICANTS (
