@@ -885,10 +885,10 @@ CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
     @StartDate DATE, @EndDate DATE,
     @DesiredField1 NVARCHAR(200) = NULL, @DesiredField2 NVARCHAR(200) = NULL, @DesiredField3 NVARCHAR(200) = NULL,
-    @InternshipType NVARCHAR(50) = NULL, @Reason NVARCHAR(500) = NULL, @ReasonOther NVARCHAR(500) = NULL,
+    @InternshipType NVARCHAR(50) = NULL, @DurationMonths NVARCHAR(20) = NULL, @Reason NVARCHAR(500) = NULL, @ReasonOther NVARCHAR(500) = NULL,
     @PrefixT NVARCHAR(100) = NULL, @NameFirstT NVARCHAR(100), @NameLastT NVARCHAR(100), @NicknameT NVARCHAR(50) = NULL,
     @PrefixE NVARCHAR(100) = NULL, @NameFirstE NVARCHAR(100) = NULL, @NameLastE NVARCHAR(100) = NULL, @NicknameE NVARCHAR(50) = NULL,
-    @Gender NVARCHAR(20) = NULL, @DateOfBirth DATE = NULL, @PlaceOfBirth NVARCHAR(200) = NULL,
+    @Gender NVARCHAR(20) = NULL, @DateOfBirth DATE = NULL, @Age INT = NULL, @PlaceOfBirth NVARCHAR(200) = NULL,
     @Nationality NVARCHAR(100) = NULL, @Race NVARCHAR(100) = NULL, @Religion NVARCHAR(100) = NULL,
     @Height DECIMAL(5,2) = NULL, @Weight DECIMAL(5,2) = NULL, @IDCardNo NVARCHAR(20) = NULL,
     @IDIssuedBy NVARCHAR(200) = NULL, @IDExpiredDate DATE = NULL, @Address NVARCHAR(500) = NULL,
@@ -899,7 +899,7 @@ CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @SiblingCount INT = NULL, @SiblingOrder INT = NULL, @EmergencyName NVARCHAR(200) = NULL,
     @EmergencyRelation NVARCHAR(100) = NULL, @EmergencyAddress NVARCHAR(500) = NULL, @EmergencyPhone NVARCHAR(20) = NULL,
     @School NVARCHAR(300), @Faculty NVARCHAR(200) = NULL, @Major NVARCHAR(200) = NULL, @Minor NVARCHAR(200) = NULL,
-    @YearOfStudy NVARCHAR(20) = NULL, @AdvisorName NVARCHAR(200) = NULL, @AdvisorPhone NVARCHAR(20) = NULL,
+    @YearOfStudy NVARCHAR(20) = NULL, @GPA DECIMAL(3,2) = NULL, @AdvisorName NVARCHAR(200) = NULL, @AdvisorPhone NVARCHAR(20) = NULL,
     @Activities NVARCHAR(1000) = NULL, @InfoSources NVARCHAR(200) = NULL,
     @InfoSourceStaffName NVARCHAR(200) = NULL, @InfoSourceDepartment NVARCHAR(200) = NULL, @InfoSourceOther NVARCHAR(200) = NULL,
     @AssignedByAdminID INT = NULL, @JobID INT = NULL
@@ -919,10 +919,10 @@ BEGIN
     INSERT INTO @ApplicantResult
     EXEC usp_TraineeApplicant_Upsert
         @StartDate=@StartDate, @EndDate=@EndDate, @DesiredField1=@DesiredField1, @DesiredField2=@DesiredField2,
-        @DesiredField3=@DesiredField3, @InternshipType=@InternshipType, @Reason=@Reason, @ReasonOther=@ReasonOther,
+        @DesiredField3=@DesiredField3, @InternshipType=@InternshipType, @DurationMonths=@DurationMonths, @Reason=@Reason, @ReasonOther=@ReasonOther,
         @PrefixT=@PrefixT, @NameFirstT=@NameFirstT, @NameLastT=@NameLastT, @NicknameT=@NicknameT,
         @PrefixE=@PrefixE, @NameFirstE=@NameFirstE, @NameLastE=@NameLastE, @NicknameE=@NicknameE,
-        @Gender=@Gender, @DateOfBirth=@DateOfBirth, @PlaceOfBirth=@PlaceOfBirth, @Nationality=@Nationality,
+        @Gender=@Gender, @DateOfBirth=@DateOfBirth, @Age=@Age, @PlaceOfBirth=@PlaceOfBirth, @Nationality=@Nationality,
         @Race=@Race, @Religion=@Religion, @Height=@Height, @Weight=@Weight, @IDCardNo=@IDCardNo,
         @IDIssuedBy=@IDIssuedBy, @IDExpiredDate=@IDExpiredDate, @Address=@Address, @ProvinceID=@ProvinceID,
         @DistrictID=@DistrictID, @SubDistrictID=@SubDistrictID, @PostalCode=@PostalCode, @Telephone=@Telephone,
@@ -931,7 +931,7 @@ BEGIN
         @MotherStatus=@MotherStatus, @SiblingCount=@SiblingCount, @SiblingOrder=@SiblingOrder,
         @EmergencyName=@EmergencyName, @EmergencyRelation=@EmergencyRelation, @EmergencyAddress=@EmergencyAddress,
         @EmergencyPhone=@EmergencyPhone, @School=@School, @Faculty=@Faculty, @Major=@Major, @Minor=@Minor,
-        @YearOfStudy=@YearOfStudy, @AdvisorName=@AdvisorName, @AdvisorPhone=@AdvisorPhone, @Activities=@Activities,
+        @YearOfStudy=@YearOfStudy, @GPA=@GPA, @AdvisorName=@AdvisorName, @AdvisorPhone=@AdvisorPhone, @Activities=@Activities,
         @InfoSources=@InfoSources, @InfoSourceStaffName=@InfoSourceStaffName,
         @InfoSourceDepartment=@InfoSourceDepartment, @InfoSourceOther=@InfoSourceOther,
         @Status=N'Employment confirm', @JobID=@JobID;

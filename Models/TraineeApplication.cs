@@ -15,6 +15,7 @@ namespace JobOnlineAPI.Models
         public string? DesiredField2 { get; set; }
         public string? DesiredField3 { get; set; }
         public string? InternshipType { get; set; }
+        public string? DurationMonths { get; set; }
         public string? Reason { get; set; }
         public string? ReasonOther { get; set; }
 
@@ -68,6 +69,7 @@ namespace JobOnlineAPI.Models
         public string? Major { get; set; }
         public string? Minor { get; set; }
         public string? YearOfStudy { get; set; }
+        public decimal? GPA { get; set; }
         public string? AdvisorName { get; set; }
         public string? AdvisorPhone { get; set; }
         public string? Activities { get; set; }

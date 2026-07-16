@@ -96,13 +96,13 @@ public sealed class ManualTraineeService(
     private static object ToParameters(ManualTraineeRequest r, int? adminId) => new
     {
         r.CompanyCode, r.DepartmentCode, r.StartDate, r.EndDate, r.DesiredField1, r.DesiredField2, r.DesiredField3,
-        r.InternshipType, r.Reason, r.ReasonOther, r.PrefixT, r.NameFirstT, r.NameLastT, r.NicknameT,
-        r.PrefixE, r.NameFirstE, r.NameLastE, r.NicknameE, r.Gender, r.DateOfBirth, r.PlaceOfBirth,
+        r.InternshipType, r.DurationMonths, r.Reason, r.ReasonOther, r.PrefixT, r.NameFirstT, r.NameLastT, r.NicknameT,
+        r.PrefixE, r.NameFirstE, r.NameLastE, r.NicknameE, r.Gender, r.DateOfBirth, r.Age, r.PlaceOfBirth,
         r.Nationality, r.Race, r.Religion, r.Height, r.Weight, r.IDCardNo, r.IDIssuedBy, r.IDExpiredDate,
         r.Address, r.ProvinceID, r.DistrictID, r.SubDistrictID, r.PostalCode, r.Telephone, r.Mobile, r.Email,
         r.FatherName, r.FatherOccupation, r.FatherStatus, r.MotherName, r.MotherOccupation, r.MotherStatus,
         r.SiblingCount, r.SiblingOrder, r.EmergencyName, r.EmergencyRelation, r.EmergencyAddress, r.EmergencyPhone,
-        r.School, r.Faculty, r.Major, r.Minor, r.YearOfStudy, r.AdvisorName, r.AdvisorPhone, r.Activities,
+        r.School, r.Faculty, r.Major, r.Minor, r.YearOfStudy, r.GPA, r.AdvisorName, r.AdvisorPhone, r.Activities,
         r.InfoSources, r.InfoSourceStaffName, r.InfoSourceDepartment, r.InfoSourceOther, r.JobID, AssignedByAdminID = adminId
     };
 
