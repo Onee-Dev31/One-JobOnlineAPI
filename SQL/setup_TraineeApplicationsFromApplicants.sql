@@ -82,10 +82,26 @@ BEGIN
         a.InfoSourceOther,
         b.Status,
         a.CreatedDate AS CreatedAt,
-        a.ModifiedDate AS UpdatedAt
+        a.ModifiedDate AS UpdatedAt,
+        fc.FileCount,
+        CASE WHEN fc.FileCount > 0 THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS HasFiles
     FROM T_APPLICANTS a
     INNER JOIN JobApplications b ON b.ApplicantID = a.ApplicantID
     LEFT JOIN Jobs j ON j.JobID = b.JobID
+    -- Lightweight count only (list view) -- same two sources sp_GetTraineeApplicationByID's
+    -- files result set unions (T_APPLICANT_FILES by ApplicantID, TraineeAssignmentFiles via
+    -- TraineeAssignments by ApplicationID), just counted instead of returned in full.
+    OUTER APPLY (
+        SELECT COUNT(*) AS FileCount
+        FROM (
+            SELECT FileID FROM T_APPLICANT_FILES WHERE ApplicantID = a.ApplicantID
+            UNION ALL
+            SELECT F.FileID
+            FROM TraineeAssignments TA
+            INNER JOIN TraineeAssignmentFiles F ON F.AssignmentID = TA.AssignmentID
+            WHERE TA.ApplicationID = b.ApplicationID AND TA.Status <> 'Cancelled'
+        ) allFiles
+    ) fc
     WHERE (
         j.EmployeeType = N'นักศึกษาฝึกงาน'
         OR (b.JobID IS NULL AND (a.InternshipStartDate IS NOT NULL OR a.InternshipType IS NOT NULL))
