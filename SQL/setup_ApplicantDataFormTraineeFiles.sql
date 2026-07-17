@@ -94,7 +94,22 @@ BEGIN
             a.ReasonDisabilities,
             a.CodeMPID,
             ja.Salary,
-            ja.JobOtherName,
+            -- "ตำแหน่งอื่นที่สนใจ" for a trainee job posting isn't collected via JobApplications.JobOtherName
+            -- (that column is only ever populated by the regular job-application form) -- it's the backup
+            -- position captured on JobSlotAssignments (batch/self-apply Part1 flow) or TraineeAssignments
+            -- (admin department-assignment flow), both keyed by ja.ApplicationID. Prefer JobSlotAssignments
+            -- since it's the earlier stage of the flow, fall back to TraineeAssignments.
+            CASE
+                WHEN c.EmployeeType = N'นักศึกษาฝึกงาน' THEN COALESCE(
+                    (SELECT TOP 1 jsa.ManualPreferredPositionBackup FROM JobSlotAssignments jsa
+                     WHERE jsa.ApplicationID = ja.ApplicationID AND jsa.Status <> 'Cancelled'
+                     ORDER BY jsa.AssignmentID DESC),
+                    (SELECT TOP 1 ta.ManualPreferredPositionBackup FROM TraineeAssignments ta
+                     WHERE ta.ApplicationID = ja.ApplicationID AND ta.Status <> 'Cancelled'
+                     ORDER BY ta.AssignmentID DESC)
+                )
+                ELSE ja.JobOtherName
+            END AS JobOtherName,
 
             -- Current address
             p.ProvinceNameThai,
@@ -306,7 +321,22 @@ BEGIN
             a.ReasonDisabilities,
             a.CodeMPID,
             ja.Salary,
-            ja.JobOtherName,
+            -- "ตำแหน่งอื่นที่สนใจ" for a trainee job posting isn't collected via JobApplications.JobOtherName
+            -- (that column is only ever populated by the regular job-application form) -- it's the backup
+            -- position captured on JobSlotAssignments (batch/self-apply Part1 flow) or TraineeAssignments
+            -- (admin department-assignment flow), both keyed by ja.ApplicationID. Prefer JobSlotAssignments
+            -- since it's the earlier stage of the flow, fall back to TraineeAssignments.
+            CASE
+                WHEN c.EmployeeType = N'นักศึกษาฝึกงาน' THEN COALESCE(
+                    (SELECT TOP 1 jsa.ManualPreferredPositionBackup FROM JobSlotAssignments jsa
+                     WHERE jsa.ApplicationID = ja.ApplicationID AND jsa.Status <> 'Cancelled'
+                     ORDER BY jsa.AssignmentID DESC),
+                    (SELECT TOP 1 ta.ManualPreferredPositionBackup FROM TraineeAssignments ta
+                     WHERE ta.ApplicationID = ja.ApplicationID AND ta.Status <> 'Cancelled'
+                     ORDER BY ta.AssignmentID DESC)
+                )
+                ELSE ja.JobOtherName
+            END AS JobOtherName,
             p.ProvinceNameThai,
             d.DistrictNameThai,
             sd.SubDistrictNameThai,
