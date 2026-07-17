@@ -933,6 +933,192 @@ BEGIN
 END
 GO
 
+-- Deliberate duplicate of usp_TraineeApplicant_Upsert (setup_TraineeApplicationsApplicantLink.sql),
+-- used only by sp_CreateManualTraineeManagement below. Split off so a change to the
+-- self-apply/Part2 flow's proc (called directly from TraineeApplicationsController.cs) can't
+-- silently break the admin manual-entry flow, or vice versa -- each caller now owns its own copy.
+-- Trade-off accepted: the two bodies WILL drift over time. When fixing a bug or adding a field
+-- in one, check whether the same change belongs in the other before deploying.
+CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert_Manual
+    @AssignmentID INT = NULL, -- Part1 JobSlotAssignments.AssignmentID, when this submission continues one
+    @StartDate DATE = NULL,
+    @EndDate DATE = NULL,
+    @DesiredField1 NVARCHAR(200) = NULL,
+    @DesiredField2 NVARCHAR(200) = NULL,
+    @DesiredField3 NVARCHAR(200) = NULL,
+    @InternshipType NVARCHAR(50) = NULL,
+    @DurationMonths NVARCHAR(20) = NULL,
+    @Reason NVARCHAR(500) = NULL,
+    @ReasonOther NVARCHAR(500) = NULL,
+    @PrefixT NVARCHAR(100) = NULL,
+    @NameFirstT NVARCHAR(100),
+    @NameLastT NVARCHAR(100),
+    @NicknameT NVARCHAR(50) = NULL,
+    @PrefixE NVARCHAR(100) = NULL,
+    @NameFirstE NVARCHAR(100) = NULL,
+    @NameLastE NVARCHAR(100) = NULL,
+    @NicknameE NVARCHAR(50) = NULL,
+    @Gender NVARCHAR(20) = NULL,
+    @DateOfBirth DATE = NULL,
+    @Age INT = NULL,
+    @PlaceOfBirth NVARCHAR(200) = NULL,
+    @Nationality NVARCHAR(100) = NULL,
+    @Race NVARCHAR(100) = NULL,
+    @Religion NVARCHAR(100) = NULL,
+    @Height DECIMAL(5,2) = NULL,
+    @Weight DECIMAL(5,2) = NULL,
+    @IDCardNo NVARCHAR(20) = NULL,
+    @IDIssuedBy NVARCHAR(200) = NULL,
+    @IDExpiredDate DATE = NULL,
+    @Address NVARCHAR(500) = NULL,
+    @ProvinceID INT = NULL,
+    @DistrictID INT = NULL,
+    @SubDistrictID INT = NULL,
+    @PostalCode NVARCHAR(10) = NULL,
+    @Telephone NVARCHAR(20) = NULL,
+    @Mobile NVARCHAR(20),
+    @Email NVARCHAR(150),
+    @FatherName NVARCHAR(200) = NULL,
+    @FatherOccupation NVARCHAR(200) = NULL,
+    @FatherStatus NVARCHAR(50) = NULL,
+    @MotherName NVARCHAR(200) = NULL,
+    @MotherOccupation NVARCHAR(200) = NULL,
+    @MotherStatus NVARCHAR(50) = NULL,
+    @SiblingCount INT = NULL,
+    @SiblingOrder INT = NULL,
+    @EmergencyName NVARCHAR(200) = NULL,
+    @EmergencyRelation NVARCHAR(100) = NULL,
+    @EmergencyAddress NVARCHAR(500) = NULL,
+    @EmergencyPhone NVARCHAR(20) = NULL,
+    @School NVARCHAR(300),
+    @Faculty NVARCHAR(200) = NULL,
+    @Major NVARCHAR(200) = NULL,
+    @Minor NVARCHAR(200) = NULL,
+    @YearOfStudy NVARCHAR(20) = NULL,
+    @GPA DECIMAL(3,2) = NULL,
+    @AdvisorName NVARCHAR(200) = NULL,
+    @AdvisorPhone NVARCHAR(20) = NULL,
+    @Activities NVARCHAR(1000) = NULL,
+    @InfoSources NVARCHAR(200) = NULL,
+    @InfoSourceStaffName NVARCHAR(200) = NULL,
+    @InfoSourceDepartment NVARCHAR(200) = NULL,
+    @InfoSourceOther NVARCHAR(200) = NULL,
+    @Status NVARCHAR(50) = 'pending',
+    @JobID INT = NULL, -- NULL for walk-in entries not tied to a specific job posting
+    @UserID INT = NULL -- candidate's Users.UserId (auth_token JWT/cookie); NULL for a staff manual/walk-in entry
+AS
+BEGIN
+    SET NOCOUNT ON
+
+    DECLARE @GenderCode CHAR(1) = CASE
+        WHEN @Gender IS NULL THEN NULL
+        WHEN @Gender IN ('male', N'ชาย') THEN 'M'
+        WHEN @Gender IN ('female', N'หญิง') THEN 'F'
+        ELSE 'O'
+    END
+
+    DECLARE @ApplicantID INT
+
+    IF @IDCardNo IS NOT NULL AND LTRIM(RTRIM(@IDCardNo)) <> ''
+        SELECT @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE CitizenID = @IDCardNo
+
+    -- No CitizenID match (often because IDCardNo wasn't submitted at all) — fall back to
+    -- Mobile+Email so re-applying to a different job doesn't insert a second T_APPLICANTS row
+    -- for the same person.
+    IF @ApplicantID IS NULL
+        SELECT TOP 1 @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE MobilePhone = @Mobile AND Email = @Email ORDER BY ApplicantID DESC
+
+    IF @ApplicantID IS NOT NULL
+    BEGIN
+        UPDATE T_APPLICANTS SET
+            Title = @PrefixT, FirstNameThai = @NameFirstT, LastNameThai = @NameLastT, Nickname = @NicknameT,
+            TitleENG = @PrefixE, FirstNameEng = @NameFirstE, LastNameEng = @NameLastE, NicknameE = @NicknameE,
+            Gender = @GenderCode, BirthDate = @DateOfBirth, Age = @Age, Height = @Height, Weight = @Weight,
+            CitizenID = @IDCardNo, CitizenIDIssuedBy = @IDIssuedBy, CitizenIDExpiresON = @IDExpiredDate,
+            CurrentAddress = @Address, CurrentProvinceID = @ProvinceID, CurrentDistrictID = @DistrictID,
+            CurrentSubDistrictID = @SubDistrictID, CurrentPostalCode = @PostalCode,
+            MobilePhone = @Mobile, Email = @Email, HomePhone = @Telephone,
+            ReasonPosition = @Reason, ReasonOther = @ReasonOther,
+            InternshipStartDate = @StartDate, InternshipEndDate = @EndDate, InternshipType = @InternshipType, DurationMonths = @DurationMonths,
+            DesiredField1 = @DesiredField1, DesiredField2 = @DesiredField2, DesiredField3 = @DesiredField3,
+            PlaceOfBirth = @PlaceOfBirth, Nationality = @Nationality, Race = @Race, Religion = @Religion,
+            FatherName = @FatherName, FatherOccupation = @FatherOccupation, FatherStatus = @FatherStatus,
+            MotherName = @MotherName, MotherOccupation = @MotherOccupation, MotherStatus = @MotherStatus,
+            SiblingsAll = @SiblingCount, SiblingOrder = @SiblingOrder,
+            EmergencyName = @EmergencyName, EmergencyRelation = @EmergencyRelation,
+            EmergencyAddress = @EmergencyAddress, EmergencyPhone = @EmergencyPhone,
+            School = @School, Faculty = @Faculty, Major = @Major, Minor = @Minor, YearOfStudy = @YearOfStudy, GPA = @GPA,
+            AdvisorName = @AdvisorName, AdvisorPhone = @AdvisorPhone, Activities = @Activities,
+            InfoSources = @InfoSources, InfoSourceStaffName = @InfoSourceStaffName,
+            InfoSourceDepartment = @InfoSourceDepartment, InfoSourceOther = @InfoSourceOther,
+            UserId = @UserID, ModifiedDate = GETDATE()
+        WHERE ApplicantID = @ApplicantID
+    END
+    ELSE
+    BEGIN
+        INSERT INTO T_APPLICANTS (
+            Title, FirstNameThai, LastNameThai, FirstNameEng, LastNameEng, Nickname, TitleENG, NicknameE,
+            Gender, BirthDate, Age, Height, Weight, CitizenID, CitizenIDIssuedBy, CitizenIDExpiresON,
+            CurrentAddress, CurrentProvinceID, CurrentDistrictID, CurrentSubDistrictID, CurrentPostalCode,
+            MobilePhone, Email, HomePhone, ReasonPosition, ReasonOther,
+            InternshipStartDate, InternshipEndDate, InternshipType, DurationMonths, DesiredField1, DesiredField2, DesiredField3,
+            PlaceOfBirth, Nationality, Race, Religion,
+            FatherName, FatherOccupation, FatherStatus, MotherName, MotherOccupation, MotherStatus,
+            SiblingsAll, SiblingOrder,
+            EmergencyName, EmergencyRelation, EmergencyAddress, EmergencyPhone,
+            School, Faculty, Major, Minor, YearOfStudy, GPA, AdvisorName, AdvisorPhone, Activities,
+            InfoSources, InfoSourceStaffName, InfoSourceDepartment, InfoSourceOther, UserId
+        )
+        VALUES (
+            @PrefixT, @NameFirstT, @NameLastT, @NameFirstE, @NameLastE, @NicknameT, @PrefixE, @NicknameE,
+            @GenderCode, @DateOfBirth, @Age, @Height, @Weight, @IDCardNo, @IDIssuedBy, @IDExpiredDate,
+            @Address, @ProvinceID, @DistrictID, @SubDistrictID, @PostalCode,
+            @Mobile, @Email, @Telephone, @Reason, @ReasonOther,
+            @StartDate, @EndDate, @InternshipType, @DurationMonths, @DesiredField1, @DesiredField2, @DesiredField3,
+            @PlaceOfBirth, @Nationality, @Race, @Religion,
+            @FatherName, @FatherOccupation, @FatherStatus, @MotherName, @MotherOccupation, @MotherStatus,
+            @SiblingCount, @SiblingOrder,
+            @EmergencyName, @EmergencyRelation, @EmergencyAddress, @EmergencyPhone,
+            @School, @Faculty, @Major, @Minor, @YearOfStudy, @GPA, @AdvisorName, @AdvisorPhone, @Activities,
+            @InfoSources, @InfoSourceStaffName, @InfoSourceDepartment, @InfoSourceOther, @UserID
+        )
+
+        SET @ApplicantID = CAST(SCOPE_IDENTITY() AS INT)
+    END
+
+    -- If this submission continues a Part1 assignment, reuse the JobApplications row already
+    -- linked from JobSlotAssignments (created ApplicantID = NULL by sp_AssignApplicantToSlot's
+    -- self-apply path) instead of the ApplicantID+JobID dedupe below, which would never match it
+    -- and would leave that row's ApplicantID NULL forever while creating an orphaned duplicate.
+    DECLARE @ApplicationID INT
+    IF @AssignmentID IS NOT NULL
+        SELECT @ApplicationID = ApplicationID FROM JobSlotAssignments WHERE AssignmentID = @AssignmentID
+
+    IF @ApplicationID IS NOT NULL
+    BEGIN
+        UPDATE JobApplications SET ApplicantID = @ApplicantID, JobID = @JobID, Status = @Status WHERE ApplicationID = @ApplicationID
+    END
+    ELSE
+    BEGIN
+        SELECT @ApplicationID = ApplicationID FROM JobApplications WHERE ApplicantID = @ApplicantID AND JobID = @JobID
+
+        IF @ApplicationID IS NOT NULL
+        BEGIN
+            UPDATE JobApplications SET Status = @Status WHERE ApplicationID = @ApplicationID
+        END
+        ELSE
+        BEGIN
+            INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+            VALUES (@ApplicantID, @JobID, @Status, GETDATE())
+
+            SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+        END
+    END
+
+    SELECT @ApplicantID AS ApplicantID, @ApplicationID AS ApplicationID
+END
+GO
+
 -- Second half of sp_CreateManualTraineeManagement's orchestration, split out so the
 -- usp_TraineeApplicant_Upsert call lives only in the wrapper below. Takes the ApplicantID/
 -- ApplicationID the wrapper already resolved and just creates the TraineeAssignments row.
@@ -998,7 +1184,7 @@ BEGIN
 
     DECLARE @ApplicantResult TABLE (ApplicantID INT, ApplicationID INT);
     INSERT INTO @ApplicantResult
-    EXEC usp_TraineeApplicant_Upsert
+    EXEC usp_TraineeApplicant_Upsert_Manual
         @StartDate=@StartDate, @EndDate=@EndDate, @DesiredField1=@DesiredField1, @DesiredField2=@DesiredField2,
         @DesiredField3=@DesiredField3, @InternshipType=@InternshipType, @DurationMonths=@DurationMonths, @Reason=@Reason, @ReasonOther=@ReasonOther,
         @PrefixT=@PrefixT, @NameFirstT=@NameFirstT, @NameLastT=@NameLastT, @NicknameT=@NicknameT,
