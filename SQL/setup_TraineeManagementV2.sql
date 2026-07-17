@@ -1,3 +1,11 @@
+-- All procedures in this file must be created with QUOTED_IDENTIFIER ON (required by
+-- sp_CreateTraineeManagementAssignment, which touches an object that needs it) -- sqlcmd's
+-- session default is OFF, so this has to be set explicitly before any CREATE PROCEDURE below.
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 -- Trainee intake management v2: department-fixed-quota model, running in parallel to the
 -- existing JobSlots/JobSlotAssignments (time-boxed batch) system. Neither JobSlots,
 -- JobSlotAssignments, nor any procedure that reads them (sp_GetCandidateAllForJobsV2,
@@ -925,12 +933,35 @@ BEGIN
 END
 GO
 
+-- Second half of sp_CreateManualTraineeManagement's orchestration, split out so the
+-- usp_TraineeApplicant_Upsert call lives only in the wrapper below. Takes the ApplicantID/
+-- ApplicationID the wrapper already resolved and just creates the TraineeAssignments row.
+CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement_Core
+    @ApplicantID INT, @ApplicationID INT,
+    @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
+    @StartDate DATE, @EndDate DATE, @AssignedByAdminID INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @AssignmentResult TABLE (Id INT, IsOverQuota BIT, ActiveOverlapCount INT, Quota INT);
+    INSERT INTO @AssignmentResult
+    EXEC sp_CreateTraineeManagementAssignment @CompanyCode=@CompanyCode, @DepartmentCode=@DepartmentCode,
+        @ApplicantID=@ApplicantID, @StartDate=@StartDate, @EndDate=@EndDate, @AssignedByAdminID=@AssignedByAdminID;
+
+    SELECT A.Id, @ApplicationID AS TraineeApplicationId, @ApplicantID AS ApplicantId,
+           A.IsOverQuota, A.ActiveOverlapCount, A.Quota
+    FROM @AssignmentResult A;
+END
+GO
+
 -- Admin-only orchestration target for POST /api/TraineeManagement/trainees/manual.
 -- The API starts the SQL transaction and enlists this procedure plus file metadata inserts in it.
 -- A real T_APPLICANTS row is deliberately created for a walk-in; ApplicantID and ApplicationID
 -- remain distinct identifiers. @JobID is optional and NULL by default (a walk-in isn't required
 -- to be tied to a posting), but the admin can pick one from
 -- sp_GetOpenTraineeJobsByDepartment to attribute the walk-in to a specific open posting.
+-- Resolves the applicant via usp_TraineeApplicant_Upsert, then hands off to
+-- sp_CreateManualTraineeManagement_Core for the assignment step.
 CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
     @StartDate DATE, @EndDate DATE,
@@ -988,13 +1019,10 @@ BEGIN
 
     DECLARE @ApplicantID INT, @ApplicationID INT;
     SELECT @ApplicantID=ApplicantID, @ApplicationID=ApplicationID FROM @ApplicantResult;
-    DECLARE @AssignmentResult TABLE (Id INT, IsOverQuota BIT, ActiveOverlapCount INT, Quota INT);
-    INSERT INTO @AssignmentResult
-    EXEC sp_CreateTraineeManagementAssignment @CompanyCode=@CompanyCode, @DepartmentCode=@DepartmentCode,
-        @ApplicantID=@ApplicantID, @StartDate=@StartDate, @EndDate=@EndDate, @AssignedByAdminID=@AssignedByAdminID;
 
-    SELECT A.Id, @ApplicationID AS TraineeApplicationId, @ApplicantID AS ApplicantId,
-           A.IsOverQuota, A.ActiveOverlapCount, A.Quota
-    FROM @AssignmentResult A;
+    EXEC sp_CreateManualTraineeManagement_Core
+        @ApplicantID=@ApplicantID, @ApplicationID=@ApplicationID,
+        @CompanyCode=@CompanyCode, @DepartmentCode=@DepartmentCode,
+        @StartDate=@StartDate, @EndDate=@EndDate, @AssignedByAdminID=@AssignedByAdminID;
 END
 GO
