@@ -628,7 +628,7 @@ namespace JobOnlineAPI.Services
                     commandType: CommandType.StoredProcedure);
 
                 var urlResult = urllist.FirstOrDefault();
-                string fromRegis = urlResult != null ? urlResult.LoginUrl?.ToString() ?? "ลิงก์ไม่พร้อมใช้งาน" : "ลิงก์ไม่พร้อมใช้งาน";
+                string fromRegis = BuildCandidateLoginUrl(urlResult);
 
                 string reqBody = GenerateWaittingCandidateInFoEmailBody(candidateName, requestData?.JobTitle!, fromRegis);
                 //    $@"
@@ -662,6 +662,34 @@ namespace JobOnlineAPI.Services
                 _logger.LogError(ex, "Error executing GetDataForEmailNotiSelectCandidate with");
                 throw;
             }
+        }
+
+        private const string LoginUrlUnavailable = "ลิงก์ไม่พร้อมใช้งาน";
+
+        private string BuildCandidateLoginUrl(dynamic? urlResult)
+        {
+            if (urlResult == null)
+                return LoginUrlUnavailable;
+
+            bool isTrainee = urlResult.IsTrainee == true;
+
+            if (isTrainee)
+            {
+                var template = _config["EmailNotiUrls:TraineeLoginUrl"];
+                var assignmentId = urlResult.AssignmentID;
+                if (string.IsNullOrWhiteSpace(template) || assignmentId == null)
+                    return LoginUrlUnavailable;
+
+                return string.Format(template, assignmentId);
+            }
+
+            var candidateTemplate = _config["EmailNotiUrls:CandidateLoginUrl"];
+            var jobId = urlResult.JobID;
+            string? companyName = urlResult.CompanyName?.ToString();
+            if (string.IsNullOrWhiteSpace(candidateTemplate) || jobId == null)
+                return LoginUrlUnavailable;
+
+            return string.Format(candidateTemplate, jobId, companyName);
         }
 
        private async Task InsertEmailSendQueueAsync( IDbConnection connection, ApplicantRequestData requestData, string emailBody, string emailSubject)
