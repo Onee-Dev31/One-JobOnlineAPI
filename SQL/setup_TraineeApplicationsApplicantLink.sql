@@ -146,6 +146,11 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
+-- sp_CreateManualTraineeManagement (SQL/setup_TraineeManagementV2.sql) is a deliberate
+-- duplicate of this proc's applicant-upsert logic, folded in as a self-contained proc for the
+-- admin manual-entry flow. If a bug fix or new field belongs in both the self-apply/Part2 flow
+-- (this proc, called from TraineeApplicationsController.cs) and the admin manual-entry flow,
+-- apply it to both.
 CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
     @AssignmentID INT = NULL, -- Part1 JobSlotAssignments.AssignmentID, when this submission continues one
     @StartDate DATE = NULL,

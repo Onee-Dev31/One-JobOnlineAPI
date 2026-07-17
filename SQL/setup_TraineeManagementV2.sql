@@ -1,3 +1,11 @@
+-- All procedures in this file must be created with QUOTED_IDENTIFIER ON (required by
+-- sp_CreateTraineeManagementAssignment, which touches an object that needs it) -- sqlcmd's
+-- session default is OFF, so this has to be set explicitly before any CREATE PROCEDURE below.
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
 -- Trainee intake management v2: department-fixed-quota model, running in parallel to the
 -- existing JobSlots/JobSlotAssignments (time-boxed batch) system. Neither JobSlots,
 -- JobSlotAssignments, nor any procedure that reads them (sp_GetCandidateAllForJobsV2,
@@ -931,6 +939,12 @@ GO
 -- remain distinct identifiers. @JobID is optional and NULL by default (a walk-in isn't required
 -- to be tied to a posting), but the admin can pick one from
 -- sp_GetOpenTraineeJobsByDepartment to attribute the walk-in to a specific open posting.
+-- Deliberately self-contained (no EXEC of other custom procs): the applicant upsert logic is a
+-- duplicate of usp_TraineeApplicant_Upsert (setup_TraineeApplicationsApplicantLink.sql), and the
+-- assignment logic is a duplicate of sp_CreateTraineeManagementAssignment (also in this file,
+-- still used directly by POST /api/TraineeManagement/trainees). Trade-off accepted: those two
+-- bodies WILL drift over time. When fixing a bug or adding a field in one, check whether the same
+-- change belongs here too before deploying.
 CREATE OR ALTER PROCEDURE sp_CreateManualTraineeManagement
     @CompanyCode NVARCHAR(50), @DepartmentCode NVARCHAR(200),
     @StartDate DATE, @EndDate DATE,
@@ -965,36 +979,178 @@ BEGIN
         RETURN;
     END
 
-    DECLARE @ApplicantResult TABLE (ApplicantID INT, ApplicationID INT);
-    INSERT INTO @ApplicantResult
-    EXEC usp_TraineeApplicant_Upsert
-        @StartDate=@StartDate, @EndDate=@EndDate, @DesiredField1=@DesiredField1, @DesiredField2=@DesiredField2,
-        @DesiredField3=@DesiredField3, @InternshipType=@InternshipType, @DurationMonths=@DurationMonths, @Reason=@Reason, @ReasonOther=@ReasonOther,
-        @PrefixT=@PrefixT, @NameFirstT=@NameFirstT, @NameLastT=@NameLastT, @NicknameT=@NicknameT,
-        @PrefixE=@PrefixE, @NameFirstE=@NameFirstE, @NameLastE=@NameLastE, @NicknameE=@NicknameE,
-        @Gender=@Gender, @DateOfBirth=@DateOfBirth, @Age=@Age, @PlaceOfBirth=@PlaceOfBirth, @Nationality=@Nationality,
-        @Race=@Race, @Religion=@Religion, @Height=@Height, @Weight=@Weight, @IDCardNo=@IDCardNo,
-        @IDIssuedBy=@IDIssuedBy, @IDExpiredDate=@IDExpiredDate, @Address=@Address, @ProvinceID=@ProvinceID,
-        @DistrictID=@DistrictID, @SubDistrictID=@SubDistrictID, @PostalCode=@PostalCode, @Telephone=@Telephone,
-        @Mobile=@Mobile, @Email=@Email, @FatherName=@FatherName, @FatherOccupation=@FatherOccupation,
-        @FatherStatus=@FatherStatus, @MotherName=@MotherName, @MotherOccupation=@MotherOccupation,
-        @MotherStatus=@MotherStatus, @SiblingCount=@SiblingCount, @SiblingOrder=@SiblingOrder,
-        @EmergencyName=@EmergencyName, @EmergencyRelation=@EmergencyRelation, @EmergencyAddress=@EmergencyAddress,
-        @EmergencyPhone=@EmergencyPhone, @School=@School, @Faculty=@Faculty, @Major=@Major, @Minor=@Minor,
-        @YearOfStudy=@YearOfStudy, @GPA=@GPA, @AdvisorName=@AdvisorName, @AdvisorPhone=@AdvisorPhone, @Activities=@Activities,
-        @InfoSources=@InfoSources, @InfoSourceStaffName=@InfoSourceStaffName,
-        @InfoSourceDepartment=@InfoSourceDepartment, @InfoSourceOther=@InfoSourceOther,
-        @Status=N'Employment confirm', @JobID=@JobID;
+    IF NOT EXISTS (
+        SELECT 1 FROM [HRMS_LINKED_SERVER].HRMS.dbo.T_EMPLOYEE_SSO
+        WHERE COMPANY_CODE = @CompanyCode AND COSTCENT = @DepartmentCode
+    )
+    BEGIN
+        RAISERROR('ไม่พบแผนกนี้ในบริษัทที่ระบุ', 16, 1);
+        RETURN;
+    END
 
-    DECLARE @ApplicantID INT, @ApplicationID INT;
-    SELECT @ApplicantID=ApplicantID, @ApplicationID=ApplicationID FROM @ApplicantResult;
-    DECLARE @AssignmentResult TABLE (Id INT, IsOverQuota BIT, ActiveOverlapCount INT, Quota INT);
-    INSERT INTO @AssignmentResult
-    EXEC sp_CreateTraineeManagementAssignment @CompanyCode=@CompanyCode, @DepartmentCode=@DepartmentCode,
-        @ApplicantID=@ApplicantID, @StartDate=@StartDate, @EndDate=@EndDate, @AssignedByAdminID=@AssignedByAdminID;
+    -- ===== Upsert applicant (duplicated from usp_TraineeApplicant_Upsert) =====
+    DECLARE @GenderCode CHAR(1) = CASE
+        WHEN @Gender IS NULL THEN NULL
+        WHEN @Gender IN ('male', N'ชาย') THEN 'M'
+        WHEN @Gender IN ('female', N'หญิง') THEN 'F'
+        ELSE 'O'
+    END
 
-    SELECT A.Id, @ApplicationID AS TraineeApplicationId, @ApplicantID AS ApplicantId,
-           A.IsOverQuota, A.ActiveOverlapCount, A.Quota
-    FROM @AssignmentResult A;
+    DECLARE @ApplicantID INT
+
+    IF @IDCardNo IS NOT NULL AND LTRIM(RTRIM(@IDCardNo)) <> ''
+        SELECT @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE CitizenID = @IDCardNo
+
+    -- No CitizenID match (often because IDCardNo wasn't submitted at all) — fall back to
+    -- Mobile+Email so re-applying to a different job doesn't insert a second T_APPLICANTS row
+    -- for the same person.
+    IF @ApplicantID IS NULL
+        SELECT TOP 1 @ApplicantID = ApplicantID FROM T_APPLICANTS WHERE MobilePhone = @Mobile AND Email = @Email ORDER BY ApplicantID DESC
+
+    IF @ApplicantID IS NOT NULL
+    BEGIN
+        UPDATE T_APPLICANTS SET
+            Title = @PrefixT, FirstNameThai = @NameFirstT, LastNameThai = @NameLastT, Nickname = @NicknameT,
+            TitleENG = @PrefixE, FirstNameEng = @NameFirstE, LastNameEng = @NameLastE, NicknameE = @NicknameE,
+            Gender = @GenderCode, BirthDate = @DateOfBirth, Age = @Age, Height = @Height, Weight = @Weight,
+            CitizenID = @IDCardNo, CitizenIDIssuedBy = @IDIssuedBy, CitizenIDExpiresON = @IDExpiredDate,
+            CurrentAddress = @Address, CurrentProvinceID = @ProvinceID, CurrentDistrictID = @DistrictID,
+            CurrentSubDistrictID = @SubDistrictID, CurrentPostalCode = @PostalCode,
+            MobilePhone = @Mobile, Email = @Email, HomePhone = @Telephone,
+            ReasonPosition = @Reason, ReasonOther = @ReasonOther,
+            InternshipStartDate = @StartDate, InternshipEndDate = @EndDate, InternshipType = @InternshipType, DurationMonths = @DurationMonths,
+            DesiredField1 = @DesiredField1, DesiredField2 = @DesiredField2, DesiredField3 = @DesiredField3,
+            PlaceOfBirth = @PlaceOfBirth, Nationality = @Nationality, Race = @Race, Religion = @Religion,
+            FatherName = @FatherName, FatherOccupation = @FatherOccupation, FatherStatus = @FatherStatus,
+            MotherName = @MotherName, MotherOccupation = @MotherOccupation, MotherStatus = @MotherStatus,
+            SiblingsAll = @SiblingCount, SiblingOrder = @SiblingOrder,
+            EmergencyName = @EmergencyName, EmergencyRelation = @EmergencyRelation,
+            EmergencyAddress = @EmergencyAddress, EmergencyPhone = @EmergencyPhone,
+            School = @School, Faculty = @Faculty, Major = @Major, Minor = @Minor, YearOfStudy = @YearOfStudy, GPA = @GPA,
+            AdvisorName = @AdvisorName, AdvisorPhone = @AdvisorPhone, Activities = @Activities,
+            InfoSources = @InfoSources, InfoSourceStaffName = @InfoSourceStaffName,
+            InfoSourceDepartment = @InfoSourceDepartment, InfoSourceOther = @InfoSourceOther,
+            UserId = NULL, ModifiedDate = GETDATE()
+        WHERE ApplicantID = @ApplicantID
+    END
+    ELSE
+    BEGIN
+        INSERT INTO T_APPLICANTS (
+            Title, FirstNameThai, LastNameThai, FirstNameEng, LastNameEng, Nickname, TitleENG, NicknameE,
+            Gender, BirthDate, Age, Height, Weight, CitizenID, CitizenIDIssuedBy, CitizenIDExpiresON,
+            CurrentAddress, CurrentProvinceID, CurrentDistrictID, CurrentSubDistrictID, CurrentPostalCode,
+            MobilePhone, Email, HomePhone, ReasonPosition, ReasonOther,
+            InternshipStartDate, InternshipEndDate, InternshipType, DurationMonths, DesiredField1, DesiredField2, DesiredField3,
+            PlaceOfBirth, Nationality, Race, Religion,
+            FatherName, FatherOccupation, FatherStatus, MotherName, MotherOccupation, MotherStatus,
+            SiblingsAll, SiblingOrder,
+            EmergencyName, EmergencyRelation, EmergencyAddress, EmergencyPhone,
+            School, Faculty, Major, Minor, YearOfStudy, GPA, AdvisorName, AdvisorPhone, Activities,
+            InfoSources, InfoSourceStaffName, InfoSourceDepartment, InfoSourceOther, UserId
+        )
+        VALUES (
+            @PrefixT, @NameFirstT, @NameLastT, @NameFirstE, @NameLastE, @NicknameT, @PrefixE, @NicknameE,
+            @GenderCode, @DateOfBirth, @Age, @Height, @Weight, @IDCardNo, @IDIssuedBy, @IDExpiredDate,
+            @Address, @ProvinceID, @DistrictID, @SubDistrictID, @PostalCode,
+            @Mobile, @Email, @Telephone, @Reason, @ReasonOther,
+            @StartDate, @EndDate, @InternshipType, @DurationMonths, @DesiredField1, @DesiredField2, @DesiredField3,
+            @PlaceOfBirth, @Nationality, @Race, @Religion,
+            @FatherName, @FatherOccupation, @FatherStatus, @MotherName, @MotherOccupation, @MotherStatus,
+            @SiblingCount, @SiblingOrder,
+            @EmergencyName, @EmergencyRelation, @EmergencyAddress, @EmergencyPhone,
+            @School, @Faculty, @Major, @Minor, @YearOfStudy, @GPA, @AdvisorName, @AdvisorPhone, @Activities,
+            @InfoSources, @InfoSourceStaffName, @InfoSourceDepartment, @InfoSourceOther, NULL
+        )
+
+        SET @ApplicantID = CAST(SCOPE_IDENTITY() AS INT)
+    END
+
+    DECLARE @Status NVARCHAR(50) = N'Employment confirm';
+    DECLARE @ApplicationID INT
+    SELECT @ApplicationID = ApplicationID FROM JobApplications WHERE ApplicantID = @ApplicantID AND JobID = @JobID
+
+    IF @ApplicationID IS NOT NULL
+    BEGIN
+        UPDATE JobApplications SET Status = @Status WHERE ApplicationID = @ApplicationID
+    END
+    ELSE
+    BEGIN
+        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+        VALUES (@ApplicantID, @JobID, @Status, GETDATE())
+
+        SET @ApplicationID = CAST(SCOPE_IDENTITY() AS INT)
+    END
+
+    -- ===== Create trainee assignment (duplicated from sp_CreateTraineeManagementAssignment) =====
+    DECLARE @Title NVARCHAR(20), @FName NVARCHAR(200), @LName NVARCHAR(200), @Nick NVARCHAR(50), @Univ NVARCHAR(200);
+
+    SELECT @Title = Title, @FName = FirstNameThai, @LName = LastNameThai,
+           @Nick = Nickname, @Univ = University
+    FROM T_APPLICANTS
+    WHERE ApplicantID = @ApplicantID;
+
+    DECLARE @Quota INT;
+    SELECT @Quota = Required FROM vw_TraineeDepartmentRequired WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode;
+    SET @Quota = ISNULL(@Quota, 0);
+
+    DECLARE @ActiveOverlapCount INT, @IsOverQuota BIT = 0;
+    SELECT @ActiveOverlapCount = COUNT(*)
+    FROM TraineeAssignments
+    WHERE CompanyCode = @CompanyCode AND DepartmentCode = @DepartmentCode
+      AND Status <> 'Cancelled'
+      AND ManualInternStartDate <= @EndDate AND ManualInternEndDate >= @StartDate;
+
+    IF (@ActiveOverlapCount + 1) > @Quota
+        SET @IsOverQuota = 1;
+
+    -- If this applicant already has a JobApplications row not yet claimed by another
+    -- TraineeAssignments (e.g. the row just upserted above), reuse it instead of inserting a
+    -- duplicate — otherwise files attached to that submission (T_APPLICANT_FILES, keyed by
+    -- ApplicationID) end up orphaned from the assignment this proc creates. This independently
+    -- re-resolves an ApplicationID rather than reusing @ApplicationID from the upsert step above,
+    -- matching the original two-hop (usp_TraineeApplicant_Upsert_Manual -> sp_CreateTraineeManagementAssignment)
+    -- behavior exactly: the two are usually the same row, but @ApplicationID (used below for
+    -- TraineeApplicationId in the result) and @AssignApplicationID (used for the TraineeAssignments FK)
+    -- are resolved independently, same as before this refactor.
+    DECLARE @AssignApplicationID INT = NULL;
+
+    SELECT TOP 1 @AssignApplicationID = JA.ApplicationID
+    FROM JobApplications JA
+    WHERE JA.ApplicantID = @ApplicantID
+      AND NOT EXISTS (
+          SELECT 1 FROM TraineeAssignments TA
+          WHERE TA.ApplicationID = JA.ApplicationID AND TA.Status <> 'Cancelled'
+      )
+    ORDER BY JA.SubmissionDate DESC;
+
+    IF @AssignApplicationID IS NOT NULL
+    BEGIN
+        UPDATE JobApplications SET Status = 'Employment confirm' WHERE ApplicationID = @AssignApplicationID;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO JobApplications (ApplicantID, JobID, Status, SubmissionDate)
+        VALUES (@ApplicantID, NULL, 'Employment confirm', GETDATE());
+
+        SET @AssignApplicationID = CAST(SCOPE_IDENTITY() AS INT);
+    END
+
+    INSERT INTO TraineeAssignments (
+        CompanyCode, DepartmentCode, ApplicationID,
+        ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname, ManualUniversity,
+        ManualInternStartDate, ManualInternEndDate,
+        AssignedByAdminID
+    )
+    VALUES (
+        @CompanyCode, @DepartmentCode, @AssignApplicationID,
+        @Title, @FName, @LName, @Nick, @Univ,
+        @StartDate, @EndDate,
+        @AssignedByAdminID
+    )
+
+    DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
+
+    SELECT @NewAssignmentID AS Id, @ApplicationID AS TraineeApplicationId, @ApplicantID AS ApplicantId,
+           @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota;
 END
 GO
