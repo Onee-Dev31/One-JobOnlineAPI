@@ -446,6 +446,7 @@ namespace JobOnlineAPI.Services
                 recipientNames = firstRecord?.ApproveNameThai;
                 requesterMail = ((string?)firstRecord?.EMAIL)?.Trim();
                 recipientDep = firstRecord?.NAMECOSTCENT;
+                tel = firstRecord?.Tel;
             }
 
             string? requesterName = requestData.Role == 2 ? recipientNames : requestData.RequesterName;
