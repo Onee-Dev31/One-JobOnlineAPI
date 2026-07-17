@@ -114,7 +114,6 @@ namespace JobOnlineAPI.Controllers
                         request.DesiredField2,
                         request.DesiredField3,
                         request.InternshipType,
-                        request.DurationMonths,
                         request.Reason,
                         request.ReasonOther,
                         request.PrefixT,
@@ -127,7 +126,6 @@ namespace JobOnlineAPI.Controllers
                         request.NicknameE,
                         request.Gender,
                         request.DateOfBirth,
-                        request.Age,
                         request.PlaceOfBirth,
                         request.Nationality,
                         request.Race,
@@ -162,7 +160,6 @@ namespace JobOnlineAPI.Controllers
                         request.Major,
                         request.Minor,
                         request.YearOfStudy,
-                        request.GPA,
                         request.AdvisorName,
                         request.AdvisorPhone,
                         request.Activities,
@@ -171,7 +168,8 @@ namespace JobOnlineAPI.Controllers
                         request.InfoSourceDepartment,
                         request.InfoSourceOther,
                         request.Status,
-                        request.JobID
+                        request.JobID,
+                        request.UserID
                     },
                     commandType: CommandType.StoredProcedure);
 
