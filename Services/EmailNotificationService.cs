@@ -279,7 +279,7 @@ namespace JobOnlineAPI.Services
             using var connection = _context.CreateConnection();
 
             var candidateData = await connection.QueryFirstOrDefaultAsync<dynamic>(
-                "GetTraineeDataByAppJobForSendMail",
+                "GetTraineeDataByAppJobForSendMail_V2",
                 new { TraineeApplicationID, JobID },
                 commandType: CommandType.StoredProcedure);
 

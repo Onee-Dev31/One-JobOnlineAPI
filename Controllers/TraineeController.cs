@@ -17,14 +17,18 @@ namespace JobOnlineAPI.Controllers
     public class TraineeController(
         IConfiguration configuration,
         INetworkShareService networkShareService,
-        IJwtTokenService jwtTokenService
+        IEmailNotificationService emailNotificationService,
+        IJwtTokenService jwtTokenService,
+        ILogger<ApplicantNewController> logger
         ) : ControllerBase
     {
         private readonly string _connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("DefaultConnection is not configured.");
         private readonly INetworkShareService _networkShareService = networkShareService;
+        private readonly IEmailNotificationService _emailNotificationService = emailNotificationService;
         private readonly IJwtTokenService _jwtTokenService = jwtTokenService;
         private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+        private readonly ILogger _logger = logger;
         private static readonly string[] AllowedExtensions = [".pdf", ".png", ".jpg", ".jpeg", ".doc", ".docx"];
         private static readonly string[] AllowedMimeTypes =
         [
@@ -236,6 +240,17 @@ namespace JobOnlineAPI.Controllers
                     {
                         if (files == null || files.Count == 0) continue;
                         await SaveFilesAsync(conn, files, result.AssignmentID, section);
+                    }
+
+                    try
+                    {
+                        // ฟอร์ม Email ใหม่
+                        await _emailNotificationService.SendEmailsTraineeRegisterAsync(result.AssignmentID, request.JobID);
+                        await _emailNotificationService.SendEmailsNotiHrAfterApplyAsync(result.AssignmentID, request.JobID, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Send email failed (ApplicantID: {ApplicantID})", result.AssignmentID);
                     }
 
                     // Note: unlike JobSlotsController's AssignApplicantCoreAsync, this does not send

@@ -50,12 +50,17 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> GetById(int assignmentID, int applicationId)
+        public async Task<IActionResult> GetById(int? assignmentID, int? applicationId, int? applicantId)
         {
             using var conn = _context.CreateConnection();
             using var multi = await conn.QueryMultipleAsync(
                 "sp_GetTraineeApplicationByID",
-                new { AssignmentID = assignmentID, ApplicationID = applicationId },
+                new
+                {
+                    AssignmentID = Normalize(assignmentID),
+                    ApplicationID = Normalize(applicationId),
+                    ApplicantID = Normalize(applicantId)
+                },
                 commandType: CommandType.StoredProcedure);
 
             var application = await multi.ReadFirstOrDefaultAsync<dynamic>();
@@ -66,6 +71,10 @@ namespace JobOnlineAPI.Controllers
 
             return Ok(new { Application = application, Files = files });
         }
+
+        // Query params default to 0 when omitted from the URL; treat that (and any non-positive
+        // value) as "not provided" so the SP's IS NULL checks work instead of matching ID 0.
+        private static int? Normalize(int? value) => value is null or <= 0 ? null : value;
 
         [HttpPost("upsert")]
         [Consumes("multipart/form-data")]
