@@ -319,7 +319,7 @@ namespace JobOnlineAPI.Services
                 {
                     candidateData = istrainee
                         ? await connection.QueryFirstOrDefaultAsync<dynamic>(
-                            "GetTraineeDataByAppJobForSendMail",
+                            "GetTraineeDataByAppJobForSendMail_V2",
                             new { TraineeApplicationID = ApplicationID, JobID },
                             commandType: CommandType.StoredProcedure)
                         : await connection.QueryFirstOrDefaultAsync<dynamic>(
