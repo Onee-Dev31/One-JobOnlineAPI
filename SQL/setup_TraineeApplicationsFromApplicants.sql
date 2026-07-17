@@ -214,10 +214,21 @@ BEGIN
     -- keyed by TraineeAssignments.AssignmentID). sp_CreateTraineeManagementAssignment already
     -- links TraineeAssignments.ApplicationID back to this same JobApplications.ApplicationID
     -- when reusing a Part2 submission, so join through that to surface both.
+    --
+    -- FilePath is stored as whatever absolute path INetworkShareService.GetBasePath() resolved to at
+    -- upload time -- a UNC network path with a host baked in ("//10.2.0.11/AppFiles/...") under
+    -- Windows dev, or a local drive path ("C:/AppFiles/...") in Production. Frontend prepends its own
+    -- API base URL, so that prefix doubles up into a broken URL. Normalize to keep only from
+    -- "AppFiles/" onward regardless of what preceded it (see setup_ApplicantDataFormTraineeFiles.sql
+    -- for the same fix applied to sp_GetApplicantDataAllForForm).
     SELECT
         f.FileID,
         @ResolvedApplicantID AS TraineeApplicationID,
-        f.FilePath,
+        CASE
+            WHEN CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')) > 0
+                THEN SUBSTRING(REPLACE(f.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')), 4000)
+            ELSE REPLACE(f.FilePath, '\', '/')
+        END AS FilePath,
         f.FileName,
         f.FileSize,
         f.FileType,
@@ -232,7 +243,11 @@ BEGIN
     SELECT
         F.FileID,
         @ResolvedApplicantID AS TraineeApplicationID,
-        F.FilePath,
+        CASE
+            WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+            ELSE REPLACE(F.FilePath, '\', '/')
+        END AS FilePath,
         F.FileName,
         F.FileSize,
         F.FileType,

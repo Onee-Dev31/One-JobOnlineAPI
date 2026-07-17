@@ -12,6 +12,16 @@
 -- 'Section1'/'Section2' like ApplicantFiles -- left as-is (not relabeled) since they're genuinely a
 -- different document type; frontend needs to widen its SectionFile filter to see them (see
 -- frontend_applicantnew_filelist_traineefiles_prompt.md).
+--
+-- FilePath is stored as whatever absolute path INetworkShareService.GetBasePath() resolved to at
+-- upload time (Path.Combine(GetBasePath(), ...), see TraineeController.SaveFilesAsync /
+-- FileProcessingService.ProcessFilesAsync) -- that's a UNC network path with a host baked in
+-- ("//10.2.0.11/AppFiles/...") when the API runs as Windows dev against FileStorage:NetworkPath, or a
+-- local drive path ("C:/AppFiles/...") under FileStorage:ProductionPath. Frontend prepends its own API
+-- base URL, so any of these prefixes double up into a broken URL. Normalize by keeping only from
+-- "AppFiles/" onward, regardless of what host/drive preceded it -- same fix applied everywhere else
+-- FilePath is read from ApplicantFiles/TraineeAssignmentFiles (sp_GetTraineeApplicationByID and the
+-- trainee-management overview/seed-data procs in setup_TraineeManagementV2.sql).
 CREATE OR ALTER PROCEDURE [dbo].[sp_GetApplicantDataAllForForm]
     @ApplicantID INT = NULL,
     @JobID INT = NULL
@@ -133,14 +143,28 @@ BEGIN
         OUTER APPLY (
             SELECT (
                 SELECT * FROM (
-                    SELECT f.FileID, REPLACE(f.FilePath, 'C:/', '') AS FilePath, f.FileName, f.SectionFile, f.JobID
+                    SELECT
+                        f.FileID,
+                        CASE
+                            WHEN CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')) > 0
+                                THEN SUBSTRING(REPLACE(f.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')), 4000)
+                            ELSE REPLACE(f.FilePath, '\', '/')
+                        END AS FilePath,
+                        f.FileName, f.SectionFile, f.JobID
                     FROM ApplicantFiles f
                     WHERE f.ApplicantID = a.ApplicantID
                         AND (@JobID IS NULL OR f.JobID = @JobID)
 
                     UNION ALL
 
-                    SELECT F.FileID, REPLACE(F.FilePath, 'C:/', '') AS FilePath, F.FileName, F.SectionFile, ja.JobID
+                    SELECT
+                        F.FileID,
+                        CASE
+                            WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                                THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+                            ELSE REPLACE(F.FilePath, '\', '/')
+                        END AS FilePath,
+                        F.FileName, F.SectionFile, ja.JobID
                     FROM TraineeAssignments TA
                     INNER JOIN TraineeAssignmentFiles F ON F.AssignmentID = TA.AssignmentID
                     WHERE TA.ApplicationID = ja.ApplicationID
@@ -308,14 +332,28 @@ BEGIN
         OUTER APPLY (
             SELECT (
                 SELECT * FROM (
-                    SELECT f.FileID, REPLACE(f.FilePath, 'C:/', '') AS FilePath, f.FileName, f.SectionFile, f.JobID
+                    SELECT
+                        f.FileID,
+                        CASE
+                            WHEN CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')) > 0
+                                THEN SUBSTRING(REPLACE(f.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(f.FilePath, '\', '/')), 4000)
+                            ELSE REPLACE(f.FilePath, '\', '/')
+                        END AS FilePath,
+                        f.FileName, f.SectionFile, f.JobID
                     FROM ApplicantFiles f
                     WHERE f.ApplicantID = a.ApplicantID
                         AND (@JobID IS NULL OR f.JobID = @JobID)
 
                     UNION ALL
 
-                    SELECT F.FileID, REPLACE(F.FilePath, 'C:/', '') AS FilePath, F.FileName, F.SectionFile, ja.JobID
+                    SELECT
+                        F.FileID,
+                        CASE
+                            WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                                THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+                            ELSE REPLACE(F.FilePath, '\', '/')
+                        END AS FilePath,
+                        F.FileName, F.SectionFile, ja.JobID
                     FROM TraineeAssignments TA
                     INNER JOIN TraineeAssignmentFiles F ON F.AssignmentID = TA.AssignmentID
                     WHERE TA.ApplicationID = ja.ApplicationID

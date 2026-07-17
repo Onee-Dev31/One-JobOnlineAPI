@@ -509,7 +509,18 @@ BEGIN
         A.ManualFlexibleWork AS FlexibleWork,
         A.ManualReasonForInterest AS ReasonForInterest,
         (
-            SELECT F.FileID, F.FilePath, F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
+            -- FilePath carries whatever absolute path GetBasePath() resolved to at upload time (host-
+            -- prefixed UNC under Windows dev, C:/ under Production) -- normalize to a relative path so
+            -- frontend's base-URL join doesn't double up the host (see
+            -- setup_ApplicantDataFormTraineeFiles.sql for the same fix elsewhere).
+            SELECT
+                F.FileID,
+                CASE
+                    WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                        THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+                    ELSE REPLACE(F.FilePath, '\', '/')
+                END AS FilePath,
+                F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
             FROM TraineeAssignmentFiles F
             WHERE F.AssignmentID = A.AssignmentID
             FOR JSON PATH
@@ -569,8 +580,16 @@ BEGIN
     FROM TraineeAssignments A
     WHERE A.AssignmentID = @AssignmentID
 
+    -- Same host-prefix normalization as the overview proc above (F.FilePath is an absolute path
+    -- baked in at upload time -- see setup_ApplicantDataFormTraineeFiles.sql).
     SELECT
-        F.FileID, F.AssignmentID, F.FilePath, F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
+        F.FileID, F.AssignmentID,
+        CASE
+            WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+            ELSE REPLACE(F.FilePath, '\', '/')
+        END AS FilePath,
+        F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
     FROM TraineeAssignmentFiles F
     WHERE F.AssignmentID = @AssignmentID
 END
