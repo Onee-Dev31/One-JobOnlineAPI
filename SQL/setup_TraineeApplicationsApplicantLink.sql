@@ -211,7 +211,8 @@ CREATE OR ALTER PROCEDURE usp_TraineeApplicant_Upsert
     @InfoSourceDepartment NVARCHAR(200) = NULL,
     @InfoSourceOther NVARCHAR(200) = NULL,
     @Status NVARCHAR(50) = 'pending',
-    @JobID INT = NULL -- NULL for walk-in entries not tied to a specific job posting
+    @JobID INT = NULL, -- NULL for walk-in entries not tied to a specific job posting
+    @UserID INT = NULL -- candidate's Users.UserId (auth_token JWT/cookie); NULL for a staff manual/walk-in entry
 AS
 BEGIN
     SET NOCOUNT ON
@@ -257,7 +258,7 @@ BEGIN
             AdvisorName = @AdvisorName, AdvisorPhone = @AdvisorPhone, Activities = @Activities,
             InfoSources = @InfoSources, InfoSourceStaffName = @InfoSourceStaffName,
             InfoSourceDepartment = @InfoSourceDepartment, InfoSourceOther = @InfoSourceOther,
-            ModifiedDate = GETDATE()
+            UserId = @UserID, ModifiedDate = GETDATE()
         WHERE ApplicantID = @ApplicantID
     END
     ELSE
@@ -273,7 +274,7 @@ BEGIN
             SiblingsAll, SiblingOrder,
             EmergencyName, EmergencyRelation, EmergencyAddress, EmergencyPhone,
             School, Faculty, Major, Minor, YearOfStudy, GPA, AdvisorName, AdvisorPhone, Activities,
-            InfoSources, InfoSourceStaffName, InfoSourceDepartment, InfoSourceOther
+            InfoSources, InfoSourceStaffName, InfoSourceDepartment, InfoSourceOther, UserId
         )
         VALUES (
             @PrefixT, @NameFirstT, @NameLastT, @NameFirstE, @NameLastE, @NicknameT, @PrefixE, @NicknameE,
@@ -286,7 +287,7 @@ BEGIN
             @SiblingCount, @SiblingOrder,
             @EmergencyName, @EmergencyRelation, @EmergencyAddress, @EmergencyPhone,
             @School, @Faculty, @Major, @Minor, @YearOfStudy, @GPA, @AdvisorName, @AdvisorPhone, @Activities,
-            @InfoSources, @InfoSourceStaffName, @InfoSourceDepartment, @InfoSourceOther
+            @InfoSources, @InfoSourceStaffName, @InfoSourceDepartment, @InfoSourceOther, @UserID
         )
 
         SET @ApplicantID = CAST(SCOPE_IDENTITY() AS INT)
