@@ -188,7 +188,15 @@ BEGIN
         a.EmergencyRelation,
         a.EmergencyAddress,
         a.EmergencyPhone,
-        a.School,
+        -- Admin manual-entry trainees (sp_CreateManualTraineeManagement) can leave T_APPLICANTS.School
+        -- NULL; the university they typed lands on TraineeAssignments.ManualUniversity instead. Fall
+        -- back to that so the view doesn't show an empty School for those rows.
+        COALESCE(a.School, (
+            SELECT TOP 1 ta.ManualUniversity
+            FROM TraineeAssignments ta
+            WHERE ta.ApplicationID = b.ApplicationID AND ta.Status <> 'Cancelled'
+            ORDER BY ta.AssignmentID DESC
+        )) AS School,
         a.Faculty,
         a.Major,
         a.Minor,
