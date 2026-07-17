@@ -241,4 +241,154 @@ namespace JobOnlineAPI.Models
         [System.Text.Json.Serialization.JsonIgnore]
         public string? DepartmentCode { get; set; }
     }
+
+    public class TraineeDetail
+    {
+        // =========================
+        // Assignment
+        // =========================
+        public int AssignmentID { get; set; }
+        public int? ApplicationID { get; set; }
+
+        // =========================
+        // Job Application
+        // =========================
+        public int? ApplicantID { get; set; }
+        public int? JobID { get; set; }
+
+        // =========================
+        // Applicant - Personal
+        // =========================
+        public string? Title { get; set; }
+        public string? TitleENG { get; set; }
+
+        public string? FirstNameThai { get; set; }
+        public string? LastNameThai { get; set; }
+
+        public string? FirstNameEng { get; set; }
+        public string? LastNameEng { get; set; }
+
+        public string? Nickname { get; set; }
+        public string? NicknameE { get; set; }
+
+        public string? Gender { get; set; }
+
+        public DateTime? BirthDate { get; set; }
+        public int? Age { get; set; }
+        public string? PlaceOfBirth { get; set; }
+
+        public string? Nationality { get; set; }
+        public string? Race { get; set; }
+        public string? Religion { get; set; }
+
+        public decimal? Weight { get; set; }
+        public decimal? Height { get; set; }
+
+        // =========================
+        // Contact
+        // =========================
+        public string? MobilePhone { get; set; }
+        public string? HomePhone { get; set; }
+        public string? Email { get; set; }
+        public string? LINE { get; set; }
+
+        // =========================
+        // Citizen ID
+        // =========================
+        public string? CitizenID { get; set; }
+        public string? CitizenIDIssuedBy { get; set; }
+        public DateTime? CitizenIDExpiresON { get; set; }
+
+        // =========================
+        // Current Address
+        // =========================
+        public string? CurrentAddress { get; set; }
+        public string? CurrentProvinceName { get; set; }
+        public string? CurrentDistrictName { get; set; }
+        public string? CurrentSubDistrictName { get; set; }
+        public string? CurrentPostalCode { get; set; }
+
+        // =========================
+        // Registered Address
+        // =========================
+        public string? RegisteredAddress { get; set; }
+        public int? RegisteredProvinceID { get; set; }
+        public int? RegisteredDistrictID { get; set; }
+        public int? RegisteredSubDistrictID { get; set; }
+        public string? RegisteredPostalCode { get; set; }
+
+        // =========================
+        // Family
+        // =========================
+        public string? FatherName { get; set; }
+        public string? FatherOccupation { get; set; }
+        public string? FatherStatus { get; set; }
+
+        public string? MotherName { get; set; }
+        public string? MotherOccupation { get; set; }
+        public string? MotherStatus { get; set; }
+
+        public int? SiblingsAll { get; set; }
+        public int? SiblingOrder { get; set; }
+
+        // =========================
+        // Emergency Contact
+        // =========================
+        public string? EmergencyName { get; set; }
+        public string? EmergencyRelation { get; set; }
+        public string? EmergencyAddress { get; set; }
+        public string? EmergencyPhone { get; set; }
+
+        // =========================
+        // Education
+        // =========================
+        public string? School { get; set; }
+        public string? University { get; set; }
+        public string? Faculty { get; set; }
+        public string? Major { get; set; }
+        public string? Minor { get; set; }
+        public string? YearOfStudy { get; set; }
+        public decimal? GPA { get; set; }
+
+        public string? AdvisorName { get; set; }
+        public string? AdvisorPhone { get; set; }
+        public string? Activities { get; set; }
+
+        // =========================
+        // Internship
+        // =========================
+        public DateTime? InternshipStartDate { get; set; }
+        public DateTime? InternshipEndDate { get; set; }
+        public string? InternshipType { get; set; }
+        public string? DurationMonths { get; set; }
+
+        public string? DesiredField1 { get; set; }
+        public string? DesiredField2 { get; set; }
+        public string? DesiredField3 { get; set; }
+
+        public string? PreferredPosition { get; set; }
+        public string? PreferredPositionBackup { get; set; }
+
+        public bool? CanCommute { get; set; }
+        public bool? CanTravelOutside { get; set; }
+        public bool? FlexibleWork { get; set; }
+
+        public string? ReasonForInterest { get; set; }
+
+        // =========================
+        // Information Source
+        // =========================
+        public string? InfoSources { get; set; }
+        public string? InfoSourceStaffName { get; set; }
+        public string? InfoSourceDepartment { get; set; }
+        public string? InfoSourceOther { get; set; }
+
+        // =========================
+        // System
+        // =========================
+        public int? UserId { get; set; }
+        public string? UserType { get; set; }
+        public DateTime? CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+    }
 }

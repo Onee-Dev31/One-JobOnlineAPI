@@ -254,5 +254,32 @@ namespace JobOnlineAPI.Controllers
 
             return Ok(new { id, message = "ลบนักศึกษาฝึกงานออกจากแผนกเรียบร้อยแล้ว" });
         }
+
+
+        [HttpGet("assignments/{assignmentId}")]
+        public async Task<IActionResult> GetTraineeByAssignmentId(int assignmentId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+
+            var trainee = await conn.QueryFirstOrDefaultAsync<TraineeDetail>(
+                "GetTraineeByAssignmentID",
+                new
+                {
+                    AssignmentID = assignmentId
+                },
+                commandType: CommandType.StoredProcedure
+            );
+
+            if (trainee == null)
+            {
+                return NotFound(new
+                {
+                    message = "ไม่พบข้อมูลนักศึกษาฝึกงาน"
+                });
+            }
+
+            return Ok(trainee);
+        }
+
     }
 }
