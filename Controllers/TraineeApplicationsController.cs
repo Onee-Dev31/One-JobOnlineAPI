@@ -8,6 +8,7 @@ using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Org.BouncyCastle.Ocsp;
+using static System.Net.Mime.MediaTypeNames;
 using static Org.BouncyCastle.Math.EC.ECCurve;
 
 namespace JobOnlineAPI.Controllers
@@ -188,6 +189,15 @@ namespace JobOnlineAPI.Controllers
                 {
                     if (files == null || files.Count == 0) continue;
                     await SaveFilesAsync(conn, files, applicantId, applicationId, section);
+                }
+
+                try
+                {
+                    await _emailNotificationService.SendEmailTraineepart2(applicantId, applicationId, request.JobID, request.AssignmentID);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Send trainee part2 email failed (ApplicantID: {ApplicantID}, ApplicationID: {ApplicationID})", applicantId, applicationId);
                 }
 
                 return Ok(new { ApplicantID = applicantId, ApplicationID = applicationId });

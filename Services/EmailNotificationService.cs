@@ -22,6 +22,7 @@ namespace JobOnlineAPI.Services
         Task<int> SendEmailsJobsStatusAsync(int JobID);
         Task<int> SendEmailsTraineeRegisterAsync(int TraineeApplicationID, int JobID);
         Task<int> SendEmailsNotiHrAfterApplyAsync(int ApplicationID, int JobID, bool istrainee);
+        Task<int> SendEmailTraineepart2(int ApplicantID, int ApplicationID, int? JobID, int? AssignmentID);
     }
 
     public class EmailNotificationService(
@@ -303,6 +304,80 @@ namespace JobOnlineAPI.Services
                     _logger.LogError(ex, "Failed to send email to {Email}: {Message}", applicantEmail, ex.Message);
                 }
             }
+            return successCount;
+        }
+
+        public async Task<int> SendEmailTraineepart2(int ApplicantID, int ApplicationID, int? JobID, int? AssignmentID)
+        {
+            int successCount = 0;
+            using var connection = _context.CreateConnection();
+
+            var candidateData = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                "GetTraineeDataByAppJobForSendMail_V2",
+                new { TraineeApplicationID = AssignmentID, JobID },
+                commandType: CommandType.StoredProcedure);
+
+            string fullNameThai = candidateData?.fullNameThai?.ToString() ?? string.Empty;
+            string jobTitle = candidateData?.jobTitle?.ToString() ?? string.Empty;
+            string applicantEmail = candidateData?.applicantEmail?.ToString() ?? string.Empty;
+            string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
+
+            // 1) แจ้งผู้สมัครฝึกงาน — ใช้ template/เนื้อหาเดียวกับ ApplicantPart2 (candidate)
+            if (!string.IsNullOrEmpty(applicantEmail))
+            {
+                string applicantBody = GenerateTraineePart2EmailBody(fullNameThai, jobTitle, companyName);
+                string applicantSubject = $"ยืนยันการได้รับข้อมูลประวัติประกอบการเข้าฝึกงาน ตำแหน่ง - {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} - {(string.IsNullOrWhiteSpace(fullNameThai) ? "-" : fullNameThai)} ";
+
+                try
+                {
+                    await _emailService.SendEmailAsync(applicantEmail, applicantSubject, applicantBody, true, "Register", null, true);
+                    successCount++;
+                    _logger.LogInformation("Successfully sent trainee part2 email to {Email}", applicantEmail);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send trainee part2 email to {Email}: {Message}", applicantEmail, ex.Message);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("SendEmailTraineepart2: applicant email not found (ApplicantID={ApplicantID}, ApplicationID={ApplicationID})", ApplicantID, ApplicationID);
+            }
+
+            // 2) แจ้ง HR (OpenFor staff) — เนื้อหาเป็นของ trainee โดยเฉพาะ (ไม่ใช่ wording ทำสัญญาจ้างงานของ candidate)
+            if (JobID.HasValue)
+            {
+                var resultsWithOpenFor = await connection.QueryAsync<StaffEmail>(
+                    "sp_GetDataSendEmailRegisterWithOpenFor",
+                    new { JobID = JobID.Value },
+                    commandType: CommandType.StoredProcedure);
+
+                foreach (var staff in resultsWithOpenFor.Where(s => s.SourceType == "OpenFor"))
+                {
+                    var emailStaff = staff.Email?.Trim();
+                    if (string.IsNullOrWhiteSpace(emailStaff))
+                        continue;
+
+                    string hrBody = GenerateTraineePart2ToHREmailBody(fullNameThai, jobTitle, staff.NAMETHAI ?? "");
+                    string hrSubject = $"Onee Jobs - ผู้สมัครฝึกงาน ตำแหน่ง {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)} ได้กรอกข้อมูลประวัติประกอบการเข้าฝึกงานเรียบร้อยแล้ว";
+
+                    try
+                    {
+                        await _emailService.SendEmailAsync(emailStaff, hrSubject, hrBody, true, "Register", null);
+                        successCount++;
+                        _logger.LogInformation("Successfully sent trainee part2 HR notice to {Email}", emailStaff);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to send trainee part2 HR notice to {Email}: {Message}", emailStaff, ex.Message);
+                    }
+                }
+            }
+            else
+            {
+                _logger.LogWarning("SendEmailTraineepart2: JobID not provided, skipping HR notice (ApplicantID={ApplicantID}, ApplicationID={ApplicationID})", ApplicantID, ApplicationID);
+            }
+
             return successCount;
         }
 
@@ -965,6 +1040,28 @@ namespace JobOnlineAPI.Services
         private static string GenerateApplicantPart2ToHREmailBody(string fullNameThai, string jobTitle, string staffName)
         {
             var template = LoadEmailTemplate("ApplicantPart2ToHR.html");
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "StaffName", staffName }
+            });
+        }
+        private static string GenerateTraineePart2EmailBody(string fullNameThai, string jobTitle, string companyname)
+        {
+            var template = LoadEmailTemplate("TraineePart2.html");
+
+            return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
+            {
+                { "FullNameThai", fullNameThai },
+                { "JobTitle", jobTitle },
+                { "CompanyName", companyname }
+            });
+        }
+        private static string GenerateTraineePart2ToHREmailBody(string fullNameThai, string jobTitle, string staffName)
+        {
+            var template = LoadEmailTemplate("TraineePart2ToHR.html");
 
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
             {

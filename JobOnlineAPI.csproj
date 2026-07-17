@@ -18,6 +18,12 @@
 		<GenerateAssemblyTitleAttribute>false</GenerateAssemblyTitleAttribute>
 		<GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
 		<StaticWebAssetFingerprintingEnabled>false</StaticWebAssetFingerprintingEnabled>
+		<!-- One-JobOnlineAPI.Tests lives inside this project's own directory. Without this, the
+		     default Content/None globs below pick up its bin/obj output as content to copy into
+		     *our* bin/obj, and the Tests project's ProjectReference copy then carries that nested
+		     copy back into its own bin — each build adds one more level of self-nesting until
+		     Windows' MAX_PATH is exceeded and the build fails. -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);One-JobOnlineAPI.Tests\**</DefaultItemExcludes>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -87,6 +93,12 @@
 	  <Content Include="public\fonts\NotoSansThai_SemiCondensed-SemiBold.ttf" />
 	  <Content Include="public\fonts\NotoSansThai_SemiCondensed-Thin.ttf" />
 	  <Content Include="public\images\logo.png" />
+	  <Content Include="Templates\Email\TraineePart2.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <Content Include="Templates\Email\TraineePart2ToHR.html">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
 	  <Content Include="Templates\Email\ToHROnlyFormApply.html">
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </Content>
