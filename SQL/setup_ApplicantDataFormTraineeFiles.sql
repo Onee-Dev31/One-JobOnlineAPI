@@ -174,12 +174,32 @@ BEGIN
             ) AS FilesList
         ) files
         OUTER APPLY (
-            SELECT (SELECT EducationLevel, InstitutionName,
+            -- Trainee-flow applicants (usp_TraineeApplicant_Upsert) never write to Education --
+            -- their education is stored flat on T_APPLICANTS (University/Faculty/Major/GPA) instead.
+            -- Union that in whenever present so EducationList isn't null for them.
+            SELECT (
+                SELECT * FROM (
+                    SELECT EducationLevel, InstitutionName,
                            StartYear + 543 AS StartYear, EndYear + 543 AS EndYear,
                            Major, GPA, ProvinceEducation, Faculty
                     FROM Education e
                     WHERE e.ApplicantID = a.ApplicantID
-                    FOR JSON PATH) AS EducationList
+
+                    UNION ALL
+
+                    SELECT
+                        NULL AS EducationLevel,
+                        ISNULL(a.University, a.School) AS InstitutionName,
+                        NULL AS StartYear,
+                        NULL AS EndYear,
+                        a.Major,
+                        a.GPA,
+                        NULL AS ProvinceEducation,
+                        a.Faculty
+                    WHERE a.University IS NOT NULL OR a.Faculty IS NOT NULL
+                ) allEdu
+                FOR JSON PATH
+            ) AS EducationList
         ) edu
         OUTER APPLY (
             SELECT (
@@ -363,12 +383,32 @@ BEGIN
             ) AS FilesList
         ) files
         OUTER APPLY (
-            SELECT (SELECT EducationLevel, InstitutionName,
+            -- Trainee-flow applicants (usp_TraineeApplicant_Upsert) never write to Education --
+            -- their education is stored flat on T_APPLICANTS (University/Faculty/Major/GPA) instead.
+            -- Union that in whenever present so EducationList isn't null for them.
+            SELECT (
+                SELECT * FROM (
+                    SELECT EducationLevel, InstitutionName,
                            StartYear + 543 AS StartYear, EndYear + 543 AS EndYear,
                            Major, GPA, ProvinceEducation, Faculty
                     FROM Education e
                     WHERE e.ApplicantID = a.ApplicantID
-                    FOR JSON PATH) AS EducationList
+
+                    UNION ALL
+
+                    SELECT
+                        NULL AS EducationLevel,
+                        ISNULL(a.University, a.School) AS InstitutionName,
+                        NULL AS StartYear,
+                        NULL AS EndYear,
+                        a.Major,
+                        a.GPA,
+                        NULL AS ProvinceEducation,
+                        a.Faculty
+                    WHERE a.University IS NOT NULL OR a.Faculty IS NOT NULL
+                ) allEdu
+                FOR JSON PATH
+            ) AS EducationList
         ) edu
         OUTER APPLY (
             SELECT (
