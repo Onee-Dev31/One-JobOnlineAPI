@@ -28,7 +28,7 @@ BEGIN
         A.ManualPreferredPosition       AS DesiredField1,
         A.ManualPreferredPositionBackup AS DesiredField2,
         A.ManualInternshipType          AS InternshipType
-    FROM JobSlotAssignments A
+    FROM TraineeAssignments A
     WHERE A.AssignmentID = @AssignmentID
 
     SELECT
