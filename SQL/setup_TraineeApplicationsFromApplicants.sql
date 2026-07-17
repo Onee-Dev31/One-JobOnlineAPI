@@ -192,6 +192,12 @@ BEGIN
     INNER JOIN JobApplications b ON b.ApplicantID = a.ApplicantID
     WHERE a.ApplicantID = @ResolvedApplicantID
 
+    -- Files can land in either of two tables depending on which flow the applicant went
+    -- through: T_APPLICANT_FILES (Part2 form upload, keyed by ApplicantID) or
+    -- TraineeAssignmentFiles (walk-in/department-assignment upload in TraineeController,
+    -- keyed by TraineeAssignments.AssignmentID). sp_CreateTraineeManagementAssignment already
+    -- links TraineeAssignments.ApplicationID back to this same JobApplications.ApplicationID
+    -- when reusing a Part2 submission, so join through that to surface both.
     SELECT
         f.FileID,
         @ResolvedApplicantID AS TraineeApplicationID,
@@ -204,5 +210,22 @@ BEGIN
         f.UploadedDate
     FROM T_APPLICANT_FILES f
     WHERE f.ApplicantID = @ResolvedApplicantID
+
+    UNION ALL
+
+    SELECT
+        F.FileID,
+        @ResolvedApplicantID AS TraineeApplicationID,
+        F.FilePath,
+        F.FileName,
+        F.FileSize,
+        F.FileType,
+        F.SectionFile,
+        F.UploadedDate AS CreatedDate,
+        F.UploadedDate
+    FROM TraineeAssignments TA
+    INNER JOIN TraineeAssignmentFiles F ON F.AssignmentID = TA.AssignmentID
+    WHERE TA.ApplicationID = @ApplicationID
+      AND TA.Status <> 'Cancelled'
 END
 GO
