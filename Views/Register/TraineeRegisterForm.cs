@@ -324,18 +324,29 @@ namespace JobOnlineAPI.Views.Register
                 {
                     content.Spacing(10);
 
+                    var remark = GetValue("Remark");
                     var reason = GetValue("Reason");
                     var reasonOther = GetValue("ReasonOther");
 
-                    if (!string.IsNullOrWhiteSpace(reason) || !string.IsNullOrWhiteSpace(reasonOther))
+                    if (!string.IsNullOrWhiteSpace(remark) ||
+                        !string.IsNullOrWhiteSpace(reason) ||
+                        !string.IsNullOrWhiteSpace(reasonOther))
                     {
-                        content.Item().Text(t =>
+                        if (!string.IsNullOrWhiteSpace(remark))
                         {
-                            t.Span("เหตุผลในการฝึกงาน: ").Bold();
-                            t.Span(reason);
-                            if (!string.IsNullOrWhiteSpace(reasonOther))
-                                t.Span($" ({reasonOther})");
-                        });
+                            content.Item().MinHeight(30).Text(remark);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(reason) || !string.IsNullOrWhiteSpace(reasonOther))
+                        {
+                            content.Item().Text(t =>
+                            {
+                                t.Span("เหตุผลในการฝึกงาน: ").Bold();
+                                t.Span(reason);
+                                if (!string.IsNullOrWhiteSpace(reasonOther))
+                                    t.Span($" ({reasonOther})");
+                            });
+                        }
                     }
                     else
                     {
