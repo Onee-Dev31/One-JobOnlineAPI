@@ -248,7 +248,7 @@ namespace JobOnlineAPI.Controllers
             };
 
             var response = await httpClient.PostAsync(
-                "https://10.10.0.28:7054/api/auth/token",
+                "https://10.10.0.28:7060/api/auth/bypass-token",
                 new StringContent(
                     JsonSerializer.Serialize(payload),
                     Encoding.UTF8,
