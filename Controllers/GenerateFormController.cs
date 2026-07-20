@@ -1,4 +1,5 @@
 using JobOnlineAPI.Views.Register;
+
 using Microsoft.AspNetCore.Mvc;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -158,6 +159,114 @@ namespace JobOnlineAPI.Controllers
             {
                 // return StatusCode(500, new { error = ex.Message, stack = ex.StackTrace });
                 return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost("GenerateTraineeFormPDF")]
+        public IActionResult GenerateTraineeFormPDF([FromBody] JsonElement request)
+        {
+            try
+            {
+                if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
+                    !request.TryGetProperty("JobID", out var jobIdEl))
+                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+
+                int applicantId = applicantIdEl.GetInt32();
+                int jobId = jobIdEl.GetInt32();
+
+                using var connection = new SqlConnection(
+                    _config.GetConnectionString("DefaultConnection"));
+
+                var form = connection.QueryFirstOrDefault<dynamic>(
+                    "sp_GetDataTraineeFormPDF",
+                    new { ApplicantID = applicantId, JobID = jobId },
+                    commandType: CommandType.StoredProcedure);
+
+                if (form == null)
+                    return NotFound("Data not found");
+
+                var dict = form as IDictionary<string, object>;
+                if (dict == null)
+                    return StatusCode(500, "Data conversion error");
+
+                QuestPDF.Settings.License = LicenseType.Community;
+                var pdf = new TraineeRegisterForm(dict).GeneratePdf();
+
+                var fullName = dict.TryGetValue("FullNameThai", out var fullNameValue)
+                    ? fullNameValue?.ToString()
+                    : null;
+
+                if (string.IsNullOrWhiteSpace(fullName))
+                {
+                    dict.TryGetValue("PrefixT", out var prefixValue);
+                    dict.TryGetValue("NameFirstT", out var firstNameValue);
+                    dict.TryGetValue("NameLastT", out var lastNameValue);
+                    fullName = string.Join(" ", new[]
+                    {
+                        prefixValue?.ToString(),
+                        firstNameValue?.ToString(),
+                        lastNameValue?.ToString()
+                    }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                }
+
+                if (string.IsNullOrWhiteSpace(fullName))
+                    fullName = "Unknown";
+
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    fullName = fullName.Replace(c, '_');
+
+                return File(pdf, "application/pdf", $"ใบสมัครฝึกงาน_{fullName}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
+            }
+        }
+
+        [HttpPost("GenerateTraineeFormPDFPart2")]
+        public IActionResult GenerateTraineeFormPDFPart2([FromBody] JsonElement request)
+        {
+            try
+            {
+                if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
+                    !request.TryGetProperty("JobID", out var jobIdEl))
+                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+
+                int applicantId = applicantIdEl.GetInt32();
+                int jobId = jobIdEl.GetInt32();
+
+                using var connection = new SqlConnection(
+                    _config.GetConnectionString("DefaultConnection"));
+
+                var form = connection.QueryFirstOrDefault<dynamic>(
+                    "sp_GetDataTraineeFormPDF",
+                    new { ApplicantID = applicantId, JobID = jobId },
+                    commandType: CommandType.StoredProcedure);
+
+                if (form == null)
+                    return NotFound("Data not found");
+
+                var dict = form as IDictionary<string, object>;
+                if (dict == null)
+                    return StatusCode(500, "Data conversion error");
+
+                QuestPDF.Settings.License = LicenseType.Community;
+                var pdf = new TraineeRegisterFormPart2(dict).GeneratePdf();
+
+                dict.TryGetValue("FirstNameThai", out var fnObj);
+                dict.TryGetValue("LastNameThai", out var lnObj);
+                var firstName = fnObj?.ToString() ?? "";
+                var lastName = lnObj?.ToString() ?? "";
+                var fullName = $"{firstName} {lastName}".Trim();
+                if (string.IsNullOrWhiteSpace(fullName)) fullName = "Unknown";
+                foreach (var ch in Path.GetInvalidFileNameChars())
+                    fullName = fullName.Replace(ch, '_');
+
+                return File(pdf, "application/pdf", $"ใบสมัครฝึกงาน_{fullName}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
             }
         }
 
