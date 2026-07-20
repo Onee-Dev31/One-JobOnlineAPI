@@ -354,12 +354,14 @@ namespace JobOnlineAPI.Views.Register
             col.Item().ShowEntire().PaddingTop(14).Column(section =>
             {
                 section.Item().LineHorizontal(1);
-                section.Item().PaddingTop(24).Row(row =>
+                section.Item()
+                    .PaddingTop(35)
+                    .PaddingHorizontal(8)
+                    .Row(row =>
                 {
-                    row.Spacing(14);
+                    row.Spacing(60);
 
                     RenderSignatureBox(row, GetValue("FullNameThai"), "ผู้สมัครฝึกงาน");
-                    RenderSignatureBox(row, GetValue("AdvisorName"), "อาจารย์ที่ปรึกษา");
                     RenderSignatureBox(row, "", "ผู้รับผิดชอบฝึกงาน");
                 });
             });
@@ -370,6 +372,7 @@ namespace JobOnlineAPI.Views.Register
             row.RelativeItem().PaddingHorizontal(8).Column(col =>
             {
                 col.Item()
+                    .AlignCenter()
                     .Text("ลายเซ็น ................................................")
                     .FontSize(10);
 

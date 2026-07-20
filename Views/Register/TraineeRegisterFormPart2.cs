@@ -23,22 +23,22 @@ namespace JobOnlineAPI.Views.Register
             container.Page(page =>
             {
                 page.Size(PageSizes.A4);
-                page.MarginHorizontal(16, Unit.Millimetre);
-                page.MarginVertical(14, Unit.Millimetre);
+                page.MarginHorizontal(10, Unit.Millimetre);
+                page.MarginVertical(8, Unit.Millimetre);
                 page.DefaultTextStyle(x => x
                     .FontFamily("DB Heavent")
-                    .FontSize(10)
-                    .LineHeight(1.15f)
+                    .FontSize(9.5f)
+                    .LineHeight(1.05f)
                     .FontColor(Colors.Grey.Darken4));
                 page.Content().Column(col =>
                 {
-                    col.Spacing(8);
+                    col.Spacing(4);
 
                     // Keep the introduction together, so the photo and its related
                     // application details are not separated by a page break.
                     col.Item().ShowEntire().Column(intro =>
                     {
-                        intro.Spacing(8);
+                        intro.Spacing(4);
                         intro.Item().Element(Header);
                         intro.Item().Element(DurationRow);
                     });
@@ -48,8 +48,11 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().ShowEntire().Element(PersonalSection);
                     col.Item().ShowEntire().Element(EducationSection);
                     col.Item().ShowEntire().Element(ActivitiesAndSourcesSection);
-                    col.Item().ShowEntire().Element(CertificationSection);
-                    col.Item().ShowEntire().Element(ResultSection);
+                    col.Item().ShowEntire().Border(1).BorderColor(Colors.Black).Column(group =>
+                    {
+                        group.Item().Element(CertificationSection);
+                        group.Item().Element(ResultSection);
+                    });
                     col.Item().ShowEntire().PaddingTop(2).Element(Footer);
                 });
             });
@@ -119,19 +122,19 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().PaddingTop(7).Element(ReasonRow);
                 });
 
-                // Standard 2-inch application photo area (approximately 4 x 5 cm).
-                row.ConstantItem(46, Unit.Millimetre)
+                // Standard 1.5-inch application photo area (approximately 3 x 4 cm).
+                row.ConstantItem(36, Unit.Millimetre)
                     .PaddingLeft(6, Unit.Millimetre)
                     .AlignTop()
                     .Border(1.2f)
                     .BorderColor(Colors.Grey.Darken2)
-                    .Height(50, Unit.Millimetre)
+                    .Height(40, Unit.Millimetre)
                     .Column(col =>
                 {
-                    col.Item().AlignCenter().PaddingTop(14).Text("ภาพถ่าย 2 นิ้ว").FontSize(10).Bold();
-                    col.Item().AlignCenter().PaddingTop(2).Text("2-INCH PHOTO")
+                    col.Item().AlignCenter().PaddingTop(10).Text("ภาพถ่าย 1.5 นิ้ว").FontSize(9).Bold();
+                    col.Item().AlignCenter().PaddingTop(2).Text("1.5-INCH PHOTO")
                         .FontSize(8).FontColor(Colors.Grey.Darken1);
-                    col.Item().AlignCenter().PaddingTop(10)
+                    col.Item().AlignCenter().PaddingTop(7)
                         .Text("[ ชาย  /  หญิง ]").FontSize(8).FontColor(Colors.Grey.Darken1);
                 });
             });
@@ -200,7 +203,7 @@ namespace JobOnlineAPI.Views.Register
             var fatherAlive = G("FatherStatus").ToLower().Contains("alive");
             var motherAlive = G("MotherStatus").ToLower().Contains("alive");
 
-            c.Column(col =>
+            c.Border(1).BorderColor(Colors.Black).Padding(3).Column(col =>
             {
                 col.Item().Background(Colors.Grey.Lighten3).Padding(3)
                     .Text("ประวัติส่วนตัว Personal Background :").Bold();
@@ -209,11 +212,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().PaddingTop(3).Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(3); d.RelativeColumn(2); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ชื่อ (นาย,นางสาว)  ").Bold(); tt.Span(G("Title") + " " + G("FirstNameThai")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("นามสกุล  ").Bold(); tt.Span(G("LastNameThai")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ชื่อเล่น  ").Bold(); tt.Span(G("Nickname")); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1)
                         .Text(tt => { tt.Span("Name  ").FontColor(Colors.Grey.Darken1); tt.Span(G("FirstNameEng")); });
@@ -227,11 +230,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(2); d.RelativeColumn(3); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("วัน-เดือน-ปีเกิด  ").Bold(); tt.Span(G("DateOfBirth")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("อายุ  ").Bold(); tt.Span(G("Age")); tt.Span("  ปี"); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("สถานที่เกิด  ").Bold(); tt.Span(G("PlaceOfBirth")); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1)
                         .Text("Date of Birth").FontColor(Colors.Grey.Darken1);
@@ -249,15 +252,15 @@ namespace JobOnlineAPI.Views.Register
                         d.RelativeColumn(2); d.RelativeColumn(2);
                         d.RelativeColumn(2); d.RelativeColumn(2); d.RelativeColumn(2);
                     });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("สัญชาติ  ").Bold(); tt.Span(G("Nationality")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("เชื้อชาติ  ").Bold(); tt.Span(G("Race")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ศาสนา  ").Bold(); tt.Span(G("Religion")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ส่วนสูง  ").Bold(); tt.Span(G("Height")); tt.Span("  ซม."); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("น้ำหนัก  ").Bold(); tt.Span(G("Weight")); tt.Span("  กก."); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Nationality").FontColor(Colors.Grey.Darken1);
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Race").FontColor(Colors.Grey.Darken1);
@@ -270,11 +273,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(3); d.RelativeColumn(2); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("บัตรประชาชนเลขที่  ").Bold(); tt.Span(G("IDCardNo")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ออกโดย  ").Bold(); tt.Span(G("IDIssuedBy")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("หมดอายุ  ").Bold(); tt.Span(G("IDExpiredDate")); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("ID Card No.").FontColor(Colors.Grey.Darken1);
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Issued by").FontColor(Colors.Grey.Darken1);
@@ -282,7 +285,7 @@ namespace JobOnlineAPI.Views.Register
                 });
 
                 // ที่อยู่
-                col.Item().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                col.Item().PaddingVertical(2).Text(tt =>
                 { tt.Span("ที่อยู่ปัจจุบัน  ").Bold(); tt.Span(G("FullAddress")); });
                 col.Item().BorderBottom(0.5f).PaddingVertical(1)
                     .Text("Place of Address").FontColor(Colors.Grey.Darken1);
@@ -291,11 +294,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(); d.RelativeColumn(); d.RelativeColumn(); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("โทรศัพท์  ").Bold(); tt.Span(G("HomePhone")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("มือถือ  ").Bold(); tt.Span(G("MobilePhone")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("อีเมล์  ").Bold(); tt.Span(G("Email")); });
                 });
 
@@ -303,11 +306,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(3); d.RelativeColumn(2); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ชื่อบิดา  ").Bold(); tt.Span(G("FatherName")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("อาชีพ  ").Bold(); tt.Span(G("FatherOccupation")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Row(r =>
+                    t.Cell().PaddingVertical(2).Row(r =>
                     {
                         r.AutoItem().Text($"{Check(fatherAlive)} ยังคงมีชีวิตอยู่  ").FontSize(9);
                         r.AutoItem().PaddingLeft(12).Text($"{Check(!fatherAlive)} ถึงแก่กรรม").FontSize(9);
@@ -325,11 +328,11 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(3); d.RelativeColumn(2); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ชื่อมารดา  ").Bold(); tt.Span(G("MotherName")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("อาชีพ  ").Bold(); tt.Span(G("MotherOccupation")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Row(r =>
+                    t.Cell().PaddingVertical(2).Row(r =>
                     {
                         r.AutoItem().Text($"{Check(motherAlive)} ยังคงมีชีวิตอยู่  ").FontSize(9);
                         r.AutoItem().PaddingLeft(12).Text($"{Check(!motherAlive)} ถึงแก่กรรม").FontSize(9);
@@ -347,9 +350,9 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(); d.RelativeColumn(); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("มีพี่น้องจำนวน  ").Bold(); tt.Span(G("SiblingsAll")); tt.Span("  คน"); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ท่านเป็นคนที่  ").Bold(); tt.Span(G("SiblingOrder")); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Brother/Sister (S)").FontColor(Colors.Grey.Darken1);
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("You are No.").FontColor(Colors.Grey.Darken1);
@@ -359,15 +362,15 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Table(t =>
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(2); d.RelativeColumn(3); d.RelativeColumn(2); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text("บุคคลที่ติดต่อได้ในกรณีฉุกเฉิน").Bold();
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text("บุคคลที่ติดต่อได้ในกรณีฉุกเฉิน").Bold();
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ชื่อ  ").Bold(); tt.Span(G("EmergencyName")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ความสัมพันธ์  ").Bold(); tt.Span(G("EmergencyRelation")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Emergency Contact").FontColor(Colors.Grey.Darken1);
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(1).Text("Emergency Contact").FontColor(Colors.Grey.Darken1);
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ที่อยู่  ").Bold(); tt.Span(G("EmergencyAddress")); });
-                    t.Cell().BorderBottom(0.5f).PaddingVertical(2).Text(tt =>
+                    t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("โทรศัพท์  ").Bold(); tt.Span(G("EmergencyPhone")); });
                 });
             });
@@ -376,12 +379,12 @@ namespace JobOnlineAPI.Views.Register
         // ==================== EDUCATION SECTION ====================
         private void EducationSection(IContainer c)
         {
-            c.Column(col =>
+            c.Border(1).BorderColor(Colors.Black).Padding(3).Column(col =>
             {
                 col.Item().Background(Colors.Grey.Lighten3).Padding(3)
                     .Text("ประวัติการศึกษา / Education Background").Bold();
 
-                col.Item().PaddingTop(4).BorderBottom(0.5f).PaddingVertical(2).Text(t =>
+                col.Item().PaddingTop(4).PaddingVertical(2).Text(t =>
                 {
                     t.Span("ชื่อสถานศึกษา  ").Bold(); t.Span(G("School") + "  ");
                     t.Span("คณะ  ").Bold(); t.Span(G("Faculty") + "  ");
@@ -408,7 +411,7 @@ namespace JobOnlineAPI.Views.Register
             bool srcStaff = sources.Contains("staff") || sources.Contains("บุคลากร") || !string.IsNullOrEmpty(G("InfoSourceStaffName"));
             bool srcOther = sources.Contains("other") || sources.Contains("อื่น");
 
-            c.Row(row =>
+            c.Border(1).BorderColor(Colors.Black).Padding(6).Row(row =>
             {
                 // กิจกรรม
                 row.RelativeItem().Column(col =>
@@ -433,20 +436,27 @@ namespace JobOnlineAPI.Views.Register
                 row.RelativeItem().Column(col =>
                 {
                     col.Item().Text("ทราบข้อมูลการรับสมัครนักศึกษาฝึกงานจาก :").Bold().FontSize(9);
-                    col.Item().PaddingTop(3).Text($"{Check(srcWebsite)} เว็บไซต์ GMM Grammy").FontSize(9);
-                    col.Item().PaddingTop(2).Text($"{Check(srcInstitute)} เว็บไซต์ของสถาบัน").FontSize(9);
-                    col.Item().PaddingTop(2).Text($"{Check(srcBoard)} แผ่นประกาศในมหาวิทยาลัย").FontSize(9);
-                    col.Item().PaddingTop(2).Text(t =>
+                    col.Item().PaddingTop(4).Row(sourceRow =>
                     {
-                        t.Span($"{Check(srcStaff)} บุคลากรภายในบริษัทฯ ชื่อ ").FontSize(9);
-                        t.Span(G("InfoSourceStaffName")).FontSize(9);
-                        t.Span("  หน่วยงาน ").FontSize(9);
-                        t.Span(G("InfoSourceDepartment")).FontSize(9);
+                        sourceRow.RelativeItem().Text($"{Check(srcWebsite)} เว็บไซต์ GMM Grammy").FontSize(8);
+                        sourceRow.RelativeItem().Text($"{Check(srcInstitute)} เว็บไซต์สถาบัน").FontSize(8);
+                        sourceRow.RelativeItem().Text($"{Check(srcBoard)} แผ่นประกาศ").FontSize(8);
                     });
-                    col.Item().PaddingTop(2).Text(t =>
+
+                    col.Item().PaddingTop(4).Row(sourceRow =>
                     {
-                        t.Span($"{Check(srcOther)} อื่นๆ ").FontSize(9);
-                        t.Span(srcOther ? G("InfoSourceOther") : "........................................").FontSize(9);
+                        sourceRow.RelativeItem(3).Text(t =>
+                        {
+                            t.Span($"{Check(srcStaff)} บุคลากรบริษัทฯ ชื่อ ").FontSize(8);
+                            t.Span(G("InfoSourceStaffName")).FontSize(8);
+                            t.Span(" หน่วยงาน ").FontSize(8);
+                            t.Span(G("InfoSourceDepartment")).FontSize(8);
+                        });
+                        sourceRow.RelativeItem(2).Text(t =>
+                        {
+                            t.Span($"{Check(srcOther)} อื่นๆ ").FontSize(8);
+                            t.Span(srcOther ? G("InfoSourceOther") : "....................").FontSize(8);
+                        });
                     });
                 });
             });
@@ -455,16 +465,22 @@ namespace JobOnlineAPI.Views.Register
         // ==================== CERTIFICATION ====================
         private void CertificationSection(IContainer c)
         {
-            c.Column(col =>
+            c.Padding(5).Column(col =>
             {
                 col.Item().AlignCenter().Text("ข้าพเจ้ารับรองว่า ข้อมูลข้างต้นเป็นความจริงทุกประการ").Bold();
-                col.Item().PaddingTop(20).Row(row =>
+                col.Item().PaddingTop(10).Row(row =>
                 {
-                    row.RelativeItem();
-                    row.AutoItem().Column(right =>
+                    row.RelativeItem().Column(result =>
                     {
-                        right.Item().Text("ลงชื่อ..............................................ผู้สมัคร");
-                        right.Item().PaddingTop(6).AlignCenter().Text("วันที่......./........./.........");
+                        result.Item().Text("ผลการพิจารณานักศึกษาฝึกงาน").Bold();
+                        result.Item().PaddingTop(5).Text("□  รับ");
+                        result.Item().PaddingTop(4).Text("□  ไม่รับ");
+                        result.Item().PaddingTop(4).Text("□  อื่นๆ .................................");
+                    });
+                    row.ConstantItem(230).Column(right =>
+                    {
+                        right.Item().AlignCenter().Text("ลงชื่อ..............................................ผู้สมัคร");
+                        right.Item().PaddingTop(3).AlignCenter().Text("วันที่......./........./.........");
                     });
                 });
             });
@@ -473,19 +489,13 @@ namespace JobOnlineAPI.Views.Register
         // ==================== RESULT ====================
         private void ResultSection(IContainer c)
         {
-            c.Border(1).Padding(8).Row(row =>
+            c.Padding(5).Row(row =>
             {
-                row.RelativeItem().Column(col =>
+                row.RelativeItem();
+                row.ConstantItem(230).PaddingTop(10).Column(col =>
                 {
-                    col.Item().Text("ผลการพิจารณานักศึกษาฝึกงาน").Bold();
-                    col.Item().PaddingTop(5).Text("□  รับ");
-                    col.Item().PaddingTop(4).Text("□  ไม่รับ");
-                    col.Item().PaddingTop(4).Text("□  อื่นๆ .................................");
-                });
-                row.RelativeItem().AlignRight().Column(col =>
-                {
-                    col.Item().Text("ลงชื่อ..............................................ผู้อนุมัติ");
-                    col.Item().PaddingTop(6).Text("วันที่......./........./.........");
+                    col.Item().AlignCenter().Text("ลงชื่อ..............................................ผู้อนุมัติ");
+                    col.Item().PaddingTop(3).AlignCenter().Text("วันที่......./........./.........");
                 });
             });
         }
