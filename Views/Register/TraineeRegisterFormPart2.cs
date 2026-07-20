@@ -384,19 +384,42 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().Background(Colors.Grey.Lighten3).Padding(3)
                     .Text("ประวัติการศึกษา / Education Background").Bold();
 
-                col.Item().PaddingTop(4).PaddingVertical(2).Text(t =>
+                col.Item().PaddingTop(5).PaddingHorizontal(3).Text(t =>
                 {
-                    t.Span("ชื่อสถานศึกษา  ").Bold(); t.Span(G("School") + "  ");
-                    t.Span("คณะ  ").Bold(); t.Span(G("Faculty") + "  ");
-                    t.Span("วิชาเอก  ").Bold(); t.Span(G("Major") + "  ");
-                    t.Span("วิชาโท  ").Bold(); t.Span(G("Minor"));
+                    t.Span("ชื่อสถานศึกษา  ").Bold();
+                    t.Span(G("School"));
                 });
 
-                col.Item().PaddingTop(3).Text(t =>
+                col.Item().PaddingTop(5).PaddingHorizontal(3).Row(row =>
                 {
-                    t.Span("ศึกษาชั้นปีที่  ").Bold(); t.Span(G("YearOfStudy") + "  ");
-                    t.Span("อาจารย์ที่ปรึกษา  ").Bold(); t.Span(G("AdvisorName") + "  ");
-                    t.Span("โทร  ").Bold(); t.Span(G("AdvisorPhone"));
+                    row.RelativeItem().Text(t =>
+                    {
+                        t.Span("คณะ  ").Bold(); t.Span(G("Faculty"));
+                    });
+                    row.RelativeItem().PaddingLeft(8).Text(t =>
+                    {
+                        t.Span("วิชาเอก  ").Bold(); t.Span(G("Major"));
+                    });
+                    row.RelativeItem().PaddingLeft(8).Text(t =>
+                    {
+                        t.Span("วิชาโท  ").Bold(); t.Span(G("Minor"));
+                    });
+                });
+
+                col.Item().PaddingTop(5).PaddingHorizontal(3).PaddingBottom(3).Row(row =>
+                {
+                    row.RelativeItem(2).Text(t =>
+                    {
+                        t.Span("ศึกษาชั้นปีที่  ").Bold(); t.Span(G("YearOfStudy"));
+                    });
+                    row.RelativeItem(3).PaddingLeft(8).Text(t =>
+                    {
+                        t.Span("อาจารย์ที่ปรึกษา  ").Bold(); t.Span(G("AdvisorName"));
+                    });
+                    row.RelativeItem(2).PaddingLeft(8).Text(t =>
+                    {
+                        t.Span("โทร  ").Bold(); t.Span(G("AdvisorPhone"));
+                    });
                 });
             });
         }
