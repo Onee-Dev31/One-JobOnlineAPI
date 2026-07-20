@@ -375,6 +375,12 @@ namespace JobOnlineAPI.Models
 
         public string? ReasonForInterest { get; set; }
 
+        public string? CompanyCode { get; set; }
+        public string? CompanyName { get; set; }
+
+        public string? DepartmentCode { get; set; }
+        public string? DepartmentName { get; set; }
+
         // =========================
         // Information Source
         // =========================
@@ -390,5 +396,24 @@ namespace JobOnlineAPI.Models
         public string? UserType { get; set; }
         public DateTime? CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+    }
+
+    public class UpdateTraineeInternshipRequest
+    {
+        public int JobID { get; set; }
+
+        public string CompanyCode { get; set; } = string.Empty;
+
+        public string DepartmentCode { get; set; } = string.Empty;
+
+        public string? ManualInternshipType { get; set; }
+
+        public DateTime? ManualInternStartDate { get; set; }
+
+        public DateTime? ManualInternEndDate { get; set; }
+
+        public string? ManualDurationMonths { get; set; }
+
+        public string? ManualPreferredPosition { get; set; }
     }
 }
