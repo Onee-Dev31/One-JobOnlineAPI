@@ -1072,23 +1072,23 @@ namespace JobOnlineAPI.Views.Register
             {
                 if (format == "DD MMMM YYYY")
                 {
-                    return dt.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("th-TH"));
+                    return ThaiDateFormatter.FormatFull(dt);
                 }
                 if (format == "DD MMM YYYY")
                 {
-                    return $"{dt.Day} {dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} {dt.Year + 543}";
+                    return ThaiDateFormatter.FormatFull(dt);
                 }
                 if (format == "DD-MMM-YYYY")
                 {
-                    return $"{dt.Day}-{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))}-{dt.Year + 543}";
+                    return ThaiDateFormatter.FormatFull(dt);
                 }
                 if (format == "MMM YYYY")
                 {
-                    return dt.ToString("MMM yyyy", new System.Globalization.CultureInfo("th-TH"));
+                    return ThaiDateFormatter.FormatMonthYear(dt);
                 }
                 if (format == "MMM-YYYY")
                 {
-                    return $"{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} - {dt.Year + 543}";
+                    return ThaiDateFormatter.FormatMonthYear(dt);
                 }
             }
             return "";

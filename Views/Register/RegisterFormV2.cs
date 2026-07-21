@@ -62,7 +62,7 @@ namespace JobOnlineAPI.Views.Register
                                                                                 }
                                                                             );
                                                         });
-                                                var birthDateText = _form["BirthDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                                                var birthDateText = ThaiDateFormatter.FormatFull(_form["BirthDate"]);
                                                 innerRow.Item().PaddingLeft(5).Row(col =>
                                                         {
                                                             col.RelativeItem(6).Padding(3).Text(
@@ -114,7 +114,7 @@ namespace JobOnlineAPI.Views.Register
                                             text =>
                                                                             {
                                                                                 text.Span("บัตรหมดอายุวันที่ [Expiry date]: ").FontSize(12).Bold();
-                                                                                text.Span($"dd-MM-yyyy").FontSize(12);
+                                                                                text.Span(ThaiDateFormatter.FormatFull(_form["CitizenIDExpiresON"])).FontSize(12);
                                                                             }
                                                                         );
                                                         });
@@ -560,7 +560,7 @@ namespace JobOnlineAPI.Views.Register
                                                 // วันที่พร้อมเริ่มงาน + อัตราเงินเดือนที่ต้องการ
                                                 innerRow.RelativeItem(6).AlignCenter().Column(right =>
                                                         {
-                                                            var jobStartDateText = _form["JobStartDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                                                            var jobStartDateText = ThaiDateFormatter.FormatFull(_form["JobStartDate"]);
                                                             right.Item().Text(t =>
                                                                         {
                                                                             t.Span("วันที่พร้อมเริ่มงาน: ").Bold().FontSize(12);

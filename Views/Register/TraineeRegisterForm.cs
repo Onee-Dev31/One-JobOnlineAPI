@@ -422,7 +422,7 @@ namespace JobOnlineAPI.Views.Register
 
             if ((key is "StartDate" or "EndDate" or "DateOfBirth") &&
                 DateTime.TryParse(value.ToString(), out var date))
-                return date.ToString("dd/MM/yyyy");
+                return ThaiDateFormatter.FormatFull(date);
 
             return value.ToString() ?? "";
         }

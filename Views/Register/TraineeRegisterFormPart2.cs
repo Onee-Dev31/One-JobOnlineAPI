@@ -107,12 +107,12 @@ namespace JobOnlineAPI.Views.Register
                         r.AutoItem().Text(t =>
                         {
                             t.Span("เริ่มต้น ").Bold();
-                            t.Span(string.IsNullOrEmpty(G("StartDate")) ? ".................................................." : G("StartDate"));
+                            t.Span(string.IsNullOrEmpty(G("StartDateRaw")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("StartDateRaw")));
                         });
                         r.AutoItem().PaddingLeft(20).Text(t =>
                         {
                             t.Span("สิ้นสุด ").Bold();
-                            t.Span(string.IsNullOrEmpty(G("EndDate")) ? ".................................................." : G("EndDate"));
+                            t.Span(string.IsNullOrEmpty(G("EndDateRaw")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("EndDateRaw")));
                         });
                     });
 
