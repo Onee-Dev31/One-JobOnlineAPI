@@ -7,6 +7,7 @@ using JobOnlineAPI.DAL;
 using JobOnlineAPI.Models;
 using Microsoft.VisualStudio.TestPlatform.Common;
 using Microsoft.VisualStudio.TestPlatform.ObjectModel.Client;
+using Org.BouncyCastle.Ocsp;
 
 namespace JobOnlineAPI.Services
 {
@@ -59,7 +60,11 @@ namespace JobOnlineAPI.Services
         {
             var fullNameThai = GetFullName(req);
             var jobTitle = req.TryGetValue("JobTitle", out var jobTitleObj) ? jobTitleObj?.ToString() ?? "-" : "-";
-            var JobStartDate = req.TryGetValue("JobStartDate", out var JobStartDateObj) ? JobStartDateObj?.ToString() ?? "-" : "-";
+            // เรียกใช้
+            var JobStartDate = req.TryGetValue("JobStartDate", out var JobStartDateObj)
+                ? FormatThaiDate(JobStartDateObj!)
+                : "-";
+
             var CodeMPID = req.TryGetValue("CodeMPID", out var CodeMPIDObj) ? CodeMPIDObj?.ToString() ?? "-" : "-";
             var typeMail = req.TryGetValue("TypeMail", out var typeMailObj) && typeMailObj != null
                 ? typeMailObj is JsonElement t && t.ValueKind == JsonValueKind.String ? t.GetString() : typeMailObj.ToString()
@@ -120,6 +125,13 @@ namespace JobOnlineAPI.Services
                 string fullName;
                 string? toEmail;
 
+                var candidateData = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "GetDataCandidateByJobID",
+                new { JobID = dbResult.OutJobID, ApplicantID = dbResult.ApplicantId },
+                commandType: CommandType.StoredProcedure);
+                string companyName = candidateData?.companyName?.ToString() ?? string.Empty;
+                string departmentName = candidateData?.departmentName?.ToString() ?? string.Empty;
+
                 if (openForStaff != null)
                 {
                     fullName = $"{openForStaff.NAMETHAI}".Trim();
@@ -149,7 +161,7 @@ namespace JobOnlineAPI.Services
                 {
                     try
                     {
-                        string managerBody = GenerateRegistrationConfirmedToHRBody(fullName, fullNameThai, CodeMPID, JobStartDate, applicationFormUri);
+                        string managerBody = GenerateRegistrationConfirmedToHRBody(fullName, fullNameThai, CodeMPID, JobStartDate, applicationFormUri, companyName, departmentName);
                         string SubjectMail = $@"แจ้งผลการสรรหา - คุณ {fullNameThai}";
                         string? ccEmail = ccEmails.Count != 0 ? string.Join(";", ccEmails) : null;
                         await _emailService.SendEmailWithCcAsync(toEmail, ccEmail, SubjectMail, managerBody, true, "Register", null);
@@ -836,7 +848,7 @@ namespace JobOnlineAPI.Services
             });
         }
 
-        private static string GenerateRegistrationConfirmedToHRBody(string recipientName, string fullNameThai, string codeMPID, string jobStartDate, string? applicationFormUri)
+        private static string GenerateRegistrationConfirmedToHRBody(string recipientName, string fullNameThai, string codeMPID, string jobStartDate, string? applicationFormUri, string companyname, string departmentname)
         {
             var template = LoadEmailTemplate("RegistrationConfirmedToHR.html");
             return ReplaceTemplatePlaceholders(template, new Dictionary<string, string>
@@ -845,6 +857,8 @@ namespace JobOnlineAPI.Services
                 { "FullNameThai", fullNameThai },
                 { "CodeMPID", codeMPID },
                 { "JobStartDate", jobStartDate },
+                { "CompanyName", companyname },
+                { "DepartmentName", departmentname },
                 { "BaseUrl", applicationFormUri ?? "" }
             });
         }
@@ -1199,6 +1213,23 @@ namespace JobOnlineAPI.Services
             return template;
         }
 
+        static readonly string[] ThaiMonthsFull = {
+            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+        };
+
+        static string FormatThaiDate(object value)
+        {
+            if (value == null) return "-";
+
+            var text = value.ToString();
+            if (!DateTime.TryParse(text, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None, out var dt))
+                return "-";
+
+            int buddhistYear = dt.Year + 543;
+            return $"{dt.Day:D2} {ThaiMonthsFull[dt.Month]} {buddhistYear}";
+        }
 
     }
 }
