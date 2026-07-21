@@ -65,7 +65,7 @@ namespace JobOnlineAPI.Views.Register
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>
                         {
-                            var birthDateText = FormatBuddhistDate(_form["BirthDate"], "DD MMM YYYY");
+                            var birthDateText = FormatBuddhistDate(_form["BirthDate"], "DD MMMM YYYY");
                             col.RelativeItem(4).Padding(3).Text(
                                 text =>
                                 {
@@ -111,7 +111,7 @@ namespace JobOnlineAPI.Views.Register
                                     text.Span($"{_form["CitizenIDIssuedBy"]}").FontSize(12);
                                 }
                             );
-                            var CitizenIDExpiry = FormatBuddhistDate(_form["CitizenIDExpiresON"], "DD MMM YYYY");
+                            var CitizenIDExpiry = FormatBuddhistDate(_form["CitizenIDExpiresON"], "DD MMMM YYYY");
                             col.RelativeItem(4).Padding(3).Text(
                                 text =>
                                 {
@@ -127,6 +127,48 @@ namespace JobOnlineAPI.Views.Register
                                 text =>
                                 {
                                     text.Span("ที่อยู่ตามทะเบียนบ้าน [Registeres Address]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredAddress"] ?? ""}").FontSize(12);
+                                }
+                            );
+                        });
+                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        {
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("แขวง/ตำบล [Tumbol]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredSubDistrictThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("เขต/อำเภอ [District]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredDistrictThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("จังหวัด [Province]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredProvinceThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("รหัสไปรษณีย์ [PostalCode]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredPostalCode"] ?? ""}").FontSize(12);
+                                }
+                            );
+                        });
+                        // ---------------------------------------------- ที่อยู่ปัจจุบัน ----------------------------------------------
+                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        {
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("ที่อยู่ปัจจุบัน [Current Address]: ").FontSize(12).Bold();
                                     text.Span($"{_form["CurrentAddress"] ?? ""}").FontSize(12);
                                 }
                             );
@@ -157,50 +199,8 @@ namespace JobOnlineAPI.Views.Register
                             col.RelativeItem().Padding(3).Text(
                                 text =>
                                 {
-                                    text.Span("รหัสไปรษณีย์ [PostalCode]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["CurrentPostalCode"] ?? ""}").FontSize(12);
-                                }
-                            );
-                        });
-                        // ---------------------------------------------- ที่อยู่ปัจจุบัน ----------------------------------------------
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("ที่อยู่ปัจจุบัน [Current Address]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["CurrentAddress"] ?? ""}").FontSize(12);
-                                }
-                            );
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("แขวง/ตำบล [Tumbol]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredSubDistrictThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("เขต/อำเภอ [District]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredDistrictThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("จังหวัด [Province]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredProvinceThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
                                     text.Span("รหัสไปรษณีย์ [Postal Code]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredPostalCode"] ?? ""}").FontSize(12);
+                                    text.Span($"{_form["CurrentPostalCode"] ?? ""}").FontSize(12);
                                 }
                             );
                         });
@@ -1040,7 +1040,7 @@ namespace JobOnlineAPI.Views.Register
                         row.RelativeItem();
                         row.ConstantItem(240).Column(col =>
                         {
-                            var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
+                            var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMMM YYYY");
                             col.Item().PaddingLeft(60).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
                             col.Item().PaddingTop(2).PaddingLeft(90).Text("(..........................................)").FontSize(12);
                             col.Item().PaddingTop(2).PaddingLeft(95).Text($"วันที่ / Date: {DateNow}").FontSize(12);
@@ -1070,6 +1070,10 @@ namespace JobOnlineAPI.Views.Register
         {
             if (DateTime.TryParse(value?.ToString(), out var dt))
             {
+                if (format == "DD MMMM YYYY")
+                {
+                    return dt.ToString("d MMMM yyyy", new System.Globalization.CultureInfo("th-TH"));
+                }
                 if (format == "DD MMM YYYY")
                 {
                     return $"{dt.Day} {dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} {dt.Year + 543}";
@@ -1080,7 +1084,7 @@ namespace JobOnlineAPI.Views.Register
                 }
                 if (format == "MMM YYYY")
                 {
-                    return $"{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} {dt.Year + 543}";
+                    return dt.ToString("MMM yyyy", new System.Globalization.CultureInfo("th-TH"));
                 }
                 if (format == "MMM-YYYY")
                 {
