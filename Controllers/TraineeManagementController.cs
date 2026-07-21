@@ -324,7 +324,14 @@ namespace JobOnlineAPI.Controllers
                     message = "แก้ไขข้อมูลการฝึกงานเรียบร้อย"
                 });
             }
-            catch (SqlException ex) when (ex.Number is >= 50000 and < 51000)
+            catch (SqlException ex) when (ex.Number is 2601 or 2627)
+            {
+                return Conflict(new
+                {
+                    message = "ผู้สมัครมีตำแหน่งงานนี้อยู่แล้ว ไม่สามารถเปลี่ยนเป็นตำแหน่งงานที่ซ้ำกันได้"
+                });
+            }
+            catch (SqlException ex) when (ex.Number is >= 50000 and < 52000)
             {
                 return BadRequest(new
                 {
