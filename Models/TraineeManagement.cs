@@ -398,6 +398,21 @@ namespace JobOnlineAPI.Models
         public DateTime? ModifiedDate { get; set; }
     }
 
+    public class TraineeComment
+    {
+        public int CommentID { get; set; }
+        public int AssignmentID { get; set; }
+        public string CommentText { get; set; } = string.Empty;
+        public int? CreatedByAdminID { get; set; }
+        public string? CreatedByName { get; set; }
+        public DateTime CreatedDate { get; set; }
+    }
+
+    public class AddTraineeCommentRequest
+    {
+        public string CommentText { get; set; } = string.Empty;
+    }
+
     public class UpdateTraineeInternshipRequest
     {
         public int JobID { get; set; }

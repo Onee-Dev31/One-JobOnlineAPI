@@ -5,6 +5,7 @@ using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
@@ -344,5 +345,40 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpGet("assignments/{assignmentId}/comments")]
+        public async Task<IActionResult> GetTraineeComments(int assignmentId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+
+            var comments = await conn.QueryAsync<TraineeComment>(
+                "sp_GetTraineeComments",
+                new { AssignmentID = assignmentId },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(comments);
+        }
+
+        [HttpPost("assignments/{assignmentId}/comments")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> AddTraineeComment(int assignmentId, [FromBody] AddTraineeCommentRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CommentText))
+                return BadRequest(new { message = "กรุณาระบุความคิดเห็น" });
+
+            var username = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+            using var conn = new SqlConnection(_connectionString);
+            var comment = await conn.QueryFirstAsync<TraineeComment>(
+                "sp_AddTraineeComment",
+                new
+                {
+                    AssignmentID = assignmentId,
+                    request.CommentText,
+                    CreatedByUsername = username
+                },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(comment);
+        }
     }
 }
