@@ -278,7 +278,7 @@ namespace JobOnlineAPI.Views.Register
                     t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("ออกโดย  ").Bold(); tt.Span(G("IDIssuedBy")); });
                     t.Cell().PaddingVertical(2).Text(tt =>
-                    { tt.Span("หมดอายุ  ").Bold(); tt.Span(G("IDExpiredDate")); });
+                    { tt.Span("หมดอายุ  ").Bold(); tt.Span(ThaiDateFormatter.FormatFull(G("IDExpiredDate"))); });
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("ID Card No.").FontColor(Colors.Grey.Darken1);
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Issued by").FontColor(Colors.Grey.Darken1);
                     t.Cell().BorderBottom(0.5f).PaddingVertical(1).Text("Expired Date.").FontColor(Colors.Grey.Darken1);
