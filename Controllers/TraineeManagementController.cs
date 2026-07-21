@@ -306,6 +306,7 @@ namespace JobOnlineAPI.Controllers
                     {
                         AssignmentID = assignmentId,
                         request.JobID,
+                        request.JobIDOld,
                         request.CompanyCode,
                         request.DepartmentCode,
                         request.ManualInternshipType,

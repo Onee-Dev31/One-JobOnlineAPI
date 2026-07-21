@@ -401,7 +401,7 @@ namespace JobOnlineAPI.Models
     public class UpdateTraineeInternshipRequest
     {
         public int JobID { get; set; }
-
+        public int JobIDOld { get; set; }
         public string CompanyCode { get; set; } = string.Empty;
 
         public string DepartmentCode { get; set; } = string.Empty;
