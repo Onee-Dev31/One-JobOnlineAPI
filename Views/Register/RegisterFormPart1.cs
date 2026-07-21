@@ -253,22 +253,10 @@ namespace JobOnlineAPI.Views.Register
                     inner.Item().Padding(12).Column(content =>
                     {
                         content.Spacing(10);
-                        var reason = GetFirstValue("Remark", "Reason", "Note", "Comments");
-
-                        if (!string.IsNullOrWhiteSpace(reason))
-                        {
-                            content.Item()
-                                .MinHeight(55)
-                                .Text(reason)
-                                .FontSize(11);
-                        }
-                        else
-                        {
-                            content.Item().PaddingTop(10).PaddingBottom(6).LineHorizontal(1);
-                            content.Item().PaddingBottom(6).LineHorizontal(1);
-                            content.Item().PaddingBottom(6).LineHorizontal(1);
-                            content.Item().LineHorizontal(1);
-                        }
+                        content.Item().PaddingTop(10).PaddingBottom(6).LineHorizontal(1);
+                        content.Item().PaddingBottom(6).LineHorizontal(1);
+                        content.Item().PaddingBottom(6).LineHorizontal(1);
+                        content.Item().LineHorizontal(1);
                     });
                 });
             }
@@ -332,16 +320,5 @@ namespace JobOnlineAPI.Views.Register
                 : "";
         }
 
-        private string GetFirstValue(params string[] keys)
-        {
-            foreach (var key in keys)
-            {
-                var value = GetValue(key);
-                if (!string.IsNullOrWhiteSpace(value))
-                    return value;
-            }
-
-            return "";
-        }
     }
 }
