@@ -361,6 +361,35 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpGet("searchByName")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [ProducesResponseType(typeof(IEnumerable<dynamic>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> SearchApplicantsByName([FromQuery] string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return BadRequest("กรุณาระบุชื่อที่ต้องการค้นหา");
+
+            try
+            {
+                using var connection = _context.CreateConnection();
+                var parameters = new DynamicParameters();
+                parameters.Add("@Name", name);
+
+                var results = await connection.QueryAsync(
+                    "sp_SearchApplicantsByName",
+                    parameters,
+                    commandType: CommandType.StoredProcedure);
+
+                return Ok(results);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to search applicants by name '{Name}': {Message}", name, ex.Message);
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
         [HttpPost("addApplicant")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
