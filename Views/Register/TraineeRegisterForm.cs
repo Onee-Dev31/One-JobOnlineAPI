@@ -80,10 +80,10 @@ namespace JobOnlineAPI.Views.Register
                     .FontSize(11)
                     .FontColor(Colors.Grey.Darken1);
 
-                col.Item()
-                    .PaddingTop(10)
-                    .LineHorizontal(1.2f)
-                    .LineColor(Colors.Grey.Darken2);
+                //col.Item()
+                //    .PaddingTop(10)
+                //    .LineHorizontal(1.2f)
+                //    .LineColor(Colors.Grey.Darken2);
             });
         }
 
@@ -323,10 +323,10 @@ namespace JobOnlineAPI.Views.Register
                 inner.Item().Padding(12).Column(content =>
                 {
                     content.Spacing(10);
-                    content.Item().PaddingTop(10).PaddingBottom(6).LineHorizontal(1);
-                    content.Item().PaddingBottom(6).LineHorizontal(1);
-                    content.Item().PaddingBottom(6).LineHorizontal(1);
-                    content.Item().LineHorizontal(1);
+                    content.Item().PaddingTop(10).PaddingBottom(6).Text("..............................................................................................................................................................................................");
+                    content.Item().PaddingBottom(6).Text("..............................................................................................................................................................................................");
+                    content.Item().PaddingBottom(6).Text("..............................................................................................................................................................................................");
+                    //content.Item().LineHorizontal(1);
                 });
             });
         }
@@ -336,7 +336,7 @@ namespace JobOnlineAPI.Views.Register
         {
             col.Item().ShowEntire().PaddingTop(14).Column(section =>
             {
-                section.Item().LineHorizontal(1);
+                //section.Item().LineHorizontal(1);
                 section.Item()
                     .PaddingTop(35)
                     .PaddingHorizontal(8)
