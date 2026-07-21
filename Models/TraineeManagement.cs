@@ -406,9 +406,15 @@ namespace JobOnlineAPI.Models
         public int? CreatedByAdminID { get; set; }
         public string? CreatedByName { get; set; }
         public DateTime CreatedDate { get; set; }
+        public DateTime? ModifiedDate { get; set; }
     }
 
     public class AddTraineeCommentRequest
+    {
+        public string CommentText { get; set; } = string.Empty;
+    }
+
+    public class UpdateTraineeCommentRequest
     {
         public string CommentText { get; set; } = string.Empty;
     }

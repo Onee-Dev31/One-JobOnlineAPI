@@ -14,10 +14,15 @@ BEGIN
         AssignmentID     INT NOT NULL FOREIGN KEY REFERENCES TraineeAssignments(AssignmentID),
         CommentText      NVARCHAR(1000) NOT NULL,
         CreatedByAdminID INT NULL FOREIGN KEY REFERENCES AdminUsers(AdminID),
-        CreatedDate      DATETIME2 NOT NULL DEFAULT GETDATE()
+        CreatedDate      DATETIME2 NOT NULL DEFAULT GETDATE(),
+        ModifiedDate     DATETIME2 NULL
     )
     PRINT 'Created TraineeComments'
 END
+GO
+
+IF COL_LENGTH('TraineeComments', 'ModifiedDate') IS NULL
+    ALTER TABLE TraineeComments ADD ModifiedDate DATETIME2 NULL
 GO
 
 -- @CreatedByUsername resolves to AdminUsers.AdminID here (rather than the caller passing an
@@ -45,7 +50,8 @@ BEGIN
         c.CommentText,
         c.CreatedByAdminID,
         a.NameThai AS CreatedByName,
-        c.CreatedDate
+        c.CreatedDate,
+        c.ModifiedDate
     FROM TraineeComments c
     LEFT JOIN AdminUsers a ON a.AdminID = c.CreatedByAdminID
     WHERE c.CommentID = @NewCommentID;
@@ -64,10 +70,40 @@ BEGIN
         c.CommentText,
         c.CreatedByAdminID,
         a.NameThai AS CreatedByName,
-        c.CreatedDate
+        c.CreatedDate,
+        c.ModifiedDate
     FROM TraineeComments c
     LEFT JOIN AdminUsers a ON a.AdminID = c.CreatedByAdminID
     WHERE c.AssignmentID = @AssignmentID
     ORDER BY c.CreatedDate DESC;
+END
+GO
+
+-- Requires @AssignmentID (not just @CommentID) so a caller can't edit a comment via a mismatched
+-- assignment route. Empty result set means no matching row was found (wrong ID or wrong assignment).
+CREATE OR ALTER PROCEDURE sp_UpdateTraineeComment
+    @CommentID    INT,
+    @AssignmentID INT,
+    @CommentText  NVARCHAR(1000)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    UPDATE TraineeComments
+    SET CommentText = @CommentText,
+        ModifiedDate = GETDATE()
+    WHERE CommentID = @CommentID AND AssignmentID = @AssignmentID;
+
+    SELECT
+        c.CommentID,
+        c.AssignmentID,
+        c.CommentText,
+        c.CreatedByAdminID,
+        a.NameThai AS CreatedByName,
+        c.CreatedDate,
+        c.ModifiedDate
+    FROM TraineeComments c
+    LEFT JOIN AdminUsers a ON a.AdminID = c.CreatedByAdminID
+    WHERE c.CommentID = @CommentID AND c.AssignmentID = @AssignmentID;
 END
 GO

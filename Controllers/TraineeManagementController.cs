@@ -381,5 +381,29 @@ namespace JobOnlineAPI.Controllers
 
             return Ok(comment);
         }
+
+        [HttpPut("assignments/{assignmentId}/comments/{commentId}")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> UpdateTraineeComment(int assignmentId, int commentId, [FromBody] UpdateTraineeCommentRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CommentText))
+                return BadRequest(new { message = "กรุณาระบุความคิดเห็น" });
+
+            using var conn = new SqlConnection(_connectionString);
+            var comment = await conn.QueryFirstOrDefaultAsync<TraineeComment>(
+                "sp_UpdateTraineeComment",
+                new
+                {
+                    CommentID = commentId,
+                    AssignmentID = assignmentId,
+                    request.CommentText
+                },
+                commandType: CommandType.StoredProcedure);
+
+            if (comment == null)
+                return NotFound(new { message = "ไม่พบความคิดเห็นนี้" });
+
+            return Ok(comment);
+        }
     }
 }
