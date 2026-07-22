@@ -1072,7 +1072,7 @@ namespace JobOnlineAPI.Views.Register
         }
         private static string FormatBuddhistDate(object? value, string? format)
         {
-            if (DateTime.TryParse(value?.ToString(), out var dt))
+            if (DateTime.TryParse(value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out var dt))
             {
                 if (format == "DD MMMM YYYY")
                 {
