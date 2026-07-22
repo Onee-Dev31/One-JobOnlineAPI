@@ -31,9 +31,11 @@ BEGIN
     (N'Senior', 3, 1, GETDATE()),
     (N'Manager', 4, 1, GETDATE()),
     (N'Director', 5, 1, GETDATE()),
-    (N'P', 6, 1, GETDATE()),
-    (N'EVP', 7, 1, GETDATE()),
-    (N'C-Level', 8, 1, GETDATE())
+    (N'Executive Director', 6, 1, GETDATE()),
+    (N'VP', 7, 1, GETDATE()),
+    (N'SVP', 8, 1, GETDATE()),
+    (N'EVP', 9, 1, GETDATE()),
+    (N'C-Level', 10, 1, GETDATE())
 END
 GO
 
