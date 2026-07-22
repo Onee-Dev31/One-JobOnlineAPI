@@ -151,6 +151,12 @@ namespace JobOnlineAPI.Models
         public string? University { get; set; }
         public string StartDate { get; set; } = string.Empty; // "YYYY-MM-DD"
         public string EndDate { get; set; } = string.Empty;   // "YYYY-MM-DD"
+        public string ActualEndDate { get; set; } = string.Empty;   // "YYYY-MM-DD"
+        public string? CancelReason { get; set; }
+        public string? ModifiedByAdminID { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        public string? Status { get; set; }
+
 
         // Not part of the frontend Trainee type; used only to bucket rows into their
         // Job while mapping the stored proc's result sets in the controller.
@@ -396,6 +402,8 @@ namespace JobOnlineAPI.Models
         public string? UserType { get; set; }
         public DateTime? CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        public string? TraineeStatus { get; set; }
+
     }
 
     public class TraineeComment
@@ -436,5 +444,12 @@ namespace JobOnlineAPI.Models
         public string? ManualDurationMonths { get; set; }
 
         public string? ManualPreferredPosition { get; set; }
+    }
+
+    public class UpdateTraineeStatusRequest
+    {
+        public string Status { get; set; } = string.Empty;
+        public DateTime ActualEndDate { get; set; }
+        public string? CancelReason { get; set; }
     }
 }
