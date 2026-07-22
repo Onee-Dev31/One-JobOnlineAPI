@@ -415,6 +415,7 @@ namespace JobOnlineAPI.Models
         public string? CreatedByName { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
+        public string? Action { get; set; }
     }
 
     public class AddTraineeCommentRequest
