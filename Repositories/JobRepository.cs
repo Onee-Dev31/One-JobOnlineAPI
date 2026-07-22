@@ -65,8 +65,8 @@ namespace JobOnlineAPI.Repositories
                     job.CreatedByRole,
                     job.JobGroupID,
                     job.Office,
-                    job.Tier,
-                    job.EmployeeType
+                    job.LevelID,
+                    job.EmployeeTypeID
                 };
 
                 var result = await db.ExecuteScalarAsync(sql, parameters, commandType: CommandType.StoredProcedure);
@@ -253,8 +253,8 @@ namespace JobOnlineAPI.Repositories
                 ModifiedDate = job.ModifiedDate.HasValue ? (object)job.ModifiedDate.Value : DBNull.Value,
                 job.JobGroupID,
                 job.Office,
-                job.Tier,
-                job.EmployeeType
+                job.LevelID,
+                job.EmployeeTypeID
             };
             // await SendJobNotificationEmailsAsync(job, db);
             return await db.ExecuteAsync(sql, parameters, commandType: CommandType.StoredProcedure);

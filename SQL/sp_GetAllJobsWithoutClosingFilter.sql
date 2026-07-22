@@ -31,12 +31,16 @@ BEGIN
         ISNULL(MAX(j.Remark), '-') AS Remark,
         MAX(j.JobGroupID) AS JobGroupID,
         MAX(j.Office) AS Office,
-        MAX(j.Tier) AS Tier,
-        MAX(j.EmployeeType) AS EmployeeType
+        MAX(j.LevelID) AS LevelID,
+        MAX(jl.LevelName) AS LevelName,
+        MAX(j.EmployeeTypeID) AS EmployeeTypeID,
+        MAX(et.TypeName) AS EmployeeTypeName
     FROM
         Jobs j
     LEFT JOIN
         JobApplications ja ON j.JobID = ja.JobID
+    LEFT JOIN JobLevels jl ON jl.JobLevelID = j.LevelID
+    LEFT JOIN EmployeeTypes et ON et.EmployeeTypeID = j.EmployeeTypeID
     GROUP BY
         j.JobID
     ORDER BY

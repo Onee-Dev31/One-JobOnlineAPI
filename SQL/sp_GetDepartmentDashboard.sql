@@ -8,7 +8,7 @@ AS
 BEGIN
     -- Result set 1: jobs
     SELECT JobID, JobTitle, JobDescription, Department, NumberOfPositions, JobStatus,
-           JobGroupID, Office, Tier, EmployeeType
+           JobGroupID, Office, LevelID, EmployeeTypeID
     FROM Jobs
     WHERE (@Department IS NULL OR Department = @Department)
 

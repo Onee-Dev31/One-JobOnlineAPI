@@ -35,15 +35,60 @@ CREATE OR ALTER PROCEDURE sp_AddTraineeComment
 AS
 BEGIN
     SET NOCOUNT ON;
+    SET XACT_ABORT ON;
 
     DECLARE @CreatedByAdminID INT;
-    SELECT @CreatedByAdminID = AdminID FROM AdminUsers WHERE Username = @CreatedByUsername;
+    DECLARE @CommentID INT;
+	DECLARE @Action NVARCHAR(100);
 
-    INSERT INTO TraineeComments (AssignmentID, CommentText, CreatedByAdminID)
-    VALUES (@AssignmentID, @CommentText, @CreatedByAdminID);
+    -- หา AdminID จาก Username
+    SELECT @CreatedByAdminID = AdminID
+    FROM dbo.AdminUsers
+    WHERE Username = @CreatedByUsername;
 
-    DECLARE @NewCommentID INT = SCOPE_IDENTITY();
+    IF @CreatedByAdminID IS NULL
+    BEGIN
+        THROW 51001, N'ไม่พบข้อมูลผู้ใช้งาน', 1;
+    END;
 
+	-- หา Comment เดิมของ Admin คนนี้ ใน Assignment นี้
+	SELECT @CommentID = CommentID
+	FROM dbo.TraineeComments
+	WHERE AssignmentID = @AssignmentID
+	  AND CreatedByAdminID = @CreatedByAdminID;
+
+	IF @CommentID IS NOT NULL
+	BEGIN
+		-- มีแล้ว แก้ข้อความเดิม
+		UPDATE dbo.TraineeComments
+		SET
+			CommentText = @CommentText,
+			ModifiedDate = GETDATE()
+		WHERE CommentID = @CommentID;
+
+		SET @Action = N'แก้ไขความคิดเห็นเรียบร้อยแล้ว';
+	END
+	ELSE
+	BEGIN
+		-- ยังไม่มี เพิ่มใหม่
+		INSERT INTO dbo.TraineeComments
+		(
+			AssignmentID,
+			CommentText,
+			CreatedByAdminID
+		)
+		VALUES
+		(
+			@AssignmentID,
+			@CommentText,
+			@CreatedByAdminID
+		);
+
+		SET @CommentID = SCOPE_IDENTITY();
+		SET @Action = N'บันทึกความคิดเห็นเรียบร้อยแล้ว';
+	END;
+    
+    -- คืน Comment ไม่ว่าจะ Insert หรือ Update
     SELECT
         c.CommentID,
         c.AssignmentID,
@@ -51,10 +96,12 @@ BEGIN
         c.CreatedByAdminID,
         a.NameThai AS CreatedByName,
         c.CreatedDate,
-        c.ModifiedDate
-    FROM TraineeComments c
-    LEFT JOIN AdminUsers a ON a.AdminID = c.CreatedByAdminID
-    WHERE c.CommentID = @NewCommentID;
+        c.ModifiedDate,
+		@Action AS Action
+    FROM dbo.TraineeComments c
+    LEFT JOIN dbo.AdminUsers a
+        ON a.AdminID = c.CreatedByAdminID
+    WHERE c.CommentID = @CommentID;
 END
 GO
 
