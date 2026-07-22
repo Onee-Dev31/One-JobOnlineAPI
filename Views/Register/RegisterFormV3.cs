@@ -1072,29 +1072,15 @@ namespace JobOnlineAPI.Views.Register
         }
         private static string FormatBuddhistDate(object? value, string? format)
         {
-            if (DateTime.TryParse(value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out var dt))
-            {
-                if (format == "DD MMMM YYYY")
-                {
-                    return ThaiDateFormatter.FormatFull(dt);
-                }
-                if (format == "DD MMM YYYY")
-                {
-                    return ThaiDateFormatter.FormatFull(dt);
-                }
-                if (format == "DD-MMM-YYYY")
-                {
-                    return ThaiDateFormatter.FormatFull(dt);
-                }
-                if (format == "MMM YYYY")
-                {
-                    return ThaiDateFormatter.FormatMonthYear(dt);
-                }
-                if (format == "MMM-YYYY")
-                {
-                    return ThaiDateFormatter.FormatMonthYear(dt);
-                }
-            }
+            DateTime dt;
+            if (value is DateTime directDate)
+                dt = directDate;
+            else if (!DateTime.TryParse(value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out dt))
+                return "";
+            if (format is "DD MMMM YYYY" or "DD MMM YYYY" or "DD-MMM-YYYY")
+                return ThaiDateFormatter.FormatFull(dt);
+            if (format is "MMM YYYY" or "MMM-YYYY")
+                return ThaiDateFormatter.FormatMonthYear(dt);
             return "";
         }
         private void ComposeFirstPageHeader(IContainer container)
