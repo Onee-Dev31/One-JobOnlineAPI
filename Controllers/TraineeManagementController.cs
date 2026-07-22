@@ -412,5 +412,69 @@ namespace JobOnlineAPI.Controllers
 
             return Ok(comment);
         }
+
+        [HttpPut("assignments/{assignmentId}/status")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> UpdateTraineeStatus(
+            int assignmentId,
+            [FromBody] UpdateTraineeStatusRequest request)
+        {
+            if (!User.IsInRole("Admin") && !User.IsInRole("HR"))
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new { message = "ไม่มีสิทธิ์แก้ไขสถานะนักศึกษาฝึกงาน" }
+                );
+            }
+
+            try
+            {
+                var subject = HttpContext.Items["JwtSubject"];
+
+
+                using var conn = new SqlConnection(_connectionString);
+
+                var result = await conn.QueryFirstOrDefaultAsync(
+                    "UpdateTraineeStatusByAssignmentID",
+                    new
+                    {
+                        AssignmentID = assignmentId,
+                        request.Status,
+                        request.ActualEndDate,
+                        request.CancelReason,
+                        ADUser = subject
+                    },
+                    commandType: CommandType.StoredProcedure
+                );
+
+                return Ok(new
+                {
+                    message = request.Status == "Trainee Cancel"
+                        ? "ยกเลิกการฝึกงานเรียบร้อย"
+                        : "สิ้นสุดการฝึกงานเรียบร้อย",
+                    data = result
+                });
+            }
+            catch (SqlException ex) when (ex.Number is >= 51000 and < 52000)
+            {
+                return BadRequest(new
+                {
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Unexpected error updating trainee status. AssignmentID: {AssignmentID}",
+                    assignmentId
+                );
+
+                return StatusCode(500, new
+                {
+                    message = "เกิดข้อผิดพลาดภายในระบบ"
+                });
+            }
+        }
     }
 }

@@ -36,6 +36,9 @@ namespace JobOnlineAPI.Filters
             try
             {
                 var validated = await jwtTokenService.ValidateTokenAsync(token);
+
+                context.HttpContext.Items["JwtSubject"] = validated.Subject;
+
                 var identity = new ClaimsIdentity(validated.Claims, "jwt");
                 var principal = new ClaimsPrincipal(identity);
 
