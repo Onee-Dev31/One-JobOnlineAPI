@@ -429,8 +429,7 @@ namespace JobOnlineAPI.Controllers
 
             try
             {
-                var subject = HttpContext.Items["JwtSubject"];
-
+                var username = User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 
                 using var conn = new SqlConnection(_connectionString);
 
@@ -442,7 +441,7 @@ namespace JobOnlineAPI.Controllers
                         request.Status,
                         request.ActualEndDate,
                         request.CancelReason,
-                        ADUser = subject
+                        ADUser = username
                     },
                     commandType: CommandType.StoredProcedure
                 );
