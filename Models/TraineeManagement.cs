@@ -403,6 +403,8 @@ namespace JobOnlineAPI.Models
         public DateTime? CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         public string? TraineeStatus { get; set; }
+        public string? CancelReason { get; set; }
+        public string? ActualEndDate { get; set; }
 
     }
 
