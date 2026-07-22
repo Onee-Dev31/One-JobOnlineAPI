@@ -475,5 +475,21 @@ namespace JobOnlineAPI.Controllers
                 });
             }
         }
+
+        [HttpGet("overview-by-jobid")]
+        public async Task<IActionResult> GetTraineesByJobID(
+        [FromQuery] int jobId,
+        [FromQuery] int? year,
+        [FromQuery] string? company,
+        [FromQuery] string? department)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            var trainees = (await conn.QueryAsync<dynamic>(
+                "[sp_GetTraineeManagementOverviewByJobID]",
+                new { Year = year, JobID = jobId, CompanyCode = company, DepartmentCode = department },
+                commandType: CommandType.StoredProcedure)).ToList();
+
+            return Ok(trainees);
+        }
     }
 }
