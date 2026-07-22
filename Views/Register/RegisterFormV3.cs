@@ -881,7 +881,11 @@ namespace JobOnlineAPI.Views.Register
                             });
                             col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
                             {
-                                RenderCheckBox(row, _form["QuestionnaireDisabilities"]?.ToString() ?? "", "yes", "มี/โปรดระบุ[Yes]", "");
+                                var reasonDisabilities = _form.ContainsKey("ReasonDisabilities") ? _form["ReasonDisabilities"]?.ToString() ?? "" : "";
+                                var disabilitiesLabel = string.IsNullOrWhiteSpace(reasonDisabilities)
+                                    ? "มี/โปรดระบุ[Yes]"
+                                    : $"มี/โปรดระบุ[Yes]: {reasonDisabilities}";
+                                RenderCheckBox(row, _form["QuestionnaireDisabilities"]?.ToString() ?? "", "yes", disabilitiesLabel, "");
                             });
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>

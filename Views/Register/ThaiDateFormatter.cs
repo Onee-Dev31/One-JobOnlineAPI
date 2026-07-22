@@ -58,5 +58,6 @@ namespace JobOnlineAPI.Views.Register
         {
             return date.Year >= 2400 ? date.Year : date.Year + 543;
         }
+
     }
 }
