@@ -1007,7 +1007,7 @@ namespace JobOnlineAPI.Services
             var parameters = new DynamicParameters();
             var DepartmentName = requestData?.DeptName;
             var JobTitle = requestData?.JobTitle;
-            var applicationFormUri = _config["FileStorage:ApplicationFormUri"];
+            var applicationFormUri = _config["FrontEnd:BaseUrl"];
             int jobId = requestData?.JobID ?? 0;
             parameters.Add("@JobID", jobId, DbType.Int32);
             // ตัวอย่าง Dapper async
