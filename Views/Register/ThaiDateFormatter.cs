@@ -34,7 +34,24 @@ namespace JobOnlineAPI.Views.Register
                 return false;
             }
 
-            return DateTime.TryParse(value.ToString(), out date);
+            var text = value.ToString();
+            var supportedFormats = new[]
+            {
+                "dd/MM/yyyy",
+                "d/M/yyyy",
+                "yyyy-MM-dd",
+                "yyyy-MM-ddTHH:mm:ss",
+                "yyyy-MM-ddTHH:mm:ss.FFFFFFF"
+            };
+
+            return DateTime.TryParseExact(
+                       text,
+                       supportedFormats,
+                       CultureInfo.InvariantCulture,
+                       DateTimeStyles.AllowWhiteSpaces,
+                       out date)
+                   || DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out date)
+                   || DateTime.TryParse(text, ThaiCulture, DateTimeStyles.AllowWhiteSpaces, out date);
         }
 
         private static int GetBuddhistYear(DateTime date)

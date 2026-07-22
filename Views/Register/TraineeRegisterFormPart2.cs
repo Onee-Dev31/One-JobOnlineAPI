@@ -231,7 +231,7 @@ namespace JobOnlineAPI.Views.Register
                 {
                     t.ColumnsDefinition(d => { d.RelativeColumn(3); d.RelativeColumn(2); d.RelativeColumn(3); });
                     t.Cell().PaddingVertical(2).Text(tt =>
-                    { tt.Span("วัน-เดือน-ปีเกิด  ").Bold(); tt.Span(G("DateOfBirth")); });
+                    { tt.Span("วัน-เดือน-ปีเกิด  ").Bold(); tt.Span(ThaiDateFormatter.FormatFull(G("DateOfBirth"))); });
                     t.Cell().PaddingVertical(2).Text(tt =>
                     { tt.Span("อายุ  ").Bold(); tt.Span(G("Age")); tt.Span("  ปี"); });
                     t.Cell().PaddingVertical(2).Text(tt =>
