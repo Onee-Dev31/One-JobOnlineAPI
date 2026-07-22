@@ -30,8 +30,10 @@ BEGIN
         ISNULL(MAX(j.Remark), '-') AS Remark,
         MAX(j.JobGroupID) AS JobGroupID,
         MAX(j.Office) AS Office,
-        MAX(j.Tier) AS Tier,
-        MAX(j.EmployeeType) AS EmployeeType,
+        MAX(j.LevelID) AS LevelID,
+        MAX(jl.LevelName) AS LevelName,
+        MAX(j.EmployeeTypeID) AS EmployeeTypeID,
+        MAX(et.TypeName) AS EmployeeTypeName,
         COUNT(DISTINCT ja.ApplicationID) AS ApplicantCount,
         MAX(cd.COMPANY_CODE) AS ComCode,
 
@@ -58,6 +60,8 @@ BEGIN
         [HRMS_LINKED_SERVER].HRMS.Dbo.T_EMPLOYEE_SSO h ON j.OpenFor = h.CODEMPID
     LEFT JOIN [HRMS_LINKED_SERVER].HRMS.Dbo.T_EMPLOYEE_SSO cd
         ON j.Department = cd.COSTCENT
+    LEFT JOIN JobLevels jl ON jl.JobLevelID = j.LevelID
+    LEFT JOIN EmployeeTypes et ON et.EmployeeTypeID = j.EmployeeTypeID
     CROSS APPLY dbo.fn_GetDepartmentNameFromCoscent(j.Department) d
     WHERE
         (@JobID IS NULL OR j.JobID = @JobID)

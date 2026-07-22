@@ -61,7 +61,9 @@ namespace JobOnlineAPI.Models
         public string? DepartmentName { get; set; }
         public int? JobGroupID { get; set; }
         public string? Office { get; set; }
-        public string? Tier { get; set; }
-        public string? EmployeeType { get; set; }
+        public int? LevelID { get; set; }
+        public string? LevelName { get; set; }
+        public int? EmployeeTypeID { get; set; }
+        public string? EmployeeTypeName { get; set; }
     }
 }

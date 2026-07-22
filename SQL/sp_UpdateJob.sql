@@ -19,8 +19,8 @@ ALTER PROCEDURE [dbo].[sp_UpdateJob]
     @ModifiedDate DATETIME = NULL,
     @JobGroupID INT = NULL,
     @Office NVARCHAR(100) = NULL,
-    @Tier NVARCHAR(50) = NULL,
-    @EmployeeType NVARCHAR(50) = NULL
+    @LevelID INT = NULL,
+    @EmployeeTypeID INT = NULL
 AS
 BEGIN
     UPDATE Jobs
@@ -40,8 +40,8 @@ BEGIN
         ModifiedDate = @ModifiedDate,
         JobGroupID = @JobGroupID,
         Office = @Office,
-        Tier = @Tier,
-        EmployeeType = @EmployeeType
+        LevelID = @LevelID,
+        EmployeeTypeID = @EmployeeTypeID
     WHERE JobID = @JobID;
 END
 GO

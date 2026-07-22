@@ -100,7 +100,7 @@ BEGIN
             -- (admin department-assignment flow), both keyed by ja.ApplicationID. Prefer JobSlotAssignments
             -- since it's the earlier stage of the flow, fall back to TraineeAssignments.
             CASE
-                WHEN c.EmployeeType = N'นักศึกษาฝึกงาน' THEN COALESCE(
+                WHEN c.EmployeeTypeID = (SELECT EmployeeTypeID FROM EmployeeTypes WHERE TypeName = N'นักศึกษาฝึกงาน') THEN COALESCE(
                     (SELECT TOP 1 jsa.ManualPreferredPositionBackup FROM JobSlotAssignments jsa
                      WHERE jsa.ApplicationID = ja.ApplicationID AND jsa.Status <> 'Cancelled'
                      ORDER BY jsa.AssignmentID DESC),
@@ -327,7 +327,7 @@ BEGIN
             -- (admin department-assignment flow), both keyed by ja.ApplicationID. Prefer JobSlotAssignments
             -- since it's the earlier stage of the flow, fall back to TraineeAssignments.
             CASE
-                WHEN c.EmployeeType = N'นักศึกษาฝึกงาน' THEN COALESCE(
+                WHEN c.EmployeeTypeID = (SELECT EmployeeTypeID FROM EmployeeTypes WHERE TypeName = N'นักศึกษาฝึกงาน') THEN COALESCE(
                     (SELECT TOP 1 jsa.ManualPreferredPositionBackup FROM JobSlotAssignments jsa
                      WHERE jsa.ApplicationID = ja.ApplicationID AND jsa.Status <> 'Cancelled'
                      ORDER BY jsa.AssignmentID DESC),

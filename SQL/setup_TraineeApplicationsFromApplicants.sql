@@ -103,7 +103,7 @@ BEGIN
         ) allFiles
     ) fc
     WHERE (
-        j.EmployeeType = N'นักศึกษาฝึกงาน'
+        j.EmployeeTypeID = (SELECT EmployeeTypeID FROM EmployeeTypes WHERE TypeName = N'นักศึกษาฝึกงาน')
         OR (b.JobID IS NULL AND (a.InternshipStartDate IS NOT NULL OR a.InternshipType IS NOT NULL))
     )
     AND (@Status IS NULL OR b.Status = @Status)
