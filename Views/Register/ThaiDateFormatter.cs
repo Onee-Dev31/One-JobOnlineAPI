@@ -44,14 +44,30 @@ namespace JobOnlineAPI.Views.Register
                 "yyyy-MM-ddTHH:mm:ss.FFFFFFF"
             };
 
-            return DateTime.TryParseExact(
-                       text,
-                       supportedFormats,
-                       CultureInfo.InvariantCulture,
-                       DateTimeStyles.AllowWhiteSpaces,
-                       out date)
-                   || DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out date)
-                   || DateTime.TryParse(text, ThaiCulture, DateTimeStyles.AllowWhiteSpaces, out date);
+            if (DateTime.TryParseExact(
+                    text,
+                    supportedFormats,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AllowWhiteSpaces,
+                    out date)
+                || DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out date))
+                return true;
+
+            // Parse pre-formatted Thai month name strings like "22 กรกฎาคม 1992"
+            // where the year is ค.ศ. (Gregorian). Must handle BEFORE th-TH culture parse
+            // because th-TH (BuddhistCalendar) would misinterpret the year as พ.ศ.
+            var thaiMonths = new[] { "มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม" };
+            for (var m = 0; m < thaiMonths.Length; m++)
+            {
+                if (!text.Contains(thaiMonths[m])) continue;
+                var replaced = text.Replace(thaiMonths[m], (m + 1).ToString("D2"));
+                if (DateTime.TryParseExact(replaced.Trim(), new[] { "d MM yyyy", "dd MM yyyy" },
+                        CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out date))
+                    return true;
+                break;
+            }
+
+            return DateTime.TryParse(text, ThaiCulture, DateTimeStyles.AllowWhiteSpaces, out date);
         }
 
         private static int GetBuddhistYear(DateTime date)
