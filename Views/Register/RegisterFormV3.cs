@@ -716,16 +716,22 @@ namespace JobOnlineAPI.Views.Register
                     page.MarginVertical(8);
                     page.MarginHorizontal(8);
                     page.DefaultTextStyle(x => x.FontSize(11).FontFamily("DB Heavent"));
-                    col.Item().Padding(5).Text("ความสามารถพิเศษ").FontSize(12).Bold();
+                    col.Item()
+                        .PaddingHorizontal(10)
+                        .PaddingTop(5)
+                        .PaddingBottom(3)
+                        .BorderBottom(1)
+                        .BorderColor(Colors.Grey.Lighten2)
+                        .Text("ความสามารถพิเศษ")
+                        .FontSize(12)
+                        .Bold();
                     col.Item().Column(innerRow =>
                     {
-                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        innerRow.Item().PaddingHorizontal(10).PaddingTop(8).Row(col =>
                         {
+                            col.Spacing(24);
                             var skills = new List<SkillsV3Dto>();
                             SkillsV3Dto? Other = null;
-                            SkillsV3Dto? Hobbies = null;
-                            SkillsV3Dto? Activites = null;
-                            SkillsV3Dto? Interests = null;
                             if (_form["SkillsList"] != null && _form["SkillsList"] != DBNull.Value)
                             {
                                 var options = new JsonSerializerOptions
@@ -739,105 +745,86 @@ namespace JobOnlineAPI.Views.Register
                                     _form["SkillsList"].ToString() ?? "[]", options
                                 )?
                                 .FirstOrDefault(r => r.SkillType == "Other");
-                                Hobbies = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Hobbies");
-                                Activites = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Activites");
-                                Interests = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Interests");
                             }
-                            if (skills.Count == 0)
+                            var computerSkill = skills.FirstOrDefault(r => r.SkillType == "ComSkill");
+                            var otherSkill = skills.FirstOrDefault(r => r.SkillType == "genius");
+                            var languageSkills = skills
+                                .Where(r => r.SkillType == "TOEIC"
+                                    || r.SkillType == "TOEFL"
+                                    || r.SkillType == "IELTS")
+                                .ToList();
+
+                            col.RelativeItem().Column(col =>
                             {
-                                for (int i = 0; i < 3; i++)
+                                col.Spacing(12);
+
+                                col.Item().Column(box =>
                                 {
-                                    skills.Add(new SkillsV3Dto
+                                    box.Spacing(3);
+                                    box.Item().Text("ภาษาต่างประเทศ [Language]").FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8).Row(row =>
                                     {
-                                        SkillType = "",
-                                        SkillDescription = "",
-                                        SkillScore = null
-                                    });
-                                }
-                            }
-                            col.RelativeItem().Border(1).BorderColor(Colors.Black).Column(col =>
-                            {
-                                col.Item().PaddingLeft(5).Text("ภาษาต่างประเทศ [Language]").FontSize(12).Bold();
-                                // รายการ TOEIC / TOEFL / IELTS
-                                col.Item().PaddingLeft(8).Row(row =>
-                                {
-                                    foreach (var skill in skills)
-                                    {
-                                        if (skill.SkillType == "TOEIC" || skill.SkillType == "TOEFL" || skill.SkillType == "IELTS")
+                                        row.Spacing(12);
+                                        if (languageSkills.Count == 0)
                                         {
-                                            row.ConstantItem(80).Text(text =>
-                                            {
-                                                text.Span($"{skill.SkillType ?? ""}: ").FontSize(12).Bold();
-                                                text.Span($"{skill.SkillScore ?? 0} คะแนน").FontSize(12);
-                                            });
+                                            row.RelativeItem().Text("..................").FontSize(12);
                                         }
-                                    }
+                                        else
+                                        {
+                                            foreach (var skill in languageSkills)
+                                            {
+                                                row.AutoItem().Text(text =>
+                                                {
+                                                    text.Span($"{skill.SkillType}: ").FontSize(12).Bold();
+                                                    text.Span($"{skill.SkillScore ?? 0} คะแนน").FontSize(12);
+                                                });
+                                            }
+                                        }
+                                    });
                                 });
-                                col.Item().PaddingLeft(5).Text("ภาษาอื่นๆ [Orther Language]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
+
+                                col.Item().Column(box =>
                                 {
-                                    row.RelativeItem().Text($"{Other?.SkillType}: {Other?.SkillScore} คะแนน").FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("งานอดิเรก [Hobbies]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Hobbies?.SkillDescription ?? "").FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("กิจกรรม [Activites]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Activites?.SkillDescription ?? "").FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("กีฬาที่ท่านสนใจ [Interests]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Interests?.SkillDescription ?? "").FontSize(12);
+                                    box.Spacing(3);
+                                    box.Item().Text("ภาษาอื่นๆ [Other Language]").FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(Other != null
+                                            ? $"{Other.SkillType}: {Other.SkillScore} คะแนน"
+                                            : "..................")
+                                        .FontSize(12);
                                 });
                             });
                             col.RelativeItem().Column(col =>
                             {
-                                foreach (var skill in skills)
+                                col.Spacing(12);
+
+                                col.Item().Column(box =>
                                 {
-                                    if (skill.SkillType == "ComSkill" || skill.SkillType == "genius")
-                                    {
-                                        col.Item().Border(1).BorderColor(Colors.Black).Column(box =>
-                                        {
-                                            // Header
-                                            box.Item().PaddingLeft(5)
-                                                .Text(skill.SkillType == "ComSkill"
-                                                    ? "ความรู้ทางคอมพิวเตอร์ (Computer Skills)"
-                                                    : "ความรู้หรือทักษะอื่น ๆ (Other Skills)")
-                                                .FontSize(12).Bold();
-                                            // ถ้ามีข้อความ → แตกเป็นหลายบรรทัด
-                                            var desc = (skill.SkillDescription ?? "").Split('\n');
-                                            foreach (var line in desc)
-                                            {
-                                                box.Item()
-                                                    .PaddingHorizontal(5)
-                                                    .MinHeight(20)
-                                                    .PaddingLeft(8)
-                                                    .Text(line)
-                                                    .FontSize(12)
-                                                    .WrapAnywhere();
-                                            }
-                                            // ถ้าไม่มี หรือบรรทัดน้อยกว่า 3 → เติม blank row
-                                            int filled = desc.Length;
-                                            for (int i = filled; i < 3; i++)
-                                            {
-                                                box.Item().PaddingHorizontal(5).Height(20);
-                                            }
-                                        });
-                                    }
-                                }
+                                    box.Spacing(3);
+                                    box.Item()
+                                        .Text("ความรู้ทางคอมพิวเตอร์ (Computer Skills)")
+                                        .FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(string.IsNullOrWhiteSpace(computerSkill?.SkillDescription)
+                                            ? ".................."
+                                            : computerSkill.SkillDescription)
+                                        .FontSize(12)
+                                        .WrapAnywhere();
+                                });
+
+                                col.Item().Column(box =>
+                                {
+                                    box.Spacing(3);
+                                    box.Item()
+                                        .Text("ความรู้หรือทักษะอื่น ๆ (Other Skills)")
+                                        .FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(string.IsNullOrWhiteSpace(otherSkill?.SkillDescription)
+                                            ? ".................."
+                                            : otherSkill.SkillDescription)
+                                        .FontSize(12)
+                                        .WrapAnywhere();
+                                });
                             });
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>
