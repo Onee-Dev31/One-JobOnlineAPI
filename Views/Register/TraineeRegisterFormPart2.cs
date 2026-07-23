@@ -176,23 +176,25 @@ namespace JobOnlineAPI.Views.Register
         // ==================== REASON ====================
         private void ReasonRow(IContainer c)
         {
-            var reason = G("Reason").ToLower();
-            bool isCourse = reason.Contains("course") || reason.Contains("วิชา");
-            bool isCooperative = reason.Contains("cooperative") || reason.Contains("experience") || reason.Contains("ประสบการณ์");
-            bool isOther = !isCourse && !isCooperative && !string.IsNullOrEmpty(reason);
+            var internshipType = G("InternshipType").ToLower().Trim();
+            bool isSummer = internshipType == "summer";
+            bool isCourse = internshipType == "course";
+            bool isCooperative = internshipType == "cooperative";
+            bool isOther = !isSummer && !isCourse && !isCooperative && !string.IsNullOrEmpty(internshipType);
 
             c.Column(col =>
             {
                 col.Item().Row(r =>
                 {
                     r.AutoItem().Text("สาเหตุของการฝึกงาน : ").Bold();
-                    r.AutoItem().PaddingLeft(8).Text($"{Radio(isCourse)}  เป็นส่วนหนึ่งของวิชาเรียน");
-                    r.AutoItem().PaddingLeft(8).Text($"{Radio(isCooperative)}  เพื่อเสริมสร้างประสบการณ์");
+                    r.AutoItem().PaddingLeft(8).Text($"{Radio(isSummer)}  ฝึกงานภาคฤดูร้อน");
+                    r.AutoItem().PaddingLeft(8).Text($"{Radio(isCourse)}  ฝึกงานตามหลักสูตร");
+                    r.AutoItem().PaddingLeft(8).Text($"{Radio(isCooperative)}  ฝึกงานสหกิจ");
                 });
                 col.Item().PaddingTop(3).Text(t =>
                 {
                     t.Span($"{Radio(isOther)}  อื่นๆ ระบุ ");
-                    t.Span(isOther ? G("ReasonOther") : "............................................................................");
+                    t.Span(isOther ? internshipType : "............................................................................");
                 });
             });
         }
