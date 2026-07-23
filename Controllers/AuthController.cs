@@ -282,7 +282,8 @@ namespace JobOnlineAPI.Controllers
                     userModel.UserId,
                     userModel.ApplicantID,
                     userModel.JobID,
-                    userModel.Status
+                    userModel.Status,
+                    Token = token
                 });
             }
             catch (Exception ex)
