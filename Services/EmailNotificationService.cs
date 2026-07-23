@@ -1035,7 +1035,7 @@ namespace JobOnlineAPI.Services
 
             string recipientName = $"{SentToName?.NAMFIRSTT} {SentToName?.NAMLASTT}".Trim();
             string hrBody = GenerateHRRequestReceivedBody(requestData!.JobTitle!, recipientName, applicationFormUri);
-            string SubjectMail = $@"แจ้งสถานะการเรียกสัมภาษณ์งาน - ตำแหน่ง {JobTitle}";
+            string SubjectMail = $@"Onee Jobs - รับเรื่องการเจราจาต่อรองผู้สมัคร ตำแหน่ง {JobTitle}";
 
             return await SendEmailsAsync(emails!, SubjectMail, hrBody, null);
         }
