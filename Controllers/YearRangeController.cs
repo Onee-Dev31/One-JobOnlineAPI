@@ -31,7 +31,7 @@ namespace JobOnlineAPI.Controllers
 
                 return Ok(yearRange);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 // return StatusCode(500, new
                 // {

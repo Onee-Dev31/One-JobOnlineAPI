@@ -364,3 +364,6 @@ FodyWeavers.xsd
 
 # Ignore resumes folder in public
 public/resumes/
+
+# Production secrets — ห้าม commit
+appsettings.Production.json

@@ -8,7 +8,7 @@
         public string? TELOFF { get; set; }
         public string? NAMETHAI { get; set; }
         public int? Role { get; set; }
-
+        public string? SourceType { get; set; }
     }
 
     public class StaffEmailNew
@@ -21,5 +21,14 @@
         public int? Role { get; set; }
         public string? DATATYPE { get; set; }
 
+    }
+
+    public class EmailGroup
+    {
+        public int Id { get; set; }
+        public string? Email { get; set; }
+        public string? Group_Name { get; set; }
+        public string? COSTCENT { get; set; }
+        public string? Department_Name { get; set; }
     }
 }

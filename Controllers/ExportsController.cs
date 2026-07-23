@@ -77,7 +77,7 @@ namespace JobOnlineAPI.Controllers
                         using (var s2 = archive.CreateEntry("PM-TEMPLOY2.xlsx").Open()) s2.Write(excelFile2, 0, excelFile2.Length);
                         using var s3 = archive.CreateEntry("PM-TEMPLOY3.xlsx").Open(); s3.Write(excelFile3, 0, excelFile3.Length);
                     }
-                    catch (IOException ex)
+                    catch (IOException)
                     {
                         return StatusCode(500, "Internal Server error");
                     }
@@ -86,7 +86,7 @@ namespace JobOnlineAPI.Controllers
                 var zipFileName = $"PM-TEMPLOY_{DateTime.Now:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}.zip";
                 return File(zipStream.ToArray(), "application/zip", zipFileName);
             }
-            catch (SqlException ex)
+            catch (SqlException)
             {
                 // Log error
                 return StatusCode(500, "Internal Server error");

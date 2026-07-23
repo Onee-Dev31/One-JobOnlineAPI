@@ -9,5 +9,9 @@ namespace JobOnlineAPI.Models
         public string? NetworkUsername { get; set; }
         public string? NetworkPassword { get; set; }
         public string? ApplicationFormUri { get; set; }
+        /// <summary>
+        /// Path สำหรับ macOS เช่น /Volumes/AppFiles/Applicants (mount SMB share ก่อนใช้งาน)
+        /// </summary>
+        public string? MacPath { get; set; }
     }
 }

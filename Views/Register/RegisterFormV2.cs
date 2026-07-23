@@ -62,7 +62,7 @@ namespace JobOnlineAPI.Views.Register
                                                                                 }
                                                                             );
                                                         });
-                                                var birthDateText = _form["BirthDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                                                var birthDateText = ThaiDateFormatter.FormatFull(_form["BirthDate"]);
                                                 innerRow.Item().PaddingLeft(5).Row(col =>
                                                         {
                                                             col.RelativeItem(6).Padding(3).Text(
@@ -114,7 +114,7 @@ namespace JobOnlineAPI.Views.Register
                                             text =>
                                                                             {
                                                                                 text.Span("บัตรหมดอายุวันที่ [Expiry date]: ").FontSize(12).Bold();
-                                                                                text.Span($"dd-MM-yyyy").FontSize(12);
+                                                                                text.Span(ThaiDateFormatter.FormatFull(_form["CitizenIDExpiresON"])).FontSize(12);
                                                                             }
                                                                         );
                                                         });
@@ -242,7 +242,7 @@ namespace JobOnlineAPI.Views.Register
                                                                         });
                                                             col.RelativeItem(6).PaddingTop(4).Row(row =>
                                                                         {
-                                                                            RenderCheckBox(row, _form["Marital_Status1"]?.ToString() ?? "", "exemted", "ได้รับการยกเว้น", "Exemted,Please specific");
+                                                                            RenderCheckBox(row, _form["Marital_Status1"]?.ToString() ?? "", "exempted", "ได้รับการยกเว้น", "Exempted,Please specific");
                                                                             row.RelativeItem().Text(
                                                         text =>
                                                                                             {
@@ -270,10 +270,6 @@ namespace JobOnlineAPI.Views.Register
                                                             col.RelativeItem(2).PaddingTop(4).Row(row =>
                                                                         {
                                                                             RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "divorced", "หย่า", "Divorced");
-                                                                        });
-                                                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                                                                        {
-                                                                            RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "widowed", "หม้าย", "Widowed");
                                                                         });
                                                             col.RelativeItem(4).PaddingLeft(10).PaddingTop(4).Row(row =>
                                                                         {
@@ -564,7 +560,7 @@ namespace JobOnlineAPI.Views.Register
                                                 // วันที่พร้อมเริ่มงาน + อัตราเงินเดือนที่ต้องการ
                                                 innerRow.RelativeItem(6).AlignCenter().Column(right =>
                                                         {
-                                                            var jobStartDateText = _form["JobStartDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                                                            var jobStartDateText = ThaiDateFormatter.FormatFull(_form["JobStartDate"]);
                                                             right.Item().Text(t =>
                                                                         {
                                                                             t.Span("วันที่พร้อมเริ่มงาน: ").Bold().FontSize(12);
@@ -622,7 +618,7 @@ namespace JobOnlineAPI.Views.Register
         public string? Province { get; set; }
         public int? StartYear { get; set; }
         public int? EndYear { get; set; }
-        public string? Major { get; set; }
+        public string? Faculty { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesV2Dto

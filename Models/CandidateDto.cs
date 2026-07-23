@@ -17,6 +17,14 @@ namespace JobOnlineAPI.Models
         [JsonPropertyName("title")]
         public string? Title { get; set; }
 
+        
+        [JsonPropertyName("TitleENG")]
+        public string? TitleENG { get; set; }
+
+        
+        [JsonPropertyName("Gender")]
+        public string? Gender { get; set; }
+
         [JsonPropertyName("firstNameThai")]
         public string? FirstNameThai { get; set; }
 

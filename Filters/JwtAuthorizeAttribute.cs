@@ -15,14 +15,23 @@ namespace JobOnlineAPI.Filters
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<JwtAuthorizeAttribute>>();
 
             string? authHeader = context.HttpContext.Request.Headers.Authorization;
+            string token;
 
-            if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrWhiteSpace(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
             {
-                Reject(context, StatusCodes.Status401Unauthorized);
-                return;
+                token = authHeader["Bearer ".Length..].Trim();
             }
-
-            string token = authHeader["Bearer ".Length..].Trim();
+            else
+            {
+                var cookieToken = context.HttpContext.Request.Cookies["admin_token"]
+                               ?? context.HttpContext.Request.Cookies["auth_token"];
+                if (string.IsNullOrWhiteSpace(cookieToken))
+                {
+                    Reject(context, StatusCodes.Status401Unauthorized);
+                    return;
+                }
+                token = cookieToken;
+            }
 
             try
             {

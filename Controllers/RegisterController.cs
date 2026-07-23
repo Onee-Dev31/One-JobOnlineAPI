@@ -1,9 +1,6 @@
 ﻿using System.Data;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
-
 namespace JobOnlineAPI.Controllers
 {
     [Route("api/[controller]")]
@@ -22,7 +19,7 @@ namespace JobOnlineAPI.Controllers
             string email = data["Email"]?.ToString() ?? string.Empty;
             string password = value?.ToString() ?? string.Empty;
 
-            var passwordHash = HashPassword(password);
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
             var parameters = new DynamicParameters();
             parameters.Add("Email", email);
@@ -54,10 +51,5 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
-        private static string HashPassword(string password)
-        {
-            var hashedBytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(hashedBytes).Replace("-", "").ToLower();
-        }
     }
 }

@@ -46,7 +46,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Spacing(0);
                     col.Item().PaddingBottom(0).Row(row =>
                     {
-                        var JobStartDateText = _form["JobStartDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                        var JobStartDateText = ThaiDateFormatter.FormatFull(_form["JobStartDate"]);
                         row.RelativeItem(4).AlignRight().Padding(5).Text(
                             text =>
                             {
@@ -116,7 +116,7 @@ namespace JobOnlineAPI.Views.Register
                                     }
                                 );
                         });
-                        var birthDateText = _form["BirthDate"] is DateTime dt ? dt.ToString("dd/MM/yyyy") : "";
+                        var birthDateText = ThaiDateFormatter.FormatFull(_form["BirthDate"]);
                         innerCol.Item().PaddingBottom(0).Row(row =>
                         {
                             row.RelativeItem(4).Padding(5).Text(
@@ -467,8 +467,8 @@ namespace JobOnlineAPI.Views.Register
 
                         foreach (var work in workList)
                         {
-                            table.Cell().Border(1).Padding(3).Text(work.StartDate ?? "").FontSize(10);
-                            table.Cell().Border(1).Padding(3).Text(work.EndDate ?? "").FontSize(10);
+                            table.Cell().Border(1).Padding(3).Text(ThaiDateFormatter.FormatMonthYear(work.StartDate)).FontSize(10);
+                            table.Cell().Border(1).Padding(3).Text(ThaiDateFormatter.FormatMonthYear(work.EndDate)).FontSize(10);
                             table.Cell().Border(1).Padding(3).Text(work.CompanyName ?? "").FontSize(10);
                             table.Cell().Border(1).Padding(3).Text(work.Position ?? "").FontSize(10);
                             table.Cell().Border(1).Padding(3).Text(work.Responsibilities ?? "").FontSize(10);
@@ -483,7 +483,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(10);
                     col.Item().Padding(5).Text("(..........................................)").FontSize(10);
                     // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
-                    col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
+                    col.Item().AlignCenter().Padding(5).Text($"Date: {ThaiDateFormatter.FormatFull(DateTime.Now)}").FontSize(10);
                 });
             });
             container.Page(page =>
@@ -740,7 +740,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(10);
                     // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(10);
                     col.Item().Padding(5).Text("(..........................................)").FontSize(10);
-                    col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(10);
+                    col.Item().AlignCenter().Padding(5).Text($"Date: {ThaiDateFormatter.FormatFull(DateTime.Now)}").FontSize(10);
                 });
             });
         }
@@ -753,6 +753,7 @@ namespace JobOnlineAPI.Views.Register
         public int? StartYear { get; set; }
         public int? EndYear { get; set; }
         public string? Major { get; set; }
+        public string? Faculty { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesDto

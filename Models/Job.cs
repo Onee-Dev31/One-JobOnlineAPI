@@ -32,11 +32,10 @@ namespace JobOnlineAPI.Models
         [Required(ErrorMessage = "Job status is required.")]
         public string JobStatus { get; set; } = "Open";
 
-        public string ApprovalStatus { get; set; } = "Pending";
+        public string ApprovalStatus { get; set; } = "Waiting HR Approve";
         public int? ApplicantCount { get; set; }
         public DateTime? PostedDate { get; set; }
 
-        [Required(ErrorMessage = "Closing date is required.")]
         public DateTime? ClosingDate { get; set; }
 
         public int? CreatedBy { get; set; }
@@ -56,6 +55,15 @@ namespace JobOnlineAPI.Models
         public string? NAMECOSTCENT { get; set; }
         public string? Remark { get; set; }
         public string? OpenFor { get; set; }
-        
+        public string? ComCode { get; set; }
+        public string? OpenForNameThai { get; set; }
+        public string? OpenForNameENG { get; set; }
+        public string? DepartmentName { get; set; }
+        public int? JobGroupID { get; set; }
+        public string? Office { get; set; }
+        public int? LevelID { get; set; }
+        public string? LevelName { get; set; }
+        public int? EmployeeTypeID { get; set; }
+        public string? EmployeeTypeName { get; set; }
     }
 }

@@ -1,124 +1,86 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ONEE Jobs - Verification Code</title>
-    <style>
-/*        @font-face {
-            src: url('/fonts/DB Heavent Original/DB Heavent v3.2.1.ttf') format('truetype');
-            font-family: 'DB Heavent', sans-serif;
-            font-weight: normal;
-            font-style: normal;
-        }
-*/
-
-
-        * {
-            font-family: 'DB Heavent', sans-serif !important;
-            font-weight: normal;
-            font-style: normal;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            color: black;
-        }
-
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #ffffff;
-        }
-
-        .container {
-            text-align: center;
-            border-radius: 25px;
-            border: 1px solid #0000003d;
-            width: 360px;
-            padding-bottom: 20px;
-            margin: 20px auto;
-        }
-
-        .card-header {
-            background: #0b5ed7;
-            height: 64px;
-            margin-bottom: 25px;
-            background-color: #0d6efd;
-            border-radius: 25px 25px 0 0;
-        }
-
-        .card-title {
-            font-weight: 700;
-            font-size: 35px;
-            color: #ffffff;
-            letter-spacing: 1px;
-            padding: 10px;
-        }
-
-        .verification-code {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            font-size: 40px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            letter-spacing: 0.4px;
-        }
-
-        p {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: 0.24px;
-            margin-bottom: 25px;
-        }
-
-        .copy-button {
-            background-color: #0d6efd;
-            color: #ffffff;
-            border: none;
-            border-radius: 5px;
-            padding: 5px 15px;
-            font-size: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-            .copy-button:hover {
-                background-color: #0b5ed7;
-            }
-
-            .copy-button:focus {
-                outline: 2px solid #4a90e2;
-            }
-
-        .otp-text {
-            margin: auto;
-            letter-spacing: 8px;
-            font-size: 40px;
-            font-weight: 600;
-            background-color: #d9d9d9;
-            border-radius: 5px;
-            padding-left: 8px;
-        }
-    </style>
 </head>
-<body>
-    <div class="container">
-        <div class="card-header">
-            <div class="card-title">ONEE JOBS</div>
-        </div>
-        <div class="verification-code">
-            <div class="otp-text">{{otp}}</div>
-        </div>
-        <h1>Verification Code</h1>
-        <p>รหัสนี้ใช้ได้ภายใน 10 นาที กรุณานำไปใช้เพื่อยืนยันตัวตน</p>
-        <!-- <a href="{{copyUrl}}" class="copy-button" target="_blank" style="color:#ffffff;">COPY OTP</a> -->
-    </div>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6f9">
+        <tr>
+            <td align="center" style="padding:40px 20px;">
+
+                <table width="650" cellpadding="0" cellspacing="0" border="0"
+                       style="max-width:650px;background:#ffffff;border-radius:12px;overflow:hidden;
+                        box-shadow:0 6px 25px rgba(0,0,0,.08);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td bgcolor="#111827" style="padding:30px;text-align:center;">
+                            <h1 style="color:#ffffff;margin:20px 0 0;font-size:26px;font-weight:700;">
+                                Verification Code
+                            </h1>
+                            <p style="color:#d1d5db;margin-top:8px;font-size:15px;">
+                                รหัส OTP สำหรับ{{actionDescription}}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding:35px 35px 0;">
+                            <p style="margin:0;font-size:16px;color:#374151;">
+                                เรียน คุณ<strong>{{username}}</strong>
+                            </p>
+                            <p style="margin-top:15px;color:#6b7280;line-height:26px;">
+                                รหัส OTP ของคุณสำหรับ{{actionDescription}}คือ:
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- OTP Box -->
+                    <tr>
+                        <td align="center" style="padding:20px 35px;">
+                            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:20px 30px;display:inline-block;">
+                                <span style="font-size:32px;font-weight:700;letter-spacing:8px;color:#111827;">{{otp}}</span>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Notice -->
+                    <tr>
+                        <td style="padding:10px 35px 35px;">
+                            <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:18px 20px;border-radius:8px;">
+                                <p style="margin:0;color:#92400e;font-size:14px;line-height:24px;">
+                                    รหัสนี้มีอายุการใช้งาน 10 นาที กรุณาใช้ภายในเวลาที่กำหนด
+                                    หากคุณไม่ได้ร้องขอการดำเนินการนี้ กรุณาติดต่อทีมสนับสนุนทันที
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td bgcolor="#111827" style="padding:30px;text-align:center;">
+                            <p style="margin:0;color:#d1d5db;font-size:13px;">
+                                This email was automatically generated by <strong>ONEE Jobs</strong>
+                            </p>
+                            <p style="margin-top:8px;color:#9ca3af;font-size:12px;">
+                                Please do not reply to this email. Contact
+                                <a href="mailto:support@oneejobs.com" style="color:#9ca3af;">support@oneejobs.com</a>
+                            </p>
+                            <p style="margin-top:20px;color:#ffffff;font-size:14px;">
+                                The One Enterprise
+                            </p>
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
 </body>
 </html>

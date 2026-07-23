@@ -2,6 +2,7 @@
 using JobOnlineAPI.DAL;
 using JobOnlineAPI.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Data;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -15,11 +16,13 @@ namespace JobOnlineAPI.Controllers
     /// </remarks>
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger) : ControllerBase
+    public class AuthController(DapperContext context, IEmailService emailService, ILogger<AuthController> logger, IOtpService otpService, IJwtTokenService jwtTokenService) : ControllerBase
     {
         private readonly DapperContext _context = context ?? throw new ArgumentNullException(nameof(context));
         private readonly IEmailService _emailService = emailService ?? throw new ArgumentNullException(nameof(emailService));
         private readonly ILogger<AuthController> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly IOtpService _otpService = otpService ?? throw new ArgumentNullException(nameof(otpService));
+        private readonly IJwtTokenService _jwtTokenService = jwtTokenService ?? throw new ArgumentNullException(nameof(jwtTokenService));
         private readonly string _templatePathOTP = Path.Combine("Templates", "Email", "OTP.html");
         private readonly string _templatePathREGIS = Path.Combine("Templates", "Email", "Registration.html");
         private readonly string _templatePathResetPassword = Path.Combine("Templates", "Email", "ResetPassword.html");
@@ -98,10 +101,12 @@ namespace JobOnlineAPI.Controllers
                 // โหลดและเติมข้อมูลในเทมเพลต
                 string template = System.IO.File.ReadAllText(_templatePathOTP);
                 string body = template
+                    .Replace("{{username}}", username)
+                    .Replace("{{actionDescription}}", actionDescription)
                     .Replace("{{otp}}", otp)
                     .Replace("{{copyUrl}}", copyUrl);
 
-                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null);
+                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null, bypassTestMode: true);
 
                 _logger.LogInformation("RequestOTP: ส่ง OTP สำเร็จสำหรับ Email: {Email}, Action: {Action}", request.Email, request.Action);
                 return Ok(new { Message = "ส่ง OTP ไปยังอีเมลเรียบร้อยแล้ว" });
@@ -201,6 +206,125 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        
+        [HttpPost("request-otp-login")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> RequestOtpLogin([FromBody] OTPRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "กรุณาระบุอีเมล" });
+
+            try
+            {
+                var otpResult = await _otpService.RequestOtpAsync(request.Email, request.Email, "LOGIN");
+                if (!otpResult.Item1)
+                    return BadRequest(new { message = otpResult.Item2 });
+
+                return Ok(new { message = otpResult.Item2 });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RequestOtpLogin failed for {Email}", request.Email);
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost("verify-otp-login")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> VerifyOtpLogin([FromBody] OTPVerifyRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.OTP))
+                return BadRequest(new { message = "กรุณาระบุ Email และ OTP" });
+
+            try
+            {
+                var isValid = await _otpService.VerifyOtpAsync(request.Email, request.OTP, "LOGIN");
+                if (!isValid)
+                    return Unauthorized(new { message = "OTP ไม่ถูกต้องหรือหมดอายุแล้ว" });
+
+                using var conn = _context.CreateConnection();
+                var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_GetUserByEmailOnly",
+                    new { Email = request.Email },
+                    commandType: CommandType.StoredProcedure);
+
+                if (user == null)
+                    return Unauthorized(new { message = "ไม่พบบัญชีผู้ใช้งาน" });
+
+                var userModel = new UserModel
+                {
+                    Username = request.Email,
+                    Role = "User",
+                    UserId = (int)(user.UserId ?? 0),
+                    ConfirmConsent = user.ConfirmConsent?.ToString() ?? "",
+                    ApplicantID = user.ApplicantID != null ? (int?)user.ApplicantID : 0,
+                    JobID = (int?)user.JobID,
+                    Status = user.Status?.ToString()
+                };
+
+                var token = _jwtTokenService.GenerateJwtToken(userModel);
+                Response.Cookies.Append("auth_token", token, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+
+                return Ok(new
+                {
+                    userModel.Username,
+                    userModel.Role,
+                    userModel.ConfirmConsent,
+                    userModel.UserId,
+                    userModel.ApplicantID,
+                    userModel.JobID,
+                    userModel.Status,
+                    Token = token
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "VerifyOtpLogin failed for {Email}", request.Email);
+                return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpGet("check-otp")]
+        public async Task<IActionResult> CheckOtp(string email)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(email))
+                    return BadRequest(new { success = false });
+
+                 using var connection = _context.CreateConnection();
+
+                var parameters = new DynamicParameters();
+                parameters.Add("@Email", email);
+
+                var otpRecord = await connection.QueryFirstOrDefaultAsync<dynamic>(
+                    "usp_GetValidOtpByEmail",
+                    parameters,
+                    commandType: System.Data.CommandType.StoredProcedure
+                );
+
+                return Ok(new
+                {
+                    success = otpRecord != null
+                });
+            }
+            catch
+            {
+                return StatusCode(500, new { success = false });
+            }
+        }
+
+
+
         /// <summary>
         /// สมัครสมาชิกผู้ใช้ใหม่ (ต้องยืนยัน OTP ก่อน)
         /// </summary>
@@ -258,7 +382,7 @@ namespace JobOnlineAPI.Controllers
                 string template = System.IO.File.ReadAllText(_templatePathREGIS);
                 string body = template;
 
-                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null);
+                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null, bypassTestMode: true);
 
                 return Ok(new { Message = "สมัครสมาชิกสำเร็จ" });
             }
@@ -329,7 +453,7 @@ namespace JobOnlineAPI.Controllers
                     .Replace("{{name}}", request.Email.Split('@')[0])
                     .Replace("{{email}}", request.Email);
 
-                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null);
+                await _emailService.SendEmailAsync(request.Email, subject, body, true, "OTP", null, bypassTestMode: true);
 
                 return Ok(new { Message = "รีเซ็ตรหัสผ่านสำเร็จ" });
             }
@@ -338,6 +462,78 @@ namespace JobOnlineAPI.Controllers
                 _logger.LogError(ex, "ResetPassword: เกิดข้อผิดพลาดสำหรับ Email: {Email}: {Message}", request.Email, ex.Message);
                 // return StatusCode(500, new { Error = "เกิดข้อผิดพลาดในระบบ: " + ex.Message });
                 return StatusCode(500, "Internal Server error");
+            }
+        }
+
+        [HttpPost("refresh")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var token = Request.Cookies["auth_token"];
+            if (string.IsNullOrWhiteSpace(token))
+            {
+                var authHeader = Request.Headers.Authorization.ToString();
+                if (authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    token = authHeader["Bearer ".Length..].Trim();
+            }
+            if (string.IsNullOrWhiteSpace(token))
+                return Unauthorized(new { message = "ไม่พบ token" });
+
+            try
+            {
+                var jwtToken = await _jwtTokenService.ValidateTokenAsync(token);
+                var email = jwtToken.Subject;
+
+                if (string.IsNullOrWhiteSpace(email))
+                    return Unauthorized(new { message = "token ไม่ถูกต้อง" });
+
+                using var conn = _context.CreateConnection();
+                var user = await conn.QueryFirstOrDefaultAsync<dynamic>(
+                    "sp_GetUserByEmailOnly",
+                    new { Email = email },
+                    commandType: CommandType.StoredProcedure);
+
+                if (user == null)
+                    return Unauthorized(new { message = "ไม่พบบัญชีผู้ใช้งาน" });
+
+                var userModel = new UserModel
+                {
+                    Username = email,
+                    Role = "User",
+                    UserId = (int)(user.UserId ?? 0),
+                    ConfirmConsent = user.ConfirmConsent?.ToString() ?? "",
+                    ApplicantID = user.ApplicantID != null ? (int?)user.ApplicantID : 0,
+                    JobID = (int?)user.JobID,
+                    Status = user.Status?.ToString()
+                };
+
+                var newToken = _jwtTokenService.GenerateJwtToken(userModel);
+                Response.Cookies.Append("auth_token", newToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Lax,
+                    Expires = DateTime.UtcNow.AddHours(2)
+                });
+
+                return Ok(new
+                {
+                    userModel.Username,
+                    userModel.Role,
+                    userModel.ConfirmConsent,
+                    userModel.UserId,
+                    userModel.ApplicantID,
+                    userModel.JobID,
+                    userModel.Status,
+                    token = newToken
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "RefreshToken failed");
+                return Unauthorized(new { message = "token หมดอายุหรือไม่ถูกต้อง" });
             }
         }
 

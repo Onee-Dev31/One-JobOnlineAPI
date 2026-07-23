@@ -65,7 +65,7 @@ namespace JobOnlineAPI.Views.Register
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>
                         {
-                            var birthDateText = FormatBuddhistDate(_form["BirthDate"], "DD MMM YYYY");
+                            var birthDateText = FormatBuddhistDate(_form["BirthDate"], "DD MMMM YYYY");
                             col.RelativeItem(4).Padding(3).Text(
                                 text =>
                                 {
@@ -111,7 +111,7 @@ namespace JobOnlineAPI.Views.Register
                                     text.Span($"{_form["CitizenIDIssuedBy"]}").FontSize(12);
                                 }
                             );
-                            var CitizenIDExpiry = FormatBuddhistDate(_form["CitizenIDExpiresON"], "DD MMM YYYY");
+                            var CitizenIDExpiry = FormatBuddhistDate(_form["CitizenIDExpiresON"], "DD MMMM YYYY");
                             col.RelativeItem(4).Padding(3).Text(
                                 text =>
                                 {
@@ -127,6 +127,48 @@ namespace JobOnlineAPI.Views.Register
                                 text =>
                                 {
                                     text.Span("ที่อยู่ตามทะเบียนบ้าน [Registeres Address]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredAddress"] ?? ""}").FontSize(12);
+                                }
+                            );
+                        });
+                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        {
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("แขวง/ตำบล [Tumbol]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredSubDistrictThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("เขต/อำเภอ [District]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredDistrictThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("จังหวัด [Province]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredProvinceThai"] ?? ""}").FontSize(12);
+                                }
+                            );
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("รหัสไปรษณีย์ [PostalCode]: ").FontSize(12).Bold();
+                                    text.Span($"{_form["RegisteredPostalCode"] ?? ""}").FontSize(12);
+                                }
+                            );
+                        });
+                        // ---------------------------------------------- ที่อยู่ปัจจุบัน ----------------------------------------------
+                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        {
+                            col.RelativeItem().Padding(3).Text(
+                                text =>
+                                {
+                                    text.Span("ที่อยู่ปัจจุบัน [Current Address]: ").FontSize(12).Bold();
                                     text.Span($"{_form["CurrentAddress"] ?? ""}").FontSize(12);
                                 }
                             );
@@ -157,50 +199,8 @@ namespace JobOnlineAPI.Views.Register
                             col.RelativeItem().Padding(3).Text(
                                 text =>
                                 {
-                                    text.Span("รหัสไปรษณีย์ [PostalCode]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["CurrentPostalCode"] ?? ""}").FontSize(12);
-                                }
-                            );
-                        });
-                        // ---------------------------------------------- ที่อยู่ปัจจุบัน ----------------------------------------------
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("ที่อยู่ปัจจุบัน [Current Address]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["CurrentAddress"] ?? ""}").FontSize(12);
-                                }
-                            );
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("แขวง/ตำบล [Tumbol]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredSubDistrictThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("เขต/อำเภอ [District]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredDistrictThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
-                                    text.Span("จังหวัด [Province]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredProvinceThai"] ?? ""}").FontSize(12);
-                                }
-                            );
-                            col.RelativeItem().Padding(3).Text(
-                                text =>
-                                {
                                     text.Span("รหัสไปรษณีย์ [Postal Code]: ").FontSize(12).Bold();
-                                    text.Span($"{_form["RegisteredPostalCode"] ?? ""}").FontSize(12);
+                                    text.Span($"{_form["CurrentPostalCode"] ?? ""}").FontSize(12);
                                 }
                             );
                         });
@@ -251,7 +251,7 @@ namespace JobOnlineAPI.Views.Register
                             });
                             col.RelativeItem(6).PaddingTop(4).Row(row =>
                             {
-                                RenderCheckBox(row, _form["MinitaryService"]?.ToString() ?? "", "exemted", $"ได้รับการยกเว้น เนื่องจาก: {_form["ReasonMinitary"] ?? "............................."}", "Exemted,Please specific");
+                                RenderCheckBox(row, _form["MinitaryService"]?.ToString() ?? "", "exempted", $"ได้รับการยกเว้น เนื่องจาก: {_form["ReasonMinitary"] ?? "............................."}", "Exempted,Please specific");
                             });
                         });
                         //----------------------- สถานภาพสมรส -----------------------
@@ -273,10 +273,6 @@ namespace JobOnlineAPI.Views.Register
                             col.RelativeItem(2).PaddingTop(4).Row(row =>
                             {
                                 RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "divorced", "หย่า", "Divorced");
-                            });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["MaritalStatus"]?.ToString() ?? "", "widowed", "หม้าย", "Widowed");
                             });
                             col.RelativeItem(4).PaddingLeft(10).PaddingTop(4).Row(row =>
                             {
@@ -300,11 +296,6 @@ namespace JobOnlineAPI.Views.Register
                                     text.Span($"{_form["SpouseFullName"] ?? ""}").FontSize(12);
                                 }
                             );
-                            col.RelativeItem(3).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["SpouseAliveStatus"]?.ToString() ?? "", "alive", "มีชีวิต", "");
-                                RenderCheckBox(row, _form["SpouseAliveStatus"]?.ToString() ?? "", "deceased", "ถึงแก่กรรม", "");
-                            });
                             col.RelativeItem(5).Padding(4).Text(
                                 text =>
                                 {
@@ -628,7 +619,7 @@ namespace JobOnlineAPI.Views.Register
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.EducationLevel ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.Major ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.InstitutionName ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.Province ?? "").FontSize(12);
+                            table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.ProvinceEducation ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.StartYear?.ToString() ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.EndYear?.ToString() ?? "").FontSize(12);
                             table.Cell().Border(1).Padding(3).AlignCenter().Text(edu.GPA == null || edu.GPA == 0 ? "" : edu.GPA.ToString()).FontSize(12);
@@ -725,16 +716,22 @@ namespace JobOnlineAPI.Views.Register
                     page.MarginVertical(8);
                     page.MarginHorizontal(8);
                     page.DefaultTextStyle(x => x.FontSize(11).FontFamily("DB Heavent"));
-                    col.Item().Padding(5).Text("ความสามารถพิเศษ").FontSize(12).Bold();
+                    col.Item()
+                        .PaddingHorizontal(10)
+                        .PaddingTop(5)
+                        .PaddingBottom(3)
+                        .BorderBottom(1)
+                        .BorderColor(Colors.Grey.Lighten2)
+                        .Text("ความสามารถพิเศษ")
+                        .FontSize(12)
+                        .Bold();
                     col.Item().Column(innerRow =>
                     {
-                        innerRow.Item().PaddingLeft(5).Row(col =>
+                        innerRow.Item().PaddingHorizontal(10).PaddingTop(8).Row(col =>
                         {
+                            col.Spacing(24);
                             var skills = new List<SkillsV3Dto>();
                             SkillsV3Dto? Other = null;
-                            SkillsV3Dto? Hobbies = null;
-                            SkillsV3Dto? Activites = null;
-                            SkillsV3Dto? Interests = null;
                             if (_form["SkillsList"] != null && _form["SkillsList"] != DBNull.Value)
                             {
                                 var options = new JsonSerializerOptions
@@ -748,109 +745,86 @@ namespace JobOnlineAPI.Views.Register
                                     _form["SkillsList"].ToString() ?? "[]", options
                                 )?
                                 .FirstOrDefault(r => r.SkillType == "Other");
-                                Hobbies = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Hobbies");
-                                Activites = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Activites");
-                                Interests = JsonSerializer.Deserialize<List<SkillsV3Dto>>(
-                                    _form["SkillsList"].ToString() ?? "[]", options
-                                )?
-                                .FirstOrDefault(r => r.SkillType == "Interests");
                             }
-                            if (skills.Count == 0)
+                            var computerSkill = skills.FirstOrDefault(r => r.SkillType == "ComSkill");
+                            var otherSkill = skills.FirstOrDefault(r => r.SkillType == "genius");
+                            var languageSkills = skills
+                                .Where(r => r.SkillType == "TOEIC"
+                                    || r.SkillType == "TOEFL"
+                                    || r.SkillType == "IELTS")
+                                .ToList();
+
+                            col.RelativeItem().Column(col =>
                             {
-                                for (int i = 0; i < 3; i++)
+                                col.Spacing(12);
+
+                                col.Item().Column(box =>
                                 {
-                                    skills.Add(new SkillsV3Dto
+                                    box.Spacing(3);
+                                    box.Item().Text("ภาษาต่างประเทศ [Language]").FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8).Row(row =>
                                     {
-                                        SkillType = "",
-                                        SkillDescription = "",
-                                        SkillScore = null
-                                    });
-                                }
-                            }
-                            col.RelativeItem().Border(1).BorderColor(Colors.Black).Column(col =>
-                            {
-                                col.Item().PaddingLeft(5).Text("ภาษาต่างประเทศ [Language]").FontSize(12).Bold();
-                                // รายการ TOEIC / TOEFL / IELTS
-                                col.Item().PaddingLeft(8).Row(row =>
-                                {
-                                    foreach (var skill in skills)
-                                    {
-                                        if (skill.SkillType == "TOEIC" || skill.SkillType == "TOEFL" || skill.SkillType == "IELTS")
+                                        row.Spacing(12);
+                                        if (languageSkills.Count == 0)
                                         {
-                                            row.ConstantItem(80).Text(text =>
-                                            {
-                                                text.Span($"{skill.SkillType ?? ""}: ").FontSize(12).Bold();
-                                                text.Span($"{skill.SkillScore ?? 0} คะแนน").FontSize(12);
-                                            });
+                                            row.RelativeItem().Text("..................").FontSize(12);
                                         }
-                                    }
+                                        else
+                                        {
+                                            foreach (var skill in languageSkills)
+                                            {
+                                                row.AutoItem().Text(text =>
+                                                {
+                                                    text.Span($"{skill.SkillType}: ").FontSize(12).Bold();
+                                                    text.Span($"{skill.SkillScore ?? 0} คะแนน").FontSize(12);
+                                                });
+                                            }
+                                        }
+                                    });
                                 });
-                                col.Item().PaddingLeft(5).Text("ภาษาอื่นๆ [Orther Language]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
+
+                                col.Item().Column(box =>
                                 {
-                                    row.RelativeItem().Text($"{Other?.SkillType}: {Other?.SkillScore} คะแนน").FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("งานอดิเรก [Hobbies]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Hobbies?.SkillDescription).FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("กิจกรรม [Activites]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Activites?.SkillDescription).FontSize(12);
-                                });
-                                col.Item().PaddingLeft(5).Text("กีฬาที่ท่านสนใจ [Interests]").FontSize(12).Bold();
-                                col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
-                                {
-                                    row.RelativeItem().Text(Interests?.SkillDescription).FontSize(12);
+                                    box.Spacing(3);
+                                    box.Item().Text("ภาษาอื่นๆ [Other Language]").FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(Other != null
+                                            ? $"{Other.SkillType}: {Other.SkillScore} คะแนน"
+                                            : "..................")
+                                        .FontSize(12);
                                 });
                             });
                             col.RelativeItem().Column(col =>
                             {
-                                foreach (var skill in skills)
+                                col.Spacing(12);
+
+                                col.Item().Column(box =>
                                 {
-                                    if (skill.SkillType == "ComSkill" || skill.SkillType == "genius")
-                                    {
-                                        col.Item().Border(1).BorderColor(Colors.Black).Column(box =>
-                                        {
-                                            // Header
-                                            box.Item().PaddingLeft(5)
-                                                .Text(skill.SkillType == "ComSkill"
-                                                    ? "ความรู้ทางคอมพิวเตอร์ (Computer Skills)"
-                                                    : "ความรู้หรือทักษะอื่น ๆ (Other Skills)")
-                                                .FontSize(12).Bold();
-                                            // ถ้ามีข้อความ → แตกเป็นหลายบรรทัด
-                                            var desc = (skill.SkillDescription ?? "").Split('\n');
-                                            foreach (var line in desc)
-                                            {
-                                                box.Item()
-                                                    .PaddingHorizontal(5)
-                                                    .MinHeight(20)
-                                                    .PaddingLeft(8)
-                                                    .Element(e =>
-                                                    {
-                                                        e.ScaleToFit()
-                                                        .Text(line)
-                                                        .FontSize(12)
-                                                        .WrapAnywhere();
-                                                    });
-                                            }
-                                            // ถ้าไม่มี หรือบรรทัดน้อยกว่า 3 → เติม blank row
-                                            int filled = desc.Length;
-                                            for (int i = filled; i < 3; i++)
-                                            {
-                                                box.Item().PaddingHorizontal(5).Height(20);
-                                            }
-                                        });
-                                    }
-                                }
+                                    box.Spacing(3);
+                                    box.Item()
+                                        .Text("ความรู้ทางคอมพิวเตอร์ (Computer Skills)")
+                                        .FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(string.IsNullOrWhiteSpace(computerSkill?.SkillDescription)
+                                            ? ".................."
+                                            : computerSkill.SkillDescription)
+                                        .FontSize(12)
+                                        .WrapAnywhere();
+                                });
+
+                                col.Item().Column(box =>
+                                {
+                                    box.Spacing(3);
+                                    box.Item()
+                                        .Text("ความรู้หรือทักษะอื่น ๆ (Other Skills)")
+                                        .FontSize(12).Bold();
+                                    box.Item().PaddingLeft(8)
+                                        .Text(string.IsNullOrWhiteSpace(otherSkill?.SkillDescription)
+                                            ? ".................."
+                                            : otherSkill.SkillDescription)
+                                        .FontSize(12)
+                                        .WrapAnywhere();
+                                });
                             });
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>
@@ -890,39 +864,11 @@ namespace JobOnlineAPI.Views.Register
                             });
                             col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
                             {
-                                RenderCheckBox(row, _form["QuestionnaireDisabilities"]?.ToString() ?? "", "yes", "มี/โปรดระบุ[Yes]", "");
-                            });
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem(6).Padding(3).Column(col =>
-                            {
-                                col.Item().Text("ท่านเคยถูกจับหรือเคยต้องคดีอาญาหรือไม่").FontSize(12).Bold();
-                                col.Item().Text("Have you ever been arrested or convicted of a criminal case ?").FontSize(12).Bold();
-                            });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireConvicted"]?.ToString() ?? "", "no", "ไม่เคย[No]", "");
-                            });
-                            col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireConvicted"]?.ToString() ?? "", "yes", "เคย[Yes]", "");
-                            });
-                        });
-                        innerRow.Item().PaddingLeft(5).Row(col =>
-                        {
-                            col.RelativeItem(6).Padding(3).Column(col =>
-                            {
-                                col.Item().Text("ท่านเคยถูกไล่ออกจากงาน เนื่องจากความประพฤติ หรืองานไม่ดีพอ หรือไม่").FontSize(12).Bold();
-                                col.Item().Text("Have you ever been discharged from employment because of your conduct or unperformed ?").FontSize(12).Bold();
-                            });
-                            col.RelativeItem(2).PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireFiredjob"]?.ToString() ?? "", "no", "ไม่เคย[No]", "");
-                            });
-                            col.RelativeItem(4).AlignLeft().PaddingTop(4).Row(row =>
-                            {
-                                RenderCheckBox(row, _form["QuestionnaireFiredjob"]?.ToString() ?? "", "yes", "เคย[Yes]", "");
+                                var reasonDisabilities = _form.ContainsKey("ReasonDisabilities") ? _form["ReasonDisabilities"]?.ToString() ?? "" : "";
+                                var disabilitiesLabel = string.IsNullOrWhiteSpace(reasonDisabilities)
+                                    ? "มี/โปรดระบุ[Yes]"
+                                    : $"มี/โปรดระบุ[Yes]: {reasonDisabilities}";
+                                RenderCheckBox(row, _form["QuestionnaireDisabilities"]?.ToString() ?? "", "yes", disabilitiesLabel, "");
                             });
                         });
                         innerRow.Item().PaddingLeft(5).Row(col =>
@@ -1003,7 +949,6 @@ namespace JobOnlineAPI.Views.Register
                         });
                     });
                     var ReferenceList = new List<RelationshipDto>();
-                    RelationshipDto? Reference = null;
                     if (_form["RelationshipList"] != null && _form["RelationshipList"] != DBNull.Value)
                     {
                         var options = new JsonSerializerOptions
@@ -1013,10 +958,9 @@ namespace JobOnlineAPI.Views.Register
                         var relationships = JsonSerializer.Deserialize<List<RelationshipDto>>(
                             _form["RelationshipList"]?.ToString() ?? "[]", options
                         ) ?? new List<RelationshipDto>();
-                        Reference = relationships.FirstOrDefault(r => r.RELATION_TYPE == "Reference");
+                        ReferenceList = relationships.Where(r => r.RELATION_TYPE == "Refer").ToList();
                     }
-                    // ถ้า Reference เป็น null → สร้าง object เปล่าให้ 1 ตัว
-                    if (Reference == null)
+                    if (ReferenceList.Count == 0)
                     {
                         ReferenceList.Add(new RelationshipDto());
                     }
@@ -1049,19 +993,22 @@ namespace JobOnlineAPI.Views.Register
                             table.Cell().Border(1).BorderColor(Colors.Black)
                                 .Background(Colors.Grey.Lighten2).AlignCenter().AlignMiddle()
                                 .Text("เบอร์โทรศัพท์").FontSize(12).Bold();
-                            // Data Row
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.NAMESURNAME ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.RELATION_DESCRIPTION ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.CAREER ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.COMPANY ?? "").FontSize(12);
-                            table.Cell().Border(1).Padding(3).AlignCenter()
-                                .Text(Reference?.MOBILE ?? "")
-                                .FontSize(12)
-                                .WrapAnywhere();
+                            // Data Rows
+                            foreach (var refer in ReferenceList)
+                            {
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.NAMESURNAME ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.RELATION_DESCRIPTION ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.CAREER ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.COMPANY ?? "").FontSize(12);
+                                table.Cell().Border(1).Padding(3).AlignCenter()
+                                    .Text(refer.MOBILE ?? "")
+                                    .FontSize(12)
+                                    .WrapAnywhere();
+                            }
                         });
                         innerRow.Item().PaddingLeft(5).PaddingTop(5).Row(col =>
                         {
@@ -1075,13 +1022,16 @@ namespace JobOnlineAPI.Views.Register
                             });
                         });
                     });
-                    page.Footer().AlignRight().Column(col =>
+                    page.Footer().PaddingBottom(10).PaddingTop(1).Row(row =>
                     {
-                        var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMM YYYY");
-                        col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
-                        col.Item().Padding(5).Text("(..........................................)").FontSize(12);
-                        // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(12);
-                        col.Item().AlignCenter().Padding(5).Text($"Date: {DateNow}").FontSize(12);
+                        row.RelativeItem();
+                        row.ConstantItem(240).Column(col =>
+                        {
+                            var DateNow = FormatBuddhistDate(DateTime.Now, "DD MMMM YYYY");
+                            col.Item().PaddingLeft(60).Text("ลงชื่อผู้สมัคร ............................................").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(90).Text("(..........................................)").FontSize(12);
+                            col.Item().PaddingTop(2).PaddingLeft(95).Text($"วันที่ / Date: {DateNow}").FontSize(12);
+                        });
                     });
                 }); // Close container Page 2
             });
@@ -1105,25 +1055,15 @@ namespace JobOnlineAPI.Views.Register
         }
         private static string FormatBuddhistDate(object? value, string? format)
         {
-            if (DateTime.TryParse(value?.ToString(), out var dt))
-            {
-                if (format == "DD MMM YYYY")
-                {
-                    return $"{dt.Day} {dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} {dt.Year + 543}";
-                }
-                if (format == "DD-MMM-YYYY")
-                {
-                    return $"{dt.Day}-{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))}-{dt.Year + 543}";
-                }
-                if (format == "MMM YYYY")
-                {
-                    return $"{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} {dt.Year + 543}";
-                }
-                if (format == "MMM-YYYY")
-                {
-                    return $"{dt.ToString("MMM", new System.Globalization.CultureInfo("en-US"))} - {dt.Year + 543}";
-                }
-            }
+            DateTime dt;
+            if (value is DateTime directDate)
+                dt = directDate;
+            else if (!DateTime.TryParse(value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AllowWhiteSpaces, out dt))
+                return "";
+            if (format is "DD MMMM YYYY" or "DD MMM YYYY" or "DD-MMM-YYYY")
+                return ThaiDateFormatter.FormatFull(dt);
+            if (format is "MMM YYYY" or "MMM-YYYY")
+                return ThaiDateFormatter.FormatMonthYear(dt);
             return "";
         }
         private void ComposeFirstPageHeader(IContainer container)
@@ -1209,6 +1149,8 @@ namespace JobOnlineAPI.Views.Register
         public int? StartYear { get; set; }
         public int? EndYear { get; set; }
         public string? Major { get; set; }
+        public string? Faculty { get; set; }
+        public string? ProvinceEducation { get; set; }
         public decimal? GPA { get; set; }
     }
     public class WorkExperiencesV3Dto

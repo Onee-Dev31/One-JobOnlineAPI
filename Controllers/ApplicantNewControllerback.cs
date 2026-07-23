@@ -490,7 +490,7 @@ namespace JobOnlineAPI.Controllers
                 if (!string.IsNullOrEmpty(dbResult.ApplicantEmail))
                 {
                     string applicantBody = GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr);
-                    await _emailService.SendEmailAsync(dbResult.ApplicantEmail, "Application Received", applicantBody, true,"Register", null);
+                    await _emailService.SendEmailAsync(dbResult.ApplicantEmail, "Application Received", applicantBody, true,"Register", null, bypassTestMode: true);
                 }
 
                 foreach (var x in results)
@@ -921,7 +921,7 @@ namespace JobOnlineAPI.Controllers
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณสมศรี (ผู้จัดการฝ่ายบุคคล)</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
-                        เรียน ฝ่ายสรรหาบุคคลากร<br>
+                        เรียน ฝ่ายทรัพยากรบุคคล<br>
                         ทาง Hiring Manager แผนก {requestData.NameCon} <br> คุณ {requestData.RequesterName} เบอร์โทร: {Tel} อีเมล: {requestData.RequesterMail} <br> 
                         มีการส่งคำร้องให้ท่าน ทำการติดต่อผู้สมัครเพื่อตกลงการจ้างงาน ในตำแหน่ง {requestData.JobTitle}
                     </p>
@@ -972,7 +972,7 @@ namespace JobOnlineAPI.Controllers
                 {
                     var candidateDict = candidateObj as IDictionary<string, object>;
                     return candidateDict.TryGetValue("Status", out var statusObj) &&
-                        (statusObj?.ToString() == "Success" || statusObj?.ToString() == "Unsuccess" || statusObj?.ToString() == "Cancel");
+                        (statusObj?.ToString() == "Nagotiate Success" || statusObj?.ToString() == "Nagotiate Failed" || statusObj?.ToString() == "Nagotiate Cancel");
                 })
                 .Select((candidateObj, index) =>
                 {
@@ -984,9 +984,9 @@ namespace JobOnlineAPI.Controllers
                     string statusText = "";
                     if (candidateDict.TryGetValue("Status", out var statusObj))
                     {
-                        if(statusObj?.ToString() == "Success") statusText = "สำเร็จ";
-                        if(statusObj?.ToString() == "Unsuccess") statusText = "ต่อรองไม่สำเร็จ";
-                        if(statusObj?.ToString() == "Cancel") statusText = "ยกเลิก";
+                        if(statusObj?.ToString() == "Nagotiate Success") statusText = "สำเร็จ";
+                        if(statusObj?.ToString() == "Nagotiate Failed") statusText = "ต่อรองไม่สำเร็จ";
+                        if(statusObj?.ToString() == "Nagotiate Cancel") statusText = "ยกเลิก";
                     }
 
                     return $"ลำดับที่ {index + 1}: {title} {firstNameThai} {lastNameThai} สถานะ {statusText}".Trim();
@@ -998,7 +998,7 @@ namespace JobOnlineAPI.Controllers
 
             string hrBody = $@"
                 <div style='font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px; font-size: 14px;'>
-                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน คุณ {requestData.RequesterName}</p>
+                    <p style='font-weight: bold; margin: 0 0 10px 0;'>เรียน ทีม</p>
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>ทางฝ่าย ฝ่ายสรรหาบุคลากร ขอแจ้งผลการเจรจากับผู้สมัครเพื่อรับเข้าทำงาน โดยมีรายละเอียดดังต่อไปนี้</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
@@ -1059,14 +1059,14 @@ namespace JobOnlineAPI.Controllers
                     <p style='font-weight: bold; margin: 0 0 10px 0;'>เรื่อง: การเรียกสัมภาษณ์ผู้สมัครตำแหน่ง {requestData.JobTitle}</p>
                     <br>
                     <p style='margin: 0 0 10px 0;'>
-                        เรียน ฝ่ายบุคคล<br>
+                        เรียน ฝ่ายทรัพยากรบุคคล<br>
                         ตามที่ได้รับแจ้งข้อมูลผู้สมัครในตำแหน่ง {requestData.JobTitle} จำนวน {candidateNames.Count} ท่าน ผมได้พิจารณาประวัติและคุณสมบัติเบื้องต้นแล้ว และประสงค์จะขอเรียกผู้สมัครดังต่อไปนี้เข้ามาสัมภาษณ์
                     </p>
                     <p style='margin: 0 0 10px 0;'>
                         จากข้อมูลผู้สมัคร ดิฉัน/ผมเห็นว่า {candidateNamesString} มีคุณสมบัติที่เหมาะสมกับตำแหน่งงาน และมีความเชี่ยวชาญในทักษะที่จำเป็นต่อการทำงานในทีมของเรา
                     </p>
                     <br>
-                    <p style='margin: 0 0 10px 0;'>ขอความกรุณาฝ่ายบุคคลประสานงานกับผู้สมัครเพื่อนัดหมายการสัมภาษณ์</p>
+                    <p style='margin: 0 0 10px 0;'>ขอความกรุณาฝ่ายทรัพยากรบุคคลประสานงานกับผู้สมัครเพื่อนัดหมายการสัมภาษณ์</p>
                     <p style='margin: 0 0 10px 0;'>หากท่านมีข้อสงสัยประการใด กรุณาติดต่อได้ที่เบอร์ด้านล่าง</p>
                     <p style='margin: 0 0 10px 0;'>ขอบคุณสำหรับความช่วยเหลือ</p>
                     <p style='margin: 0 0 10px 0;'>ขอแสดงความนับถือ</p>
