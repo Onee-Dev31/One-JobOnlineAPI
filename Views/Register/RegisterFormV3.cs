@@ -790,17 +790,17 @@ namespace JobOnlineAPI.Views.Register
                                 col.Item().PaddingLeft(5).Text("งานอดิเรก [Hobbies]").FontSize(12).Bold();
                                 col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
                                 {
-                                    row.RelativeItem().Text(Hobbies?.SkillDescription).FontSize(12);
+                                    row.RelativeItem().Text(Hobbies?.SkillDescription ?? "").FontSize(12);
                                 });
                                 col.Item().PaddingLeft(5).Text("กิจกรรม [Activites]").FontSize(12).Bold();
                                 col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
                                 {
-                                    row.RelativeItem().Text(Activites?.SkillDescription).FontSize(12);
+                                    row.RelativeItem().Text(Activites?.SkillDescription ?? "").FontSize(12);
                                 });
                                 col.Item().PaddingLeft(5).Text("กีฬาที่ท่านสนใจ [Interests]").FontSize(12).Bold();
                                 col.Item().PaddingLeft(8).PaddingRight(5).Row(row =>
                                 {
-                                    row.RelativeItem().Text(Interests?.SkillDescription).FontSize(12);
+                                    row.RelativeItem().Text(Interests?.SkillDescription ?? "").FontSize(12);
                                 });
                             });
                             col.RelativeItem().Column(col =>
