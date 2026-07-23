@@ -112,6 +112,8 @@ namespace JobOnlineAPI.Models
         public bool IsOverQuota { get; set; }
         public int ActiveOverlapCount { get; set; }
         public int? Quota { get; set; }
+        public int? ApplicantID { get; set; }
+        public int? ApplicationID { get; set; }
     }
 
     // Seed data for prefilling a Part2-style continuation form from a TraineeAssignments row.

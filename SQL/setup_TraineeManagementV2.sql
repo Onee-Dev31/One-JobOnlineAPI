@@ -360,7 +360,11 @@ BEGIN
             ModifiedAt = GETDATE(), ModifiedByAdminID = @AssignedByAdminID
         WHERE AssignmentID = @ExistingAssignmentID
 
-        SELECT @ExistingAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota
+        DECLARE @ExistingApplicantID INT = NULL
+        SELECT @ExistingApplicantID = ApplicantID FROM JobApplications WHERE ApplicationID = @ApplicationID
+
+        SELECT @ExistingAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota,
+               @ExistingApplicantID AS ApplicantID, @ApplicationID AS ApplicationID
         RETURN
     END
 
@@ -444,6 +448,11 @@ BEGIN
         END
     END
 
+    -- ApplicationID passed in directly (not via the self-apply resolution block above) still needs
+    -- its ApplicantID resolved for the caller, so files can be attached to the right applicant.
+    IF @ResolvedApplicantID IS NULL
+        SELECT @ResolvedApplicantID = ApplicantID FROM JobApplications WHERE ApplicationID = @ApplicationID
+
     INSERT INTO TraineeAssignments (
         CompanyCode, DepartmentCode, ApplicationID, ManualTitle, ManualFirstNameThai, ManualLastNameThai, ManualNickname,
         ManualAge, ManualYear, ManualGPA, ManualMajor, ManualFaculty, ManualUniversity,
@@ -465,7 +474,8 @@ BEGIN
 
     DECLARE @NewAssignmentID INT = CAST(SCOPE_IDENTITY() AS INT);
 
-    SELECT @NewAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota
+    SELECT @NewAssignmentID AS AssignmentID, @IsOverQuota AS IsOverQuota, @ActiveOverlapCount AS ActiveOverlapCount, @Quota AS Quota,
+           @ResolvedApplicantID AS ApplicantID, @ApplicationID AS ApplicationID
 END
 
 GO
@@ -517,20 +527,41 @@ BEGIN
         A.ManualFlexibleWork AS FlexibleWork,
         A.ManualReasonForInterest AS ReasonForInterest,
         (
+            -- Files can land in either TraineeAssignmentFiles (this AssignmentID) or T_APPLICANT_FILES
+            -- (Part2 form upload, keyed by ApplicationID) -- union both, same fix as
+            -- sp_GetTraineeApplicationByID in setup_TraineeApplicationsFromApplicants.sql.
+            -- FOR JSON PATH can't sit directly on top of a UNION ALL, so the union is wrapped in a
+            -- derived table.
             -- FilePath carries whatever absolute path GetBasePath() resolved to at upload time (host-
             -- prefixed UNC under Windows dev, C:/ under Production) -- normalize to a relative path so
             -- frontend's base-URL join doesn't double up the host (see
             -- setup_ApplicantDataFormTraineeFiles.sql for the same fix elsewhere).
-            SELECT
-                F.FileID,
-                CASE
-                    WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
-                        THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
-                    ELSE REPLACE(F.FilePath, '\', '/')
-                END AS FilePath,
-                F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
-            FROM TraineeAssignmentFiles F
-            WHERE F.AssignmentID = A.AssignmentID
+            SELECT FileID, FilePath, FileName, FileSize, FileType, SectionFile, UploadedDate
+            FROM (
+                SELECT
+                    F.FileID,
+                    CASE
+                        WHEN CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')) > 0
+                            THEN SUBSTRING(REPLACE(F.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(F.FilePath, '\', '/')), 4000)
+                        ELSE REPLACE(F.FilePath, '\', '/')
+                    END AS FilePath,
+                    F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
+                FROM TraineeAssignmentFiles F
+                WHERE F.AssignmentID = A.AssignmentID
+
+                UNION ALL
+
+                SELECT
+                    AF.FileID,
+                    CASE
+                        WHEN CHARINDEX('AppFiles/', REPLACE(AF.FilePath, '\', '/')) > 0
+                            THEN SUBSTRING(REPLACE(AF.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(AF.FilePath, '\', '/')), 4000)
+                        ELSE REPLACE(AF.FilePath, '\', '/')
+                    END AS FilePath,
+                    AF.FileName, AF.FileSize, AF.FileType, AF.SectionFile, AF.UploadedDate
+                FROM T_APPLICANT_FILES AF
+                WHERE AF.ApplicationID = A.ApplicationID
+            ) AS CombinedFiles
             FOR JSON PATH
         ) AS FilesList
     FROM TraineeAssignments A
@@ -588,6 +619,9 @@ BEGIN
     FROM TraineeAssignments A
     WHERE A.AssignmentID = @AssignmentID
 
+    -- Files can land in either TraineeAssignmentFiles (this AssignmentID) or T_APPLICANT_FILES
+    -- (Part2 form upload, keyed by ApplicationID) -- union both, same fix as
+    -- sp_GetTraineeApplicationByID in setup_TraineeApplicationsFromApplicants.sql.
     -- Same host-prefix normalization as the overview proc above (F.FilePath is an absolute path
     -- baked in at upload time -- see setup_ApplicantDataFormTraineeFiles.sql).
     SELECT
@@ -600,6 +634,20 @@ BEGIN
         F.FileName, F.FileSize, F.FileType, F.SectionFile, F.UploadedDate
     FROM TraineeAssignmentFiles F
     WHERE F.AssignmentID = @AssignmentID
+
+    UNION ALL
+
+    SELECT
+        AF.FileID, @AssignmentID AS AssignmentID,
+        CASE
+            WHEN CHARINDEX('AppFiles/', REPLACE(AF.FilePath, '\', '/')) > 0
+                THEN SUBSTRING(REPLACE(AF.FilePath, '\', '/'), CHARINDEX('AppFiles/', REPLACE(AF.FilePath, '\', '/')), 4000)
+            ELSE REPLACE(AF.FilePath, '\', '/')
+        END AS FilePath,
+        AF.FileName, AF.FileSize, AF.FileType, AF.SectionFile, AF.UploadedDate
+    FROM T_APPLICANT_FILES AF
+    INNER JOIN TraineeAssignments A ON A.AssignmentID = @AssignmentID
+    WHERE AF.ApplicationID = A.ApplicationID
 END
 GO
 

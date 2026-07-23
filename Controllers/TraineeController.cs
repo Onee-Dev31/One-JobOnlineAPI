@@ -239,10 +239,16 @@ namespace JobOnlineAPI.Controllers
                         (Files: transcriptFiles, Section: "transcript"),
                     };
 
-                    foreach (var (files, section) in fileGroups)
+                    // ApplicantID can be null in the rare case a self-apply came in with neither
+                    // MobilePhone nor Email to resolve/create a T_APPLICANTS row against — nothing to
+                    // attach files to in that case, so skip rather than violate T_APPLICANT_FILES' FK.
+                    if (result.ApplicantID is int applicantId && result.ApplicationID is int applicationId)
                     {
-                        if (files == null || files.Count == 0) continue;
-                        await SaveFilesAsync(conn, files, result.AssignmentID, section);
+                        foreach (var (files, section) in fileGroups)
+                        {
+                            if (files == null || files.Count == 0) continue;
+                            await SaveFilesAsync(conn, files, applicantId, applicationId, section);
+                        }
                     }
                     try
                     {
@@ -291,12 +297,11 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
-        private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int assignmentId, string section)
+        private async Task SaveFilesAsync(IDbConnection conn, List<IFormFile> files, int applicantId, int applicationId, string section)
         {
-            // "trainee_assignment_" prefix (not "jobslot_assignment_") — TraineeAssignments has its
-            // own IDENTITY sequence starting from 1, so its AssignmentIDs numerically collide with
-            // JobSlotAssignments' even though they're unrelated rows; the folder names must not.
-            var folder = Path.Combine(_networkShareService.GetBasePath(), $"trainee_assignment_{assignmentId}");
+            // "applicant_" prefix matches ManualTraineeService's folder naming — both write into
+            // T_APPLICANT_FILES keyed by the same ApplicantID now, so the files should live together.
+            var folder = Path.Combine(_networkShareService.GetBasePath(), $"applicant_{applicantId}");
             Directory.CreateDirectory(folder);
 
             foreach (var file in files)
@@ -320,10 +325,11 @@ namespace JobOnlineAPI.Controllers
                     await file.CopyToAsync(stream);
 
                 await conn.ExecuteAsync(
-                    "sp_AddTraineeAssignmentFile",
+                    "usp_ApplicantFile_Insert",
                     new
                     {
-                        AssignmentID = assignmentId,
+                        ApplicantID = applicantId,
+                        ApplicationID = applicationId,
                         FilePath = filePath.Replace('\\', '/'),
                         FileName = fileName,
                         FileSize = file.Length,
