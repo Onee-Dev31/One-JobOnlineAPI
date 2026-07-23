@@ -825,13 +825,9 @@ namespace JobOnlineAPI.Views.Register
                                                     .PaddingHorizontal(5)
                                                     .MinHeight(20)
                                                     .PaddingLeft(8)
-                                                    .Element(e =>
-                                                    {
-                                                        e.ScaleToFit()
-                                                        .Text(line)
-                                                        .FontSize(12)
-                                                        .WrapAnywhere();
-                                                    });
+                                                    .Text(line)
+                                                    .FontSize(12)
+                                                    .WrapAnywhere();
                                             }
                                             // ถ้าไม่มี หรือบรรทัดน้อยกว่า 3 → เติม blank row
                                             int filled = desc.Length;
