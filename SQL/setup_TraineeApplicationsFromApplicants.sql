@@ -215,6 +215,7 @@ BEGIN
     FROM T_APPLICANTS a
     INNER JOIN JobApplications b ON b.ApplicantID = a.ApplicantID
     WHERE a.ApplicantID = @ResolvedApplicantID
+      AND (@ApplicationID IS NULL OR b.ApplicationID = @ApplicationID)
 
     -- Files can land in either of two tables depending on which flow the applicant went
     -- through: T_APPLICANT_FILES (Part2 form upload, keyed by ApplicantID) or
