@@ -131,7 +131,8 @@ namespace JobOnlineAPI.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
+                // return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
+                return StatusCode(500, "Internal Server error");
             }
         }
 
