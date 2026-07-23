@@ -342,10 +342,8 @@ namespace JobOnlineAPI.Views.Register
                     .PaddingHorizontal(8)
                     .Row(row =>
                 {
-                    row.Spacing(60);
-
-                    RenderSignatureBox(row, GetValue("FullNameThai"), "ผู้สมัครฝึกงาน");
-                    RenderSignatureBox(row, "", "ผู้รับผิดชอบฝึกงาน");
+                    row.RelativeItem();
+                    RenderSignatureBox(row, "นางสมศรี พฤทธิพันธุ์", "ประธานเจ้าหน้าที่บริหารองค์กร");
                 });
             });
         }

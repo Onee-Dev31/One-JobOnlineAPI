@@ -271,16 +271,7 @@ namespace JobOnlineAPI.Views.Register
 
             col.Item().PaddingTop(150).Row(row =>
             {
-                row.Spacing(14);
-
-                RenderSignatureBox(row,
-                    GetValue("RequesterManagerNameTH"),
-                    GetValue("RequesterManagerPosition"));
-
-                RenderSignatureBox(row,
-                    GetValue("HiringManagerNameTH"),
-                    GetValue("HiringManagerPosition"));
-
+                row.RelativeItem();
                 RenderSignatureBox(row,
                     GetValue("ChiefExecutiveOfficerNameTH"),
                     GetValue("ChiefExecutiveOfficerPosition"));
@@ -292,6 +283,7 @@ namespace JobOnlineAPI.Views.Register
             row.RelativeItem().PaddingHorizontal(8).Column(col =>
             {
                 col.Item()
+                    .AlignCenter()
                     .Text("ลายเซ็น ................................................")
                     .FontSize(10);
 
