@@ -490,7 +490,11 @@ namespace JobOnlineAPI.Controllers
 
                     if (applicant != null && !string.IsNullOrEmpty(applicant!.CodeMPID?.ToString()) && string.IsNullOrEmpty(source))
                     {
-                        return StatusCode(StatusCodes.Status403Forbidden, new { message = "Application already submitted" });
+                        //return StatusCode(StatusCodes.Status403Forbidden, new { message = "Application already submitted" });
+                        return Ok(new
+                        {
+                            message = "APPLICANT_ALREADY_HAS_EMPLOYEE_ID"
+                        });
                     }
                 }
 
