@@ -218,7 +218,7 @@ namespace JobOnlineAPI.Views.Register
                                 text =>
                                 {
                                     text.Span("LINE ID: ").FontSize(12).Bold();
-                                    text.Span($"{_form["LINE"] ?? "-"}").FontSize(12);
+                                    text.Span($"{_form["LINE"] ?? ""}").FontSize(12);
                                 }
                             );
                             col.RelativeItem(3).Padding(3).Text(
@@ -327,7 +327,7 @@ namespace JobOnlineAPI.Views.Register
                                 text =>
                                 {
                                     text.Span("LINE ID: ").FontSize(12).Bold();
-                                    text.Span($"{_form["SpouseLINE"] ?? "-"}").FontSize(12);
+                                    text.Span($"{_form["SpouseLINE"] ?? ""}").FontSize(12);
                                 }
                             );
                             col.RelativeItem(3).Padding(3).Text(
@@ -767,7 +767,7 @@ namespace JobOnlineAPI.Views.Register
                                         row.Spacing(12);
                                         if (languageSkills.Count == 0)
                                         {
-                                            row.RelativeItem().Text("..................").FontSize(12);
+                                            row.RelativeItem().Text("").FontSize(12);
                                         }
                                         else
                                         {
@@ -790,7 +790,7 @@ namespace JobOnlineAPI.Views.Register
                                     box.Item().PaddingLeft(8)
                                         .Text(Other != null
                                             ? $"{Other.SkillType}: {Other.SkillScore} คะแนน"
-                                            : "..................")
+                                            : "")
                                         .FontSize(12);
                                 });
                             });
@@ -806,7 +806,7 @@ namespace JobOnlineAPI.Views.Register
                                         .FontSize(12).Bold();
                                     box.Item().PaddingLeft(8)
                                         .Text(string.IsNullOrWhiteSpace(computerSkill?.SkillDescription)
-                                            ? ".................."
+                                            ? ""
                                             : computerSkill.SkillDescription)
                                         .FontSize(12)
                                         .WrapAnywhere();
@@ -820,7 +820,7 @@ namespace JobOnlineAPI.Views.Register
                                         .FontSize(12).Bold();
                                     box.Item().PaddingLeft(8)
                                         .Text(string.IsNullOrWhiteSpace(otherSkill?.SkillDescription)
-                                            ? ".................."
+                                            ? ""
                                             : otherSkill.SkillDescription)
                                         .FontSize(12)
                                         .WrapAnywhere();

@@ -404,5 +404,49 @@ namespace JobOnlineAPI.Controllers
             }
         }
 
+        [HttpPost("GenerateTraineeCertificatePDF")]
+        public IActionResult GenerateTraineeCertificatePDF([FromBody] JsonElement request)
+        {
+            try
+            {
+                if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
+                    !request.TryGetProperty("JobID", out var jobIdEl))
+                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+
+                int applicantId = applicantIdEl.GetInt32();
+                int jobId = jobIdEl.GetInt32();
+
+                using var connection = new SqlConnection(
+                    _config.GetConnectionString("DefaultConnection"));
+
+                var form = connection.QueryFirstOrDefault<dynamic>(
+                    "sp_GetInternshipCertificateData",
+                    new { ApplicantID = applicantId, JobID = jobId },
+                    commandType: CommandType.StoredProcedure);
+
+                if (form == null)
+                    return NotFound("Data not found");
+
+                if (form is not IDictionary<string, object> dict)
+                    return StatusCode(500, "Data conversion error");
+
+                QuestPDF.Settings.License = LicenseType.Community;
+                var pdf = new TraineeCertificateForm(dict).GeneratePdf();
+
+                dict.TryGetValue("FirstNameThai", out var fnObj);
+                dict.TryGetValue("LastNameThai", out var lnObj);
+                var fullName = $"{fnObj} {lnObj}".Trim();
+                if (string.IsNullOrWhiteSpace(fullName)) fullName = "Unknown";
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    fullName = fullName.Replace(c, '_');
+
+                return File(pdf, "application/pdf", $"หนังสือรับรองการฝึกงาน_{fullName}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
+            }
+        }
+
     }
 }
