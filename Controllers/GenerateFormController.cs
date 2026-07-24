@@ -22,7 +22,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IConfiguration _config = config;
 
         // เปลี่ยนค่านี้เพื่อสลับว่าจะใช้ข้อมูลอะไรเป็นรหัสผ่านเปิดไฟล์ PDF (GenerateRegisterFormPDFV3)
-        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.CitizenID;
+        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.BirthDate;
 
         private enum PdfPasswordSource
         {
@@ -52,6 +52,7 @@ namespace JobOnlineAPI.Controllers
 
                 case PdfPasswordSource.BirthDate:
                     dict.TryGetValue("BirthDate", out var birthDate);
+                    birthDate ??= dict.TryGetValue("DateOfBirth", out var dob) ? dob : null;
                     return birthDate is not null && DateTime.TryParse(birthDate.ToString(), out var dt)
                         ? dt.ToString("ddMMyyyy")
                         : null;
@@ -62,15 +63,13 @@ namespace JobOnlineAPI.Controllers
         }
 
         // ownerPassword: รหัสผ่านกลางไว้ทดสอบ/ผู้ดูแลระบบ เปิดไฟล์ได้ทุกใบโดยไม่ต้องรู้ CitizenID/BirthDate ของผู้สมัคร
-        private static byte[] EncryptPdf(byte[] pdfBytes, string userPassword, string? ownerPassword)
+        private static byte[] EncryptPdf(byte[] pdfBytes, string userPassword, string? hrPassword)
         {
             using var input = new MemoryStream(pdfBytes);
             var document = PdfReader.Open(input, PdfDocumentOpenMode.Modify);
 
             document.SecuritySettings.UserPassword = userPassword;
-            document.SecuritySettings.OwnerPassword = string.IsNullOrWhiteSpace(ownerPassword)
-                ? userPassword
-                : ownerPassword;
+            document.SecuritySettings.OwnerPassword = hrPassword;
 
             using var output = new MemoryStream();
             document.Save(output);
@@ -214,8 +213,9 @@ namespace JobOnlineAPI.Controllers
                 var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
                 if (!string.IsNullOrWhiteSpace(pdfPassword))
                 {
-                    var masterPassword = _config["PdfSecurity:MasterPassword"];
-                    pdf = EncryptPdf(pdf, pdfPassword, masterPassword);
+                    //var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    var hrPassword = _config["PdfSecurity:HrPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, hrPassword);
                 }
 
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
@@ -326,6 +326,14 @@ namespace JobOnlineAPI.Controllers
                 if (string.IsNullOrWhiteSpace(fullName)) fullName = "Unknown";
                 foreach (var ch in Path.GetInvalidFileNameChars())
                     fullName = fullName.Replace(ch, '_');
+
+                var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
+                if (!string.IsNullOrWhiteSpace(pdfPassword))
+                {
+                    //var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    var hrPassword = _config["PdfSecurity:HrPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, hrPassword);
+                }
 
                 return File(pdf, "application/pdf", $"ใบสมัครฝึกงาน_{fullName}.pdf");
             }
