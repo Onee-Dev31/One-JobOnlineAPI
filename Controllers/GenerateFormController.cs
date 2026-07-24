@@ -8,6 +8,8 @@ using System.Data.SqlClient;
 using Dapper;
 using System.Text.Json;
 using JobOnlineAPI.Filters;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 
 
 namespace JobOnlineAPI.Controllers
@@ -18,6 +20,61 @@ namespace JobOnlineAPI.Controllers
     {
         private readonly IWebHostEnvironment _env = env ?? throw new ArgumentNullException(nameof(env));
         private readonly IConfiguration _config = config;
+
+        // เปลี่ยนค่านี้เพื่อสลับว่าจะใช้ข้อมูลอะไรเป็นรหัสผ่านเปิดไฟล์ PDF (GenerateRegisterFormPDFV3)
+        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.BirthDate;
+
+        private enum PdfPasswordSource
+        {
+            None,
+            CitizenID,
+            BirthDate
+        }
+
+        private static string? BuildPdfPassword(IDictionary<string, object> dict, PdfPasswordSource source)
+        {
+            switch (source)
+            {
+                // 13 หลัก
+                //case PdfPasswordSource.CitizenID:
+                //    dict.TryGetValue("CitizenID", out var citizenId);
+                //    var citizenIdText = citizenId?.ToString()?.Trim();
+                //    return string.IsNullOrWhiteSpace(citizenIdText) ? null : citizenIdText;
+                // 5 หลัก
+                case PdfPasswordSource.CitizenID:
+                    dict.TryGetValue("CitizenID", out var citizenId);
+                    var citizenIdText = citizenId?.ToString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(citizenIdText))
+                        return null;
+                    return citizenIdText.Length > 5
+                        ? citizenIdText[^5..]
+                        : citizenIdText;
+
+                case PdfPasswordSource.BirthDate:
+                    dict.TryGetValue("BirthDate", out var birthDate);
+                    birthDate ??= dict.TryGetValue("DateOfBirth", out var dob) ? dob : null;
+                    return birthDate is not null && DateTime.TryParse(birthDate.ToString(), out var dt)
+                        ? dt.ToString("ddMMyyyy")
+                        : null;
+
+                default:
+                    return null;
+            }
+        }
+
+        // ownerPassword: รหัสผ่านกลางไว้ทดสอบ/ผู้ดูแลระบบ เปิดไฟล์ได้ทุกใบโดยไม่ต้องรู้ CitizenID/BirthDate ของผู้สมัคร
+        private static byte[] EncryptPdf(byte[] pdfBytes, string userPassword, string? hrPassword)
+        {
+            using var input = new MemoryStream(pdfBytes);
+            var document = PdfReader.Open(input, PdfDocumentOpenMode.Modify);
+
+            document.SecuritySettings.UserPassword = userPassword;
+            document.SecuritySettings.OwnerPassword = hrPassword;
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            return output.ToArray();
+        }
 
         // [HttpPost("GenerateRegisterFormPDF")]
         // [TypeFilter(typeof(JwtAuthorizeAttribute))]
@@ -153,6 +210,14 @@ namespace JobOnlineAPI.Controllers
                 QuestPDF.Settings.License = LicenseType.Community;
                 var pdf = new PersonalDetailsV3Form(dict).GeneratePdf();
 
+                var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
+                if (!string.IsNullOrWhiteSpace(pdfPassword))
+                {
+                    //var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    var hrPassword = _config["PdfSecurity:HrPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, hrPassword);
+                }
+
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
             }
             catch (Exception)
@@ -262,6 +327,14 @@ namespace JobOnlineAPI.Controllers
                 foreach (var ch in Path.GetInvalidFileNameChars())
                     fullName = fullName.Replace(ch, '_');
 
+                var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
+                if (!string.IsNullOrWhiteSpace(pdfPassword))
+                {
+                    //var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    var hrPassword = _config["PdfSecurity:HrPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, hrPassword);
+                }
+
                 return File(pdf, "application/pdf", $"ใบสมัครฝึกงาน_{fullName}.pdf");
             }
             catch (Exception ex)
@@ -328,6 +401,50 @@ namespace JobOnlineAPI.Controllers
                     message = ex.Message,
                     stack = ex.StackTrace
                 });
+            }
+        }
+
+        [HttpPost("GenerateTraineeCertificatePDF")]
+        public IActionResult GenerateTraineeCertificatePDF([FromBody] JsonElement request)
+        {
+            try
+            {
+                if (!request.TryGetProperty("ApplicantID", out var applicantIdEl) ||
+                    !request.TryGetProperty("JobID", out var jobIdEl))
+                    return BadRequest("ApplicantID หรือ JobID ไม่ถูกต้อง");
+
+                int applicantId = applicantIdEl.GetInt32();
+                int jobId = jobIdEl.GetInt32();
+
+                using var connection = new SqlConnection(
+                    _config.GetConnectionString("DefaultConnection"));
+
+                var form = connection.QueryFirstOrDefault<dynamic>(
+                    "sp_GetInternshipCertificateData",
+                    new { ApplicantID = applicantId, JobID = jobId },
+                    commandType: CommandType.StoredProcedure);
+
+                if (form == null)
+                    return NotFound("Data not found");
+
+                if (form is not IDictionary<string, object> dict)
+                    return StatusCode(500, "Data conversion error");
+
+                QuestPDF.Settings.License = LicenseType.Community;
+                var pdf = new TraineeCertificateForm(dict).GeneratePdf();
+
+                dict.TryGetValue("FirstNameThai", out var fnObj);
+                dict.TryGetValue("LastNameThai", out var lnObj);
+                var fullName = $"{fnObj} {lnObj}".Trim();
+                if (string.IsNullOrWhiteSpace(fullName)) fullName = "Unknown";
+                foreach (var c in Path.GetInvalidFileNameChars())
+                    fullName = fullName.Replace(c, '_');
+
+                return File(pdf, "application/pdf", $"หนังสือรับรองการฝึกงาน_{fullName}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message, stack = ex.StackTrace });
             }
         }
 
