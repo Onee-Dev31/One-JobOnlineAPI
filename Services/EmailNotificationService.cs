@@ -197,7 +197,33 @@ namespace JobOnlineAPI.Services
                 }
 
                 if (typeMail == "Part2") {
-                    foreach (var staff in resultsWithOpenFor)
+
+                    var recipients = resultsWithOpenFor
+                      .Where(s => s.Role != 2)
+                      .Select(s => new
+                      {
+                          Email = s.Email?.Trim(),
+                          Name = $"คุณ{s.NAMETHAI}"
+                      })
+                      .ToList();
+
+                    // รวม Role 2 เป็นรายการเดียว
+                    var role2Emails = string.Join(",",
+                        resultsWithOpenFor
+                            .Where(s => s.Role == 2 && !string.IsNullOrWhiteSpace(s.Email))
+                            .Select(s => s.Email!.Trim())
+                    );
+
+                    if (!string.IsNullOrWhiteSpace(role2Emails))
+                    {
+                        recipients.Add(new
+                        {
+                            Email = role2Emails,
+                            Name = "ฝ่ายทรัพยากรบุคคล"
+                        });
+                    }
+
+                    foreach (var staff in recipients)
                     {
                         var emailStaff = staff.Email?.Trim();
                         if (string.IsNullOrWhiteSpace(emailStaff))
@@ -205,7 +231,7 @@ namespace JobOnlineAPI.Services
 
                         //string managerBody = GenerateEmailBody(false, emailStaff, fullNameThai, jobTitle, null, dbResult.ApplicantId, applicationFormUri);
                         string managerBody = typeMail == "Part2"
-                       ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle, staff!.NAMETHAI!)
+                       ? GenerateApplicantPart2ToHREmailBody(fullNameThai, jobTitle, staff!.Name!)
                        : await GenerateApplicantPart1ToHREmailBody(dbResult.ApplicantId, jobTitle, _config, context, dbResult.OutJobID, OpenForName!.NAMETHAI!);
                         //: GenerateEmailBody(true, dbResult.CompanyName, fullNameThai, jobTitle, firstHr, dbResult.ApplicantId, applicationFormUri);
                         string applicantSubject = typeMail == "Part2"
@@ -213,7 +239,7 @@ namespace JobOnlineAPI.Services
                         : $"Onee Jobs - มีผู้สมัครงานเข้ามาใหม่  {(string.IsNullOrWhiteSpace(jobTitle) ? "-" : jobTitle)}";
                         try
                         {
-                            await _emailService.SendEmailAsync(emailStaff, applicantSubject, managerBody, true, "Register", null);
+                            await _emailService.SendEmailAsync(staff.Email, applicantSubject, managerBody, true, "Register", null);
                             successCount++;
                             _logger.LogInformation("Successfully sent email to {Email}", emailStaff);
                         }
