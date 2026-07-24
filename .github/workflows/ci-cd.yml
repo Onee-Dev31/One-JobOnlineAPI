@@ -266,6 +266,38 @@ jobs:
       - name: Publish application
         run: dotnet publish ${{ env.PROJECT_PATH }} --configuration Release --output ${{ env.PUBLISH_PATH }} --no-build
 
+      - name: Set ASPNETCORE_ENVIRONMENT=Production in web.config
+        shell: powershell
+        run: |
+          $webConfigPath = "${{ env.PUBLISH_PATH }}\web.config"
+          [xml]$xml = Get-Content $webConfigPath
+          $aspNetCore = $xml.configuration.location.'system.webServer'.aspNetCore
+          $envVarsNode = $aspNetCore.environmentVariables
+          if ($null -eq $envVarsNode) {
+            $envVarsNode = $xml.CreateElement("environmentVariables")
+            $aspNetCore.AppendChild($envVarsNode) | Out-Null
+          }
+          $existing = $envVarsNode.SelectSingleNode("environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
+          if ($null -eq $existing) {
+            $envVar = $xml.CreateElement("environmentVariable")
+            $envVar.SetAttribute("name", "ASPNETCORE_ENVIRONMENT")
+            $envVar.SetAttribute("value", "Production")
+            $envVarsNode.AppendChild($envVar) | Out-Null
+          } else {
+            $existing.SetAttribute("value", "Production")
+          }
+          $xml.Save($webConfigPath)
+          Write-Host "Set ASPNETCORE_ENVIRONMENT=Production in web.config"
+
+      - name: Remove stray appsettings.Development.json from publish output
+        shell: powershell
+        run: |
+          $strayFile = "${{ env.PUBLISH_PATH }}\appsettings.Development.json"
+          if (Test-Path $strayFile) {
+            Remove-Item $strayFile -Force
+            Write-Host "Removed stray appsettings.Development.json"
+          }
+
       - name: Backup old deployment (keep 5 latest)
         shell: powershell
         run: |

@@ -148,3 +148,41 @@ BEGIN
     WHERE ReportsToAdminID = @AdminID;
 END
 GO
+
+-- sp_GetAdminUsersWithRoleV2: used by LoginAdminNewController (POST /api/LoginAdminNew/LoginAD)
+-- to fetch the admin's role + HRMS profile after AD auth succeeds. Joins on RoleID (not the legacy
+-- Role column) because sp_CreateAdminUser/sp_UpdateAdminUser only ever write RoleID, so Role can be
+-- NULL or stale and was causing valid users to fail login or get the wrong role's permissions.
+CREATE OR ALTER PROCEDURE sp_GetAdminUsersWithRoleV2
+    @Username NVARCHAR(100) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        a.AdminID,
+        a.Username,
+        a.Department,
+        a.Role,
+        ISNULL(b.ROLE_NAME, '') AS ROLE_NAME,
+        ISNULL(e.CODEMPID, '') AS Empno,
+        ISNULL(LTRIM(RTRIM(CONCAT(e.NAMFIRSTT, ' ', e.NAMLASTT))), '') AS NAMETHAI,
+        ISNULL(e.EMAIL, '') AS EMAIL,
+        ISNULL(e.MOBILE, '') AS MOBILE,
+        ISNULL(e.POST, '') AS POST,
+        ISNULL(e.COMPANY_NAME, '') AS COMPANY_NAME,
+        ISNULL(e.COMPANY_CODE, '') AS COMPANY_CODE,
+        ISNULL(e.TELOFF, '') AS TELOFF,
+        ISNULL(e.NAMECOSTCENT, '') AS NAMECOSTCENT,
+        ISNULL(e.JOBGRADE, '') AS JOBGRADE,
+        ISNULL(a.CanViewAllCompanies, 0) AS CanViewAllCompanies
+    FROM
+        AdminUsers a
+    INNER JOIN
+        T_ROLE b ON a.RoleID = b.ID
+    INNER JOIN
+        [HRMS_LINKED_SERVER].HRMS.Dbo.T_EMPLOYEE_SSO e ON TRIM(LOWER(a.Username)) = TRIM(LOWER(e.AD_USER))
+    WHERE
+        (@Username IS NULL OR TRIM(LOWER(a.Username)) = TRIM(LOWER(@Username)));
+END
+GO
