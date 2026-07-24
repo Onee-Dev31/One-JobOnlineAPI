@@ -8,6 +8,8 @@ using System.Data.SqlClient;
 using Dapper;
 using System.Text.Json;
 using JobOnlineAPI.Filters;
+using PdfSharp.Pdf;
+using PdfSharp.Pdf.IO;
 
 
 namespace JobOnlineAPI.Controllers
@@ -18,6 +20,62 @@ namespace JobOnlineAPI.Controllers
     {
         private readonly IWebHostEnvironment _env = env ?? throw new ArgumentNullException(nameof(env));
         private readonly IConfiguration _config = config;
+
+        // เปลี่ยนค่านี้เพื่อสลับว่าจะใช้ข้อมูลอะไรเป็นรหัสผ่านเปิดไฟล์ PDF (GenerateRegisterFormPDFV3)
+        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.CitizenID;
+
+        private enum PdfPasswordSource
+        {
+            None,
+            CitizenID,
+            BirthDate
+        }
+
+        private static string? BuildPdfPassword(IDictionary<string, object> dict, PdfPasswordSource source)
+        {
+            switch (source)
+            {
+                // 13 หลัก
+                //case PdfPasswordSource.CitizenID:
+                //    dict.TryGetValue("CitizenID", out var citizenId);
+                //    var citizenIdText = citizenId?.ToString()?.Trim();
+                //    return string.IsNullOrWhiteSpace(citizenIdText) ? null : citizenIdText;
+                // 5 หลัก
+                case PdfPasswordSource.CitizenID:
+                    dict.TryGetValue("CitizenID", out var citizenId);
+                    var citizenIdText = citizenId?.ToString()?.Trim();
+                    if (string.IsNullOrWhiteSpace(citizenIdText))
+                        return null;
+                    return citizenIdText.Length > 5
+                        ? citizenIdText[^5..]
+                        : citizenIdText;
+
+                case PdfPasswordSource.BirthDate:
+                    dict.TryGetValue("BirthDate", out var birthDate);
+                    return birthDate is not null && DateTime.TryParse(birthDate.ToString(), out var dt)
+                        ? dt.ToString("ddMMyyyy")
+                        : null;
+
+                default:
+                    return null;
+            }
+        }
+
+        // ownerPassword: รหัสผ่านกลางไว้ทดสอบ/ผู้ดูแลระบบ เปิดไฟล์ได้ทุกใบโดยไม่ต้องรู้ CitizenID/BirthDate ของผู้สมัคร
+        private static byte[] EncryptPdf(byte[] pdfBytes, string userPassword, string? ownerPassword)
+        {
+            using var input = new MemoryStream(pdfBytes);
+            var document = PdfReader.Open(input, PdfDocumentOpenMode.Modify);
+
+            document.SecuritySettings.UserPassword = userPassword;
+            document.SecuritySettings.OwnerPassword = string.IsNullOrWhiteSpace(ownerPassword)
+                ? userPassword
+                : ownerPassword;
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            return output.ToArray();
+        }
 
         // [HttpPost("GenerateRegisterFormPDF")]
         // [TypeFilter(typeof(JwtAuthorizeAttribute))]
@@ -152,6 +210,13 @@ namespace JobOnlineAPI.Controllers
 
                 QuestPDF.Settings.License = LicenseType.Community;
                 var pdf = new PersonalDetailsV3Form(dict).GeneratePdf();
+
+                var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
+                if (!string.IsNullOrWhiteSpace(pdfPassword))
+                {
+                    var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, masterPassword);
+                }
 
                 return File(pdf, "application/pdf", $"form_{applicantId}.pdf");
             }
