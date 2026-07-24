@@ -22,7 +22,7 @@ namespace JobOnlineAPI.Controllers
         private readonly IConfiguration _config = config;
 
         // เปลี่ยนค่านี้เพื่อสลับว่าจะใช้ข้อมูลอะไรเป็นรหัสผ่านเปิดไฟล์ PDF (GenerateRegisterFormPDFV3)
-        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.CitizenID;
+        private const PdfPasswordSource RegisterFormPdfPasswordSource = PdfPasswordSource.BirthDate;
 
         private enum PdfPasswordSource
         {
@@ -52,6 +52,7 @@ namespace JobOnlineAPI.Controllers
 
                 case PdfPasswordSource.BirthDate:
                     dict.TryGetValue("BirthDate", out var birthDate);
+                    birthDate ??= dict.TryGetValue("DateOfBirth", out var dob) ? dob : null;
                     return birthDate is not null && DateTime.TryParse(birthDate.ToString(), out var dt)
                         ? dt.ToString("ddMMyyyy")
                         : null;
@@ -326,6 +327,13 @@ namespace JobOnlineAPI.Controllers
                 if (string.IsNullOrWhiteSpace(fullName)) fullName = "Unknown";
                 foreach (var ch in Path.GetInvalidFileNameChars())
                     fullName = fullName.Replace(ch, '_');
+
+                var pdfPassword = BuildPdfPassword(dict, RegisterFormPdfPasswordSource);
+                if (!string.IsNullOrWhiteSpace(pdfPassword))
+                {
+                    var masterPassword = _config["PdfSecurity:MasterPassword"];
+                    pdf = EncryptPdf(pdf, pdfPassword, masterPassword);
+                }
 
                 return File(pdf, "application/pdf", $"ใบสมัครฝึกงาน_{fullName}.pdf");
             }
