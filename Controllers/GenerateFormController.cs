@@ -140,7 +140,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV2")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV2([FromBody] JsonElement request)
         {
             try
@@ -180,7 +180,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPDFV3")]
-        // [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPDFV3([FromBody] JsonElement request)
         {
             try
@@ -228,6 +228,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateTraineeFormPDF")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateTraineeFormPDF([FromBody] JsonElement request)
         {
             try
@@ -289,6 +290,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateTraineeFormPDFPart2")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateTraineeFormPDFPart2([FromBody] JsonElement request)
         {
             try
@@ -344,6 +346,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateRegisterFormPart1")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateRegisterFormPart1([FromBody] JsonElement request)
         {
             try
@@ -405,6 +408,7 @@ namespace JobOnlineAPI.Controllers
         }
 
         [HttpPost("GenerateTraineeCertificatePDF")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public IActionResult GenerateTraineeCertificatePDF([FromBody] JsonElement request)
         {
             try
