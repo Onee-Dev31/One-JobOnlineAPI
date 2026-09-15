@@ -86,10 +86,10 @@ namespace JobOnlineAPI.Views.Register
                     .FontSize(11)
                     .FontColor(Colors.Grey.Darken1);
 
-                col.Item()
-                    .PaddingTop(10)
-                    .LineHorizontal(1.2f)
-                    .LineColor(Colors.Grey.Darken2);
+                // col.Item()
+                //     .PaddingTop(10)
+                //     .LineHorizontal(1.2f)
+                //     .LineColor(Colors.Grey.Darken2);
             });
         }
 
@@ -221,27 +221,20 @@ namespace JobOnlineAPI.Views.Register
 
                     content.Item().Row(row =>
                     {
-                        row.RelativeItem(3).Text(t =>
-                        {
-                            t.Span("Name-Surname: ").Bold();
-                            t.Span($"{GetValue("FirstNameEng")} {GetValue("LastNameEng")}");
-                        });
 
-                        row.RelativeItem(2).Text(t =>
+                        row.RelativeItem(3).Text(t =>
                         {
                             t.Span("Email: ").Bold();
                             t.Span(GetValue("Email"));
                         });
-                    });
 
-                    content.Item().Row(row =>
-                    {
                         row.RelativeItem(2).Text(t =>
                         {
                             t.Span("โทรศัพท์: ").Bold();
                             t.Span(GetValue("MobilePhone"));
                         });
                     });
+
                 });
             });
         }
@@ -260,25 +253,13 @@ namespace JobOnlineAPI.Views.Register
                     inner.Item().Padding(12).Column(content =>
                     {
                         content.Spacing(10);
-
-                        // แถวที่ 1
-                        content.Item().PaddingTop(10)
-                            .PaddingBottom(6)
-                            .LineHorizontal(1);
-
-                        // แถวที่ 2
-                        content.Item()
-                            .PaddingBottom(6)
-                            .LineHorizontal(1);
-
-                        // แถวที่ 3
-                        content.Item()
-                            .PaddingBottom(6)
-                            .LineHorizontal(1);
-
-                        // แถวที่ 4
-                        content.Item()
-                            .LineHorizontal(1);
+                        // content.Item().PaddingTop(10).PaddingBottom(6).LineHorizontal(1);
+                        // content.Item().PaddingBottom(6).LineHorizontal(1);
+                        // content.Item().PaddingBottom(6).LineHorizontal(1);
+                        // content.Item().LineHorizontal(1);
+                        content.Item().PaddingTop(10).PaddingBottom(6).Text("................................................................................................................................................................................................................");
+                        content.Item().PaddingBottom(6).Text("................................................................................................................................................................................................................");
+                        content.Item().PaddingBottom(6).Text("................................................................................................................................................................................................................");
                     });
                 });
             }
@@ -286,20 +267,11 @@ namespace JobOnlineAPI.Views.Register
         // ========================= SIGNATURE SECTION =========================
         private void RenderSignatureSection(ColumnDescriptor col)
         {
-            col.Item().PaddingTop(8).LineHorizontal(1);
+            // col.Item().PaddingTop(8).LineHorizontal(1);
 
             col.Item().PaddingTop(150).Row(row =>
             {
-                row.Spacing(14);
-
-                RenderSignatureBox(row,
-                    GetValue("RequesterManagerNameTH"),
-                    GetValue("RequesterManagerPosition"));
-
-                RenderSignatureBox(row,
-                    GetValue("HiringManagerNameTH"),
-                    GetValue("HiringManagerPosition"));
-
+                row.RelativeItem();
                 RenderSignatureBox(row,
                     GetValue("ChiefExecutiveOfficerNameTH"),
                     GetValue("ChiefExecutiveOfficerPosition"));
@@ -311,6 +283,7 @@ namespace JobOnlineAPI.Views.Register
             row.RelativeItem().PaddingHorizontal(8).Column(col =>
             {
                 col.Item()
+                    .AlignCenter()
                     .Text("ลายเซ็น ................................................")
                     .FontSize(10);
 
@@ -341,5 +314,6 @@ namespace JobOnlineAPI.Views.Register
                 ? _form[key].ToString() ?? ""
                 : "";
         }
+
     }
 }

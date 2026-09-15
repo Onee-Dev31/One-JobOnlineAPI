@@ -64,7 +64,7 @@ namespace JobOnlineAPI.Controllers
                     Response.Cookies.Append("auth_token", token, new CookieOptions
                     {
                         HttpOnly = true,
-                        Secure = true,
+                        Secure = false,
                         SameSite = SameSiteMode.Lax,
                         Expires = DateTime.UtcNow.AddHours(2)
                     });
@@ -76,7 +76,8 @@ namespace JobOnlineAPI.Controllers
                         userModel.UserId,
                         userModel.ApplicantID,
                         userModel.JobID,
-                        userModel.Status
+                        userModel.Status,
+                        token
                     });
                 }
 

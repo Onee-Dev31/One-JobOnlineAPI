@@ -129,7 +129,7 @@ namespace JobOnlineAPI.Controllers
                 job.JobID = newId;
                 return CreatedAtAction(nameof(GetJobById), new { id = newId }, job);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 // return StatusCode(500, new { Error = "Failed to add job.", Details = ex.Message });
                 return StatusCode(500, "Internal Server error");
@@ -170,6 +170,51 @@ namespace JobOnlineAPI.Controllers
         /// <summary>
         /// ลบตำแหน่งงาน
         /// </summary>
+        [HttpGet("job-groups")]
+        public async Task<IActionResult> GetJobGroups([FromQuery] int? jobGroupId)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            var result = await connection.QueryAsync(
+                "sp_GetJobGroups",
+                new { JobGroupID = jobGroupId },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(result);
+        }
+
+        [HttpGet("job-levels")]
+        public async Task<IActionResult> GetJobLevels([FromQuery] int? jobLevelId)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            var result = await connection.QueryAsync(
+                "sp_GetJobLevels",
+                new { JobLevelID = jobLevelId },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(result);
+        }
+
+        [HttpGet("employee-types")]
+        public async Task<IActionResult> GetEmployeeTypes([FromQuery] int? employeeTypeId)
+        {
+            var connectionString = _configuration.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not found.");
+
+            using var connection = new SqlConnection(connectionString);
+            var result = await connection.QueryAsync(
+                "sp_GetEmployeeTypes",
+                new { EmployeeTypeID = employeeTypeId },
+                commandType: CommandType.StoredProcedure);
+
+            return Ok(result);
+        }
+
         [HttpDelete("{id}")]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
         public async Task<IActionResult> DeleteJob(int id)

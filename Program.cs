@@ -120,7 +120,12 @@ builder.Services.AddCors(options =>
             "http://localhost:5173",
             "http://10.2.0.11:3001",
             "https://10.2.0.11:8111",
-            "https://ess.oneeclick.co"
+            "https://ess.oneeclick.co",
+            "https://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5175",
+            "http://10.2.0.11:5248",
+            "https://10.2.0.11:5248"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -140,15 +145,19 @@ builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IJobApplicationRepository, JobApplicationRepository>();
 builder.Services.AddScoped<IHRStaffRepository, HRStaffRepository>();
+builder.Services.AddScoped<IEmployeeRepository, EmployeeRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IUniversityService, UniversityService>();
 builder.Services.AddScoped<ILdapService, LdapService>();
 builder.Services.AddScoped<IConsentService, ConsentService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IOtpService, OtpService>();
 builder.Services.AddScoped<IEmailNotificationService, EmailNotificationService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<INetworkShareService, NetworkShareService>();
 builder.Services.AddScoped<FileProcessingService>();
+builder.Services.AddScoped<IManualTraineeService, ManualTraineeService>();
 builder.Services.Configure<FileStorageConfig>(
     builder.Configuration.GetSection("FileStorage"));
 builder.Services.Configure<EmailSettings>(
@@ -260,12 +269,12 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
     });
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
     });
 builder.Services.AddEndpointsApiExplorer();
 
@@ -373,7 +382,10 @@ else
 // app.UseCors("AllowAllOrigins");
 app.UseCors("Default");
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.Use(async (ctx, next) =>
 {
     ctx.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");

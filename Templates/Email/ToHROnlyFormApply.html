@@ -1,0 +1,220 @@
+﻿<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f6f9">
+        <tr>
+            <td align="center" style="padding:40px 20px;">
+
+                <table width="650" cellpadding="0" cellspacing="0" border="0"
+                       style="max-width:650px;background:#ffffff;border-radius:12px;overflow:hidden;
+                        box-shadow:0 6px 25px rgba(0,0,0,.08);">
+
+                    <!-- Header -->
+                    <tr>
+                        <td bgcolor="#111827" style="padding:30px;text-align:center;">
+
+                            <h1 style="color:#ffffff;
+                                margin:20px 0 0;
+                                font-size:26px;
+                                font-weight:700;">
+                                New Candidate Application
+                            </h1>
+
+                            <p style="color:#d1d5db;
+                                margin-top:8px;
+                                font-size:15px;">
+                                A new candidate has applied and is waiting for HR screening.
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding:35px;">
+
+                            <p style="margin:0;font-size:16px;color:#374151;">
+                                เรียน <strong>ฝ่ายทรัพยากรบุคคล</strong>,
+                            </p>
+
+                            <p style="margin-top:15px;color:#6b7280;line-height:26px;">
+                                มีผู้สมัครใหม่ได้ส่งใบสมัครเข้ามาในระบบ ONEE Jobs
+                                และกำลังรอการคัดกรองเบื้องต้น กรุณาตรวจสอบรายละเอียดและดำเนินการคัดกรองต่อไป
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Candidate Card -->
+                    <tr>
+                        <td style="padding:0 35px 25px;">
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border:1px solid #e5e7eb;border-radius:10px;">
+
+                                <tr>
+                                    <td colspan="2"
+                                        style="padding:16px 20px;
+                                        background:#f9fafb;
+                                        font-size:18px;
+                                        font-weight:bold;
+                                        color:#111827;">
+                                        👤 Candidate Information
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">Name - Surname</td>
+                                    <td style="padding:14px 20px;font-weight:600;">{{FullNameThai}}</td>
+                                </tr>
+
+                                <tr bgcolor="#fafafa">
+                                    <td style="padding:14px 20px;color:#6b7280;">Email</td>
+                                    <td style="padding:14px 20px;">{{Email}}</td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">Phone</td>
+                                    <td style="padding:14px 20px;">{{MobilePhone}}</td>
+                                </tr>
+
+                                <tr bgcolor="#fafafa">
+                                    <td style="padding:14px 20px;color:#6b7280;">Applied Date</td>
+                                    <td style="padding:14px 20px;">{{CreateDate}}</td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- Job Card -->
+                    <tr>
+                        <td style="padding:0 35px 30px;">
+
+                            <table width="100%" cellpadding="0" cellspacing="0"
+                                   style="border:1px solid #e5e7eb;border-radius:10px;">
+
+                                <tr>
+                                    <td colspan="2"
+                                        style="padding:16px 20px;
+                                        background:#f9fafb;
+                                        font-size:18px;
+                                        font-weight:bold;
+                                        color:#111827;">
+                                        💼 Position Applied
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">Position</td>
+                                    <td style="padding:14px 20px;font-weight:600;">{{JobTitle}}</td>
+                                </tr>
+
+                                <tr bgcolor="#fafafa">
+                                    <td style="padding:14px 20px;color:#6b7280;">Department</td>
+                                    <td style="padding:14px 20px;">{{Department}}</td>
+                                </tr>
+
+                                <tr>
+                                    <td style="padding:14px 20px;color:#6b7280;">Company</td>
+                                    <td style="padding:14px 20px;">{{CompanyName}}</td>
+                                </tr>
+
+                            </table>
+
+                        </td>
+                    </tr>
+
+                    <!-- Next Step -->
+                    <tr>
+                        <td style="padding:0 35px;">
+
+                            <div style="
+                                background:#f9fafb;
+                                border-left:4px solid #111827;
+                                padding:20px;
+                                border-radius:8px;">
+
+                                <h3 style="margin:0 0 10px;color:#111827;">
+                                    Next Steps
+                                </h3>
+
+                                <ul style="padding-left:18px;margin:0;color:#4b5563;line-height:28px;">
+                                    <li>ตรวจสอบ Resume</li>
+                                    <li>คัดกรองคุณสมบัติผู้สมัคร</li>
+                                    <li>ส่งต่อผู้สมัครให้ต้นสังกัด</li>
+                                </ul>
+
+                            </div>
+
+                        </td>
+                    </tr>
+
+                    <!-- Button -->
+                    <tr>
+                        <td align="center" style="padding:40px;">
+
+                            <a href="{{BaseUrl}}"
+                               style="
+                                background:#111827;
+                                color:#ffffff;
+                                padding:16px 40px;
+                                text-decoration:none;
+                                border-radius:8px;
+                                font-size:16px;
+                                font-weight:bold;
+                                display:inline-block;">
+                                View Candidate →
+                            </a>
+
+                            <p style="margin-top:18px;
+                                font-size:13px;
+                                color:#9ca3af;">
+                                หากปุ่มด้านบนไม่สามารถใช้งานได้ กรุณาเปิดลิงก์ด้านล่าง
+                            </p>
+
+                            <p style="font-size:13px;word-break:break-all;">
+                                <a href="{{BaseUrl}}" style="color:#2563eb;">
+                                    {{BaseUrl}}
+                                </a>
+                            </p>
+
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td bgcolor="#111827"
+                            style="padding:30px;text-align:center;">
+
+                            <p style="margin:0;color:#d1d5db;font-size:13px;">
+                                This email was automatically generated by
+                                <strong>ONEE Jobs</strong>
+                            </p>
+
+                            <p style="margin-top:8px;color:#9ca3af;font-size:12px;">
+                                Please do not reply to this email.
+                            </p>
+
+                            <p style="margin-top:20px;color:#ffffff;font-size:14px;">
+                                The One Enterprise
+                            </p>
+
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>

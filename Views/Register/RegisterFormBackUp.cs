@@ -42,7 +42,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Spacing(0);
                     col.Item().PaddingBottom(0).Row(row =>
                     {
-                        row.RelativeItem(4).AlignRight().Padding(5).Text($"วันที่พร้อมเริ่มงาน: {_form.BirthDate}").FontSize(8);
+                        row.RelativeItem(4).AlignRight().Padding(5).Text($"วันที่พร้อมเริ่มงาน: {ThaiDateFormatter.FormatFull(_form.BirthDate)}").FontSize(8);
                     });
                     col.Item().Border(1).BorderColor(Colors.Black).Column(innerCol =>
                     {
@@ -81,7 +81,7 @@ namespace JobOnlineAPI.Views.Register
                         innerCol.Item().PaddingBottom(0).Row(row =>
                         {
                             row.RelativeItem(4).Padding(5).Text($"บัตรประจำตัวประชาชน: {_form.CitizenID}").FontSize(8);
-                            row.RelativeItem(3).Padding(5).Text($"วัน/เดือน/ปี เกิด: {_form.BirthDate}").FontSize(8);
+                            row.RelativeItem(3).Padding(5).Text($"วัน/เดือน/ปี เกิด: {ThaiDateFormatter.FormatFull(_form.BirthDate)}").FontSize(8);
                             row.RelativeItem(2).Padding(5).Text($"อายุ: 0 ปี").FontSize(8);
                             row.RelativeItem(2).Padding(5).Text($"น้ำหนัก: {_form.Weight} กก.").FontSize(8);
                             row.RelativeItem(2).Padding(5).Text($"ส่วนสูง: {_form.Height} ซม.").FontSize(8);
@@ -251,7 +251,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(9);
                     col.Item().Padding(5).Text("(..........................................)").FontSize(9);
                     // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(9);
-                    col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(9);
+                    col.Item().AlignCenter().Padding(5).Text($"Date: {ThaiDateFormatter.FormatFull(DateTime.Now)}").FontSize(9);
                 });
             });
             container.Page(page =>
@@ -409,7 +409,7 @@ namespace JobOnlineAPI.Views.Register
                     col.Item().Padding(5).Text("ลงชื่อผู้สมัคร ............................................").FontSize(9);
                     col.Item().Padding(5).Text("(..........................................)").FontSize(9);
                     // col.Item().Padding(5).Text("Signature (..........................................)").FontSize(9);
-                    col.Item().AlignCenter().Padding(5).Text($"Date: {DateTime.Now:dd/MM/yyyy}").FontSize(9);
+                    col.Item().AlignCenter().Padding(5).Text($"Date: {ThaiDateFormatter.FormatFull(DateTime.Now)}").FontSize(9);
                 });
             });
         }

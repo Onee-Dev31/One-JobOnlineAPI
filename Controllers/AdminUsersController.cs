@@ -2,6 +2,7 @@ using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using JobOnlineAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 
 namespace JobOnlineAPI.Controllers
 {
@@ -63,8 +64,30 @@ namespace JobOnlineAPI.Controllers
                 if (existing != null)
                     return Conflict($"Username '{request.Username}' already exists.");
 
+                var roles = await _adminRepository.GetAllRolesAsync();
+                var secretaryRoleId = roles.FirstOrDefault(r => r.RoleName == "Secretary")?.RoleID;
+
+                if (secretaryRoleId != null && request.RoleID == secretaryRoleId)
+                {
+                    if (string.IsNullOrWhiteSpace(request.ReportsToEmpNo))
+                        return BadRequest("กรุณาระบุรหัสพนักงานของหัวหน้า (ReportsToEmpNo) สำหรับ Role Secretary");
+
+                    var result = await _adminRepository.CreateSecretaryAdminUserAsync(request);
+                    return CreatedAtAction(nameof(GetAdminUserById), new { id = result.NewAdminID }, new
+                    {
+                        AdminID = result.NewAdminID,
+                        BossWasNewlyCreated = result.BossWasNewlyCreated,
+                        ReportsToAdminID = result.BossAdminID,
+                        ReportsToName = result.BossNameThai
+                    });
+                }
+
                 var newId = await _adminRepository.CreateAdminUserAsync(request);
                 return CreatedAtAction(nameof(GetAdminUserById), new { id = newId }, new { AdminID = newId });
+            }
+            catch (SqlException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception)
             {
@@ -104,9 +127,10 @@ namespace JobOnlineAPI.Controllers
             if (id <= 0)
                 return BadRequest("Admin ID must be a positive integer.");
 
+            AdminUserDetail? existingAdminUser = null;
             try
             {
-                var existingAdminUser = await _adminRepository.GetAdminUserByIdAsync(id);
+                existingAdminUser = await _adminRepository.GetAdminUserByIdAsync(id);
                 if (existingAdminUser == null)
                     return NotFound($"Admin user with ID {id} not found.");
 
@@ -115,6 +139,17 @@ namespace JobOnlineAPI.Controllers
                     return StatusCode(500, "Delete failed.");
 
                 return NoContent();
+            }
+            catch (SqlException ex) when (ex.Number == 547)
+            {
+                var roles = await _adminRepository.GetAllRolesAsync();
+                var roleName = roles.FirstOrDefault(r => r.RoleID == existingAdminUser?.RoleID)?.RoleName ?? "Admin";
+                var secretaryNames = (await _adminRepository.GetDependentSecretaryNamesAsync(id)).ToList();
+                var names = secretaryNames.Count > 0 ? string.Join(", ", secretaryNames) : null;
+                var message = names == null
+                    ? $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ {roleName} ท่านนี้อยู่"
+                    : $"ไม่สามารถลบได้ เนื่องจากมีเลขาที่ขึ้นตรงต่อ {roleName} ท่านนี้อยู่: {names}";
+                return Conflict(new { message });
             }
             catch (Exception)
             {
