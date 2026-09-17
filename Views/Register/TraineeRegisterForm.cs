@@ -132,7 +132,14 @@ namespace JobOnlineAPI.Views.Register
                         content.Item().Text(t =>
                         {
                             t.Span("ประเภทการฝึกงาน: ").Bold();
-                            t.Span(GetValue("InternshipType"));
+                            var internshipTypeLabel = GetValue("InternshipType") switch
+                            {
+                                "summer" => "ฝึกงานภาคฤดูร้อน",
+                                "course" => "ฝึกงานตามหลักสูตร",
+                                "cooperative" => "ฝึกงานสหกิจ",
+                                var v => v
+                            };
+                            t.Span(internshipTypeLabel);
                         });
 
                         content.Item().Text(t =>

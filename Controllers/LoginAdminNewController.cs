@@ -238,7 +238,6 @@ namespace JobOnlineAPI.Controllers
             {
                 ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
             };
-
             using var httpClient = new HttpClient(handler);
 
             var payload = new

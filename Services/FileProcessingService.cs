@@ -60,9 +60,8 @@
                 if (!AllowedMimeTypes.Contains(file.ContentType))
                     throw new InvalidOperationException($"Invalid MIME type for {file.FileName}: {file.ContentType}");
 
-                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
-                // var originalName = Path.GetFileName(file.FileName);
-                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(originalName)}";
+                var safeOriginalName = Path.GetFileName(file.FileName);
+                var fileName = $"{Guid.NewGuid()}_{safeOriginalName}";
                 var filePath = Path.Combine(_networkShareService.GetBasePath(), fileName);
                 var directoryPath = Path.GetDirectoryName(filePath) ?? throw new InvalidOperationException($"Invalid directory path for: {filePath}");
 
@@ -136,9 +135,8 @@
                 if (!AllowedMimeTypes.Contains(file.ContentType))
                     throw new InvalidOperationException($"Invalid MIME type for {file.FileName}: {file.ContentType}");
 
-                // var originalName = Path.GetFileName(file.FileName);
-                // var fileName = $"{Guid.NewGuid()}{Path.GetExtension(originalName)}";
-                var fileName = $"{Guid.NewGuid()}_{file.FileName}";
+                var safeOriginalName = Path.GetFileName(file.FileName);
+                var fileName = $"{Guid.NewGuid()}_{safeOriginalName}";
                 var filePath = Path.Combine(tempPath, fileName);
 
                 using (var stream = new FileStream(filePath, FileMode.Create))
