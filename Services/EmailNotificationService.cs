@@ -465,7 +465,7 @@ namespace JobOnlineAPI.Services
                 {
                     hrEmailList = await connection.QueryAsync<dynamic>(
                         "GetEmailHRByCompanyCode",
-                        new { companyCode },
+                        new { companyCode, JobID },
                         commandType: CommandType.StoredProcedure);
 
                     _logger.LogInformation("hrEmailList query success. Count: {Count}", hrEmailList?.Count() ?? 0);
