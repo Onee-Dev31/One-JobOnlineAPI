@@ -397,9 +397,11 @@ namespace JobOnlineAPI.Views.Register
             if (!_form.TryGetValue(key, out var value) || value == null)
                 return "";
 
-            if ((key is "StartDate" or "EndDate" or "DateOfBirth") &&
-                DateTime.TryParse(value.ToString(), out var date))
-                return ThaiDateFormatter.FormatFull(date);
+            if (key is "StartDate" or "EndDate" or "DateOfBirth")
+            {
+                var formatted = ThaiDateFormatter.FormatFull(value);
+                return string.IsNullOrEmpty(formatted) ? value.ToString() ?? "" : formatted;
+            }
 
             return value.ToString() ?? "";
         }
