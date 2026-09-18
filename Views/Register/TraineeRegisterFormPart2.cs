@@ -87,8 +87,11 @@ namespace JobOnlineAPI.Views.Register
         {
             // Calculate the training duration from actual days and round up.
             int months = 0;
-            if (DateTime.TryParse(G("StartDateRaw"), out var sd) &&
-                DateTime.TryParse(G("EndDateRaw"), out var ed) && ed.Date >= sd.Date)
+            var dateFormats = new[] { "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd", "yyyy-MM-ddTHH:mm:ss" };
+            var startStr = !string.IsNullOrEmpty(G("StartDate")) ? G("StartDate") : G("StartDateRaw");
+            var endStr = !string.IsNullOrEmpty(G("EndDate")) ? G("EndDate") : G("EndDateRaw");
+            if (DateTime.TryParseExact(startStr, dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var sd) &&
+                DateTime.TryParseExact(endStr, dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed) && ed.Date >= sd.Date)
                 months = Math.Max(1, (int)Math.Ceiling((ed.Date - sd.Date).TotalDays / 30d));
 
             c.Row(row =>
@@ -107,12 +110,12 @@ namespace JobOnlineAPI.Views.Register
                         r.AutoItem().Text(t =>
                         {
                             t.Span("เริ่มต้น ").Bold();
-                            t.Span(string.IsNullOrEmpty(G("StartDateRaw")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("StartDateRaw")));
+                            t.Span(string.IsNullOrEmpty(G("StartDate")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("StartDate")));
                         });
                         r.AutoItem().PaddingLeft(20).Text(t =>
                         {
                             t.Span("สิ้นสุด ").Bold();
-                            t.Span(string.IsNullOrEmpty(G("EndDateRaw")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("EndDateRaw")));
+                            t.Span(string.IsNullOrEmpty(G("EndDate")) ? ".................................................." : ThaiDateFormatter.FormatFull(G("EndDate")));
                         });
                     });
 
