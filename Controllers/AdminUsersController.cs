@@ -1,16 +1,20 @@
+using Dapper;
+using JobOnlineAPI.DAL;
 using JobOnlineAPI.Filters;
 using JobOnlineAPI.Models;
 using JobOnlineAPI.Repositories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace JobOnlineAPI.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class AdminUsersController(IAdminRepository adminRepository) : ControllerBase
+    public class AdminUsersController(IAdminRepository adminRepository, DapperContext context) : ControllerBase
     {
         private readonly IAdminRepository _adminRepository = adminRepository ?? throw new ArgumentNullException(nameof(adminRepository));
+        private readonly DapperContext _context = context;
 
         [HttpGet]
         [TypeFilter(typeof(JwtAuthorizeAttribute))]
@@ -185,6 +189,69 @@ namespace JobOnlineAPI.Controllers
         public class SetAdminUserActiveRequest
         {
             public bool IsActive { get; set; }
+        }
+
+        // ── Email HR Recipients ──────────────────────────────────────
+
+        [HttpGet("hr-recipients-list")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> GetEmailHRRecipients()
+        {
+            try
+            {
+                using var conn = _context.CreateConnection();
+                var rows = await conn.QueryAsync(
+                    "sp_GetEmailHRRecipientList",
+                    commandType: CommandType.StoredProcedure);
+                return Ok(rows);
+            }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        [HttpPost("email-hr-recipients")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> ManageEmailHRRecipient([FromBody] EmailHRRecipientRequest req)
+        {
+            if (string.IsNullOrWhiteSpace(req.Action))
+                return BadRequest("Action is required: GET, INSERT, UPDATE, DELETE");
+            try
+            {
+                using var conn = _context.CreateConnection();
+                var result = await conn.QueryAsync(
+                    "sp_ManageEmailHRRecipients",
+                    new { Action = req.Action.ToUpper(), req.ID, req.Email, req.Name, req.IsActive, req.Responsibility, req.ComCode, req.UserAD },
+                    commandType: CommandType.StoredProcedure);
+                return Ok(result);
+            }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        [HttpGet("hr-employees-not-in-recipients")]
+        [TypeFilter(typeof(JwtAuthorizeAttribute))]
+        public async Task<IActionResult> GetHRMSEmployeesNotInRecipientList([FromQuery] string? companyCode)
+        {
+            try
+            {
+                using var conn = _context.CreateConnection();
+                var rows = await conn.QueryAsync(
+                    "sp_GetHRMSEmployeesNotInRecipientList",
+                    new { CompanyCode = companyCode },
+                    commandType: CommandType.StoredProcedure);
+                return Ok(rows);
+            }
+            catch (Exception ex) { return StatusCode(500, ex.Message); }
+        }
+
+        public class EmailHRRecipientRequest
+        {
+            public string? Action { get; set; }
+            public int? ID { get; set; }
+            public string? Email { get; set; }
+            public string? Name { get; set; }
+            public bool IsActive { get; set; } = true;
+            public string? Responsibility { get; set; }
+            public string? ComCode { get; set; }
+            public string? UserAD { get; set; }
         }
     }
 }
