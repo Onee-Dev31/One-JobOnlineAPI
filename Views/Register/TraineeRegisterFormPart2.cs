@@ -92,7 +92,7 @@ namespace JobOnlineAPI.Views.Register
             var endStr = !string.IsNullOrEmpty(G("EndDate")) ? G("EndDate") : G("EndDateRaw");
             if (DateTime.TryParseExact(startStr, dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var sd) &&
                 DateTime.TryParseExact(endStr, dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed) && ed.Date >= sd.Date)
-                months = Math.Max(1, (int)Math.Ceiling((ed.Date - sd.Date).TotalDays / 30d));
+                months = Math.Max(1, (ed.Year - sd.Year) * 12 + (ed.Month - sd.Month) + 1);
 
             c.Row(row =>
             {
