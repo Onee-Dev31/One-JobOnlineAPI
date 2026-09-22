@@ -187,7 +187,7 @@ namespace JobOnlineAPI.Views.Register
                         row.RelativeItem(3).Text(t =>
                         {
                             t.Span("มหาวิทยาลัย/สถาบัน: ").Bold();
-                            t.Span(GetValue("School"));
+                            t.Span(!string.IsNullOrWhiteSpace(GetValue("School")) ? GetValue("School") : !string.IsNullOrWhiteSpace(GetValue("University")) ? GetValue("University") : "-");
                         });
 
                         row.RelativeItem(2).Text(t =>
