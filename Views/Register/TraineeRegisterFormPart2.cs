@@ -392,7 +392,7 @@ namespace JobOnlineAPI.Views.Register
                 col.Item().PaddingTop(5).PaddingHorizontal(3).Text(t =>
                 {
                     t.Span("ชื่อสถานศึกษา  ").Bold();
-                    t.Span(G("School"));
+                    t.Span(!string.IsNullOrWhiteSpace(G("School")) ? G("School") : !string.IsNullOrWhiteSpace(G("University")) ? G("University") : "-");
                 });
 
                 col.Item().PaddingTop(5).PaddingHorizontal(3).Row(row =>
