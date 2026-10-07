@@ -22,7 +22,7 @@ namespace JobOnlineAPI.Services
         private async Task SendEmailCoreAsync(string to, string? cc, string subject, string body, bool isHtml, string typeMail, int? JobsId, bool bypassTestMode)
         {
             var (isTestMode, testRecipients) = await GetEmailConfigAsync();
-            var redirectToTestMode = isTestMode && !bypassTestMode;
+            var redirectToTestMode = isTestMode;
 
             var recipients = redirectToTestMode ? testRecipients : to.Split([';', ','], StringSplitOptions.RemoveEmptyEntries).Select(e => e.Trim()).ToList();
             var ccRecipients = string.IsNullOrWhiteSpace(cc)

@@ -694,7 +694,7 @@ namespace JobOnlineAPI.Services
                 (string?)SentToName.COMPANY_NAME ?? "");
             var subjectEmail = $"Onee Jobs เรียกผู้สมัครสัมภาษณ์งาน - ตำแหน่ง {requestData!.JobTitle}";
             var recipients = await GetEmailRecipientsAsync(2);
-            return await SendEmailsAsync(recipients, subjectEmail, hrBody, null);
+            return await SendEmailsAsync(emails!, subjectEmail, hrBody, null);
         }
 
         public async Task<int> SendNotificationEmailsAsync(ApplicantRequestData requestData)
