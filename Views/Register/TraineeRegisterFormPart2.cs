@@ -155,7 +155,7 @@ namespace JobOnlineAPI.Views.Register
 
             c.Column(col =>
             {
-                col.Item().Text("มีความประสงค์ขอฝึกงานเกี่ยวกับสาขาวิชา :").Bold();
+                col.Item().Text("มีความประสงค์สมัครฝึกงานตำแหน่ง :").Bold();
                 col.Item().PaddingTop(4).Text(t =>
                 {
                     if (desiredFields.Length == 0)
